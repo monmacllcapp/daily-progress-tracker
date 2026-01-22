@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css' // Restore CSS
+import './utils/reset-db.ts' // Make resetDB() available in console
 
 console.log("Restoring Titan Planner...");
 

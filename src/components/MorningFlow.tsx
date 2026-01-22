@@ -9,7 +9,11 @@ const steps = [
     { id: 'projects', title: '3 Non-Negotiables', prompt: 'The massive projects to move today.' },
 ];
 
-export const MorningFlow: React.FC = () => {
+interface MorningFlowProps {
+    onComplete?: () => void;
+}
+
+export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const navigate = useNavigate();
 
@@ -57,7 +61,7 @@ export const MorningFlow: React.FC = () => {
             // 2. Create Projects from "Project" inputs
             const validProjects = formData.projects.filter(p => p.trim());
 
-            await Promise.all(validProjects.map(async (title, index) => {
+            await Promise.all(validProjects.map(async (title) => {
                 await db.projects.insert({
                     id: crypto.randomUUID(),
                     title: title,
@@ -70,7 +74,13 @@ export const MorningFlow: React.FC = () => {
             }));
 
             console.log("Ignition Sequence Start...");
-            navigate('/');
+
+            // Call onComplete callback if provided
+            if (onComplete) {
+                onComplete();
+            } else {
+                navigate('/');
+            }
         } catch (err) {
             console.error("Ignition Failed:", err);
             alert("System Failure. Check Console.");
@@ -108,7 +118,7 @@ export const MorningFlow: React.FC = () => {
                                 placeholder={`I am grateful for...`}
                                 value={item}
                                 onChange={(e) => updateArrayField('gratitude', i, e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                className="w-full bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                             />
                         ))}
                     </div>
@@ -125,7 +135,7 @@ export const MorningFlow: React.FC = () => {
                                 placeholder={`Project #${i + 1}`}
                                 value={item}
                                 onChange={(e) => updateArrayField('projects', i, e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors"
+                                className="w-full bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors"
                             />
                         ))}
                     </div>
@@ -142,7 +152,7 @@ export const MorningFlow: React.FC = () => {
                                 placeholder={`Stressor #${i + 1}`}
                                 value={item}
                                 onChange={(e) => updateArrayField('stressors', i, e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
+                                className="w-full bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
                             />
                         ))}
                     </div>
@@ -156,8 +166,8 @@ export const MorningFlow: React.FC = () => {
                                 key={habit}
                                 onClick={() => toggleHabit(habit)}
                                 className={`p-6 rounded-xl border transition-all text-left ${formData.habits[habit]
-                                    ? 'bg-blue-500/20 border-blue-500 text-white'
-                                    : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                                    ? 'bg-blue-500 bg-opacity-20 border-blue-500 text-white'
+                                    : 'bg-white bg-opacity-5 border-white border-opacity-10 text-slate-400 hover:bg-white hover:bg-opacity-10'
                                     }`}
                             >
                                 <div className="font-bold mb-1">{habit}</div>
@@ -174,7 +184,7 @@ export const MorningFlow: React.FC = () => {
     return (
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
             {/* Ambient Background */}
-            <div className="absolute top-0 left-0 w-full h-1/2 bg-blue-500/10 blur-[120px] rounded-full" />
+            <div className="absolute top-0 left-0 w-full h-1/2 bg-blue-500 bg-opacity-10 blur-[120px] rounded-full" />
 
             <AnimatePresence mode="wait">
                 <motion.div
@@ -185,7 +195,7 @@ export const MorningFlow: React.FC = () => {
                     transition={{ duration: 0.4, ease: "easeOut" }}
                     className="relative z-10 w-full max-w-4xl" // Widened to max-w-4xl
                 >
-                    <div className="glass-panel p-12 rounded-2xl border-white/5 shadow-2xl min-h-[500px] flex flex-col">
+                    <div className="glass-panel p-12 rounded-2xl border-white border-opacity-5 shadow-2xl min-h-[500px] flex flex-col">
                         <motion.h6
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                             className="text-blue-400 font-mono text-sm uppercase tracking-widest mb-4"
@@ -205,7 +215,7 @@ export const MorningFlow: React.FC = () => {
                             {renderStepContent()}
                         </div>
 
-                        <div className="flex justify-between items-center mt-12 pt-8 border-t border-white/10">
+                        <div className="flex justify-between items-center mt-12 pt-8 border-t border-white border-opacity-10">
                             <button
                                 onClick={handleBack}
                                 disabled={isFirst}
@@ -216,7 +226,7 @@ export const MorningFlow: React.FC = () => {
 
                             <button
                                 onClick={handleNext}
-                                className="bg-white text-slate-950 px-8 py-3 rounded-lg font-bold hover:bg-slate-200 transition-all active:scale-95 shadow-lg shadow-white/10"
+                                className="bg-white text-slate-950 px-8 py-3 rounded-lg font-bold hover:bg-slate-200 transition-all active:scale-95 shadow-lg shadow-white shadow-opacity-10"
                             >
                                 {isLast ? 'Ignite Day' : 'Next Step'}
                             </button>

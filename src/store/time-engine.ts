@@ -52,3 +52,52 @@ export const calculatePulseRatio = (actual: number, estimated: number): number =
     if (estimated === 0) return 0;
     return Math.min(100, (actual / estimated) * 100);
 };
+
+/**
+ * Enhanced Drift Detection
+ * Returns tasks that are drifting > 20% over estimate
+ */
+export const detectDrift = (subtasks: SubTask[]): SubTask[] => {
+    return subtasks.filter(task => {
+        if (task.time_estimate_minutes === 0) return false;
+        const drift = task.time_actual_minutes - task.time_estimate_minutes;
+        const driftPercent = (drift / task.time_estimate_minutes) * 100;
+        return driftPercent > 20;
+    });
+};
+
+/**
+ * AI Leverage Score Calculator
+ * Determines which projects have the highest impact
+ * Formula: (Vision Link Weight) * (Category Importance) * (Time Urgency)
+ */
+export const calculateLeverageScore = (project: Project, subtasks: SubTask[]): number => {
+    // Vision-linked projects get 1.5x multiplier
+    const visionWeight = project.linked_vision_id ? 1.5 : 1.0;
+
+    // Category-linked projects get 1.3x multiplier
+    const categoryWeight = project.category_id ? 1.3 : 1.0;
+
+    // Time urgency: projects with incomplete tasks get higher scores
+    const incompleteTasks = subtasks.filter(st => !st.is_completed).length;
+    const totalTasks = subtasks.length || 1;
+    const urgencyWeight = incompleteTasks / totalTasks;
+
+    return visionWeight * categoryWeight * urgencyWeight;
+};
+
+/**
+ * Sorts projects by leverage score (highest first)
+ */
+export const sortByLeverage = (projects: Project[], allSubtasks: SubTask[]): Project[] => {
+    return [...projects].sort((a, b) => {
+        const aSubtasks = allSubtasks.filter(st => st.project_id === a.id);
+        const bSubtasks = allSubtasks.filter(st => st.project_id === b.id);
+
+        const aScore = calculateLeverageScore(a, aSubtasks);
+        const bScore = calculateLeverageScore(b, bSubtasks);
+
+        return bScore - aScore;
+    });
+};
+

@@ -85,3 +85,102 @@ CREATE POLICY "Users can update their own journal" ON daily_journal
 alter publication supabase_realtime add table projects;
 alter publication supabase_realtime add table sub_tasks;
 alter publication supabase_realtime add table daily_journal;
+
+-- 4. Vision Board (RPM Framework - "The Why")
+CREATE TABLE vision_board (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  declaration TEXT NOT NULL,
+  rpm_purpose TEXT NOT NULL,
+  pain_payload TEXT,
+  pleasure_payload TEXT,
+  visual_anchor TEXT,
+  category_name TEXT,
+  category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 5. Categories (Atomic Habits - "The Tire Slices")
+CREATE TABLE categories (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  name TEXT NOT NULL,
+  color_theme TEXT NOT NULL,
+  current_inflation FLOAT DEFAULT 0.0 CHECK (current_inflation >= 0 AND current_inflation <= 1),
+  last_1_percent_date DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Update Projects Table with RPM Links
+ALTER TABLE projects ADD COLUMN linked_vision_id UUID REFERENCES vision_board(id);
+ALTER TABLE projects ADD COLUMN category_id UUID REFERENCES categories(id);
+
+-- Vision Board RLS
+ALTER TABLE vision_board ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own vision board" ON vision_board
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own vision board" ON vision_board
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own vision board" ON vision_board
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own vision board" ON vision_board
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Categories RLS
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own categories" ON categories
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own categories" ON categories
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own categories" ON categories
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own categories" ON categories
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Enable realtime for new tables
+alter publication supabase_realtime add table vision_board;
+alter publication supabase_realtime add table categories;
+
+
+-- 6. Stressors (Today's Urgent Tasks)
+CREATE TABLE stressors (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  time_estimate_minutes INTEGER NOT NULL DEFAULT 30,
+  is_today BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE stressor_milestones (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  stressor_id UUID NOT NULL REFERENCES stressors(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  is_completed BOOLEAN DEFAULT false,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- RLS for stressors
+ALTER TABLE stressors ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own stressors" ON stressors FOR ALL USING (true);
+
+ALTER TABLE stressor_milestones ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own stressor milestones" ON stressor_milestones FOR ALL USING (true);
+
+-- Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE stressors;
+ALTER PUBLICATION supabase_realtime ADD TABLE stressor_milestones;

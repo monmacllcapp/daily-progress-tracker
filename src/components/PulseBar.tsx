@@ -1,75 +1,77 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
-import { SubTask } from '../types/schema';
+import type { SubTask } from '../types/schema';
 
 interface PulseBarProps {
     subtasks: SubTask[];
-    totalEstimatedMinutes: number; // Derived from project metrics
+    totalEstimatedMinutes: number;
 }
 
 export const PulseBar: React.FC<PulseBarProps> = ({ subtasks, totalEstimatedMinutes }) => {
-    // If no estimate, show empty track
-    if (totalEstimatedMinutes === 0) {
-        return <div className="h-2 w-full bg-white/5 rounded-full" />;
+    if (totalEstimatedMinutes === 0 || subtasks.length === 0) {
+        return <div className="h-2 w-full bg-white bg-opacity-5 rounded-full" />;
     }
 
-    // Calculate segments
-    // We need to map each subtask to a width percentage of the TOTAL estimate.
-    // If subtask is 15m and total is 60m, width is 25%.
-    const segments = useMemo(() => {
-        return subtasks.map(task => {
-            const widthPct = (task.time_estimate_minutes / totalEstimatedMinutes) * 100;
-            const progressPct = Math.min(100, (task.time_actual_minutes / task.time_estimate_minutes) * 100);
-            const isDrifting = task.time_actual_minutes > task.time_estimate_minutes;
-
-            return {
-                id: task.id,
-                width: widthPct,
-                progress: progressPct,
-                isDrifting,
-                title: task.title
-            };
-        }).sort((a, b) => a.id.localeCompare(b.id)); // Stable sort or by sort_order if available
-    }, [subtasks, totalEstimatedMinutes]);
-
-    const totalDrift = useMemo(() => {
-        const spent = subtasks.reduce((acc, t) => acc + t.time_actual_minutes, 0);
-        return Math.max(0, spent - totalEstimatedMinutes);
-    }, [subtasks, totalEstimatedMinutes]);
-
-    const driftWidth = (totalDrift / totalEstimatedMinutes) * 100;
+    // Sort subtasks by sort_order to match display order
+    const sortedSubtasks = useMemo(() => {
+        return [...subtasks].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    }, [subtasks]);
 
     return (
-        <div className="relative w-full h-3 bg-slate-800/50 rounded-full overflow-hidden flex ring-1 ring-white/10">
-            {segments.map(segment => (
-                <div
-                    key={segment.id}
-                    className="h-full border-r border-slate-900/20 last:border-0 relative"
-                    style={{ width: `${segment.width}%` }}
-                    title={segment.title}
-                >
-                    {/* Background for segment (unfilled) */}
-                    <div className="absolute inset-0 bg-white/5" />
+        <div className="relative w-full h-3 bg-slate-800 bg-opacity-50 rounded-full overflow-visible flex items-center">
+            {/* Background track */}
+            <div className="absolute inset-0 bg-white bg-opacity-5 rounded-full" />
 
-                    {/* Fill */}
-                    <motion.div
-                        className={clsx(
-                            "h-full",
-                            segment.isDrifting ? "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]" : "bg-blue-500"
-                        )}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${segment.progress}%` }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
-                    />
-                </div>
-            ))}
+            {/* Connecting line between circles */}
+            <div className="absolute inset-y-0 left-0 right-0 flex items-center px-2">
+                <div className="w-full h-0.5 bg-white bg-opacity-10" />
+            </div>
 
-            {/* Global Drift Overflow Indicator (if drift exceeds graphical space, we might scale or just show red overlay at end) */}
-            {/* For now, if total drift exists, we can show a glow or a separate indicator, but the requirement said "turn the overflow segment RED". 
-          The per-segment logic above handles local overflow logic (color change). 
-          If the sum of actuals > estimate, we effectively "fill" the bar. 
-      */}
+            {/* Milestone circles */}
+            <div className="relative w-full flex justify-between items-center px-2">
+                {sortedSubtasks.map((task, index) => {
+                    const position = ((index + 1) / sortedSubtasks.length) * 100;
+                    const isDrifting = !task.is_completed && task.time_actual_minutes > task.time_estimate_minutes;
+
+                    return (
+                        <motion.div
+                            key={task.id}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: index * 0.05, type: 'spring', stiffness: 300 }}
+                            className="relative group"
+                            style={{
+                                position: 'absolute',
+                                left: `${position}%`,
+                                transform: 'translateX(-50%)'
+                            }}
+                        >
+                            {/* Circle */}
+                            <div
+                                className={clsx(
+                                    "w-3 h-3 rounded-full border-2 transition-all duration-300 cursor-pointer",
+                                    task.is_completed
+                                        ? "bg-green-500 border-green-500 shadow-lg shadow-[rgba(34,197,94,0.5)]"
+                                        : isDrifting
+                                            ? "bg-rose-500 border-rose-500 shadow-lg shadow-[rgba(244,63,94,0.5)]"
+                                            : "bg-slate-700 border-white border-opacity-30 hover:border-white hover:border-opacity-50"
+                                )}
+                                title={task.title}
+                            />
+
+                            {/* Tooltip on hover */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                <div className="bg-black bg-opacity-90 text-white text-xs px-2 py-1 rounded shadow-lg">
+                                    {task.title}
+                                    {isDrifting && <span className="text-rose-400 ml-1">⚠️</span>}
+                                </div>
+                                <div className="w-2 h-2 bg-black bg-opacity-90 rotate-45 absolute top-full left-1/2 -translate-x-1/2 -mt-1" />
+                            </div>
+                        </motion.div>
+                    );
+                })}
+            </div>
         </div>
     );
 };
