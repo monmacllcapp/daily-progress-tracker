@@ -1,0 +1,12 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  pr-gate:
+    uses: monmacllcapp/governance/.github/workflows/reusable-pr-gate.yml@main
+    with:
+      main_branch: master
+    secrets: inherit

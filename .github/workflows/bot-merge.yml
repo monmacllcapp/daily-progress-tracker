@@ -1,0 +1,16 @@
+name: Bot Merge
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bot-merge:
+    uses: monmacllcapp/governance/.github/workflows/reusable-bot-merge.yml@main
+    with:
+      main_branch: master
+    secrets: inherit
