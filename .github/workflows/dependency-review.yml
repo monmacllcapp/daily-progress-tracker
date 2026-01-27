@@ -1,0 +1,12 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  dependency-review:
+    uses: monmacllcapp/governance/.github/workflows/reusable-dependency-review.yml@main
+    with:
+      fail_on_severity: high
+      deny_licenses: 'GPL-3.0, AGPL-3.0'

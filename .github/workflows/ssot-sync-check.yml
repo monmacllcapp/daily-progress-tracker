@@ -1,0 +1,14 @@
+name: SSOT Sync Check
+
+on:
+  pull_request:
+    paths:
+      - 'SSOT_POINTER.md'
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  ssot-sync:
+    uses: monmacllcapp/governance/.github/workflows/reusable-ssot-sync.yml@main
+    secrets: inherit

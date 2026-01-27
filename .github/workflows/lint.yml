@@ -1,0 +1,16 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master, sandbox]
+
+jobs:
+  lint:
+    uses: monmacllcapp/governance/.github/workflows/reusable-lint.yml@main
+    with:
+      node_version: '20'
+      lint_js: true
+      lint_python: false
+      lint_shell: true

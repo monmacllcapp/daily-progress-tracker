@@ -1,0 +1,7 @@
+# Code Owners for daily-progress-tracker
+* @monmacllcapp
+
+# Governance files require owner approval
+REPO_CONTRACT.md @monmacllcapp
+SSOT_POINTER.md @monmacllcapp
+.github/ @monmacllcapp
