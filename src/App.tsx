@@ -218,7 +218,7 @@ function Home() {
       />
 
       <FeedbackWidget />
-      <main className="min-h-screen bg-zinc-950 text-white p-6">
+      <main className="min-h-screen w-full bg-zinc-950 text-white">
         {/* Header */}
         <header className="w-full px-4 sm:px-6 lg:px-8 mb-8">
           <div className="flex items-center justify-between">
