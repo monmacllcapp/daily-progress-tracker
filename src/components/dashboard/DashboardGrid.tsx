@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Responsive } from 'react-grid-layout';
+import type { Layout } from 'react-grid-layout';
 
 import { useDashboardStore } from '../../store/dashboardStore';
 import { WIDGET_REGISTRY } from '../../config/widgetRegistry';
@@ -10,87 +11,89 @@ import 'react-resizable/css/styles.css';
 
 export function DashboardGrid() {
     const { layouts, updateLayout, loadLayout, hiddenWidgets } = useDashboardStore();
-    const [width, setWidth] = useState(1200);
     const containerRef = useRef<HTMLDivElement>(null);
-    const [mounted, setMounted] = useState(false);
+    const [width, setWidth] = useState(0);
 
     useEffect(() => {
         loadLayout();
     }, [loadLayout]);
 
-    const containerRefCallback = useCallback((node: HTMLDivElement | null) => {
-        if (node) {
-            containerRef.current = node;
-            setWidth(node.offsetWidth);
-            setMounted(true);
-        }
+    // Measure container width with ResizeObserver
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const w = entry.contentRect.width;
+                if (w > 0) setWidth(w);
+            }
+        });
+        observer.observe(el);
+
+        // Get initial width
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0) setWidth(rect.width);
+
+        return () => observer.disconnect();
     }, []);
 
-    useEffect(() => {
-        const updateWidth = () => {
-            if (containerRef.current) {
-                setWidth(containerRef.current.offsetWidth);
-            }
-        };
-
-        // Resize observer for robust width tracking
-        const observer = new ResizeObserver(() => {
-            window.requestAnimationFrame(updateWidth);
-        });
-
-        if (containerRef.current) {
-            observer.observe(containerRef.current);
-        }
-
-        window.addEventListener('resize', updateWidth);
-
-        // Force an extra check
-        setTimeout(updateWidth, 100);
-        setTimeout(updateWidth, 500);
-
-        return () => {
-            observer.disconnect();
-            window.removeEventListener('resize', updateWidth);
-        };
-    }, [mounted]);
-
-    if (!mounted) return null;
-
-    // Filter visible items
     const activeLayout = layouts.filter(l => !hiddenWidgets.includes(l.i));
 
+    // Save layout only on user interactions — NOT on onLayoutChange —
+    // to prevent infinite re-render loops between Responsive's internal
+    // layout compaction and our store updates.
+    const handleDragStop = useCallback(
+        (layout: Layout[]) => {
+            updateLayout(layout);
+        },
+        [updateLayout]
+    );
+
+    const handleResizeStop = useCallback(
+        (layout: Layout[]) => {
+            updateLayout(layout);
+        },
+        [updateLayout]
+    );
+
     return (
-        <div ref={containerRefCallback} className="w-full h-full pb-20">
-            <Responsive
-                className="layout"
-                width={width}
-                layouts={{
-                    lg: activeLayout,
-                    md: activeLayout,
-                    sm: activeLayout
-                }}
-                breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
-                rowHeight={100}
-                draggableHandle=".drag-handle"
-                onLayoutChange={(currentLayout) => updateLayout(currentLayout)}
-                isDraggable={true}
-                isResizable={true}
-                margin={[16, 16]}
-            >
-                {activeLayout.map(item => {
-                    const config = WIDGET_REGISTRY.find(w => w.id === item.i);
-                    if (!config) return <div key={item.i} className="hidden" />;
+        <div ref={containerRef}>
+            {width > 0 ? (
+                <Responsive
+                    className="layout"
+                    width={width}
+                    layouts={{
+                        lg: activeLayout,
+                        md: activeLayout,
+                        sm: activeLayout,
+                        xs: activeLayout,
+                        xxs: activeLayout,
+                    }}
+                    breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                    cols={{ lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }}
+                    rowHeight={100}
+                    draggableHandle=".drag-handle"
+                    onDragStop={handleDragStop}
+                    onResizeStop={handleResizeStop}
+                    isDraggable={true}
+                    isResizable={true}
+                    margin={[16, 16]}
+                >
+                    {activeLayout.map(item => {
+                        const config = WIDGET_REGISTRY.find(w => w.id === item.i);
+                        if (!config) return <div key={item.i} />;
 
-                    const Component = config.component;
+                        const Component = config.component;
 
-                    return (
-                        <WidgetWrapper key={item.i} title={config.title}>
-                            <Component />
-                        </WidgetWrapper>
-                    );
-                })}
-            </Responsive>
+                        return (
+                            <WidgetWrapper key={item.i} title={config.title}>
+                                <Component />
+                            </WidgetWrapper>
+                        );
+                    })}
+                </Responsive>
+            ) : null}
         </div>
     );
 }

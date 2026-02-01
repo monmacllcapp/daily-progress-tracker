@@ -364,12 +364,20 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
         </div>
     ];
 
+    const isModal = !!onClose;
+
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className={isModal
+            ? "fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+            : "min-h-screen bg-background flex items-center justify-center p-6"
+        }>
+            {isModal && (
+                <div className="absolute inset-0" onClick={onClose} />
+            )}
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="w-full max-w-2xl glass-card p-12 relative overflow-hidden"
+                className="w-full max-w-2xl glass-card p-12 relative overflow-hidden z-10"
             >
                 {/* Progress Dots */}
                 <div className="flex justify-center gap-2 mb-12">
@@ -392,7 +400,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                             initial="enter"
                             animate="center"
                             exit="exit"
-                            transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="absolute inset-0" > {slides[currentSlide]} </motion.div> </AnimatePresence> </div> {/* Navigation */} <div className="flex justify-between mt-12"> <button onClick={handleBack} disabled={currentSlide === 0} className="flex items-center gap-2 px-6 py-3 text-secondary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all" > <ArrowLeft className="w-5 h-5" /> Back </button> {currentSlide < 2 ? ( <button onClick={handleNext} disabled={!canProceedFromSlide(currentSlide)} className="flex items-center gap-2 px-8 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:cursor-not-allowed rounded-xl font-bold transition-all shadow-lg shadow-[rgba(59,130,246,0.2)] active:scale-95" > Next <ArrowRight className="w-5 h-5" /> </button> ) : ( <button onClick={handleSubmit} disabled={!canProceedFromSlide(currentSlide)} className="flex items-center gap-2 px-8 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-white/10 disabled:cursor-not-allowed rounded-xl font-bold transition-all shadow-lg shadow-[rgba(16,185,129,0.2)] active:scale-95" > Ignite Project <Zap className="w-5 h-5" /> </button> )} </div> {/* Close button */} <button onClick={() => navigate('/')}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="absolute inset-0" > {slides[currentSlide]} </motion.div> </AnimatePresence> </div> {/* Navigation */} <div className="flex justify-between mt-12"> <button onClick={handleBack} disabled={currentSlide === 0} className="flex items-center gap-2 px-6 py-3 text-secondary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all" > <ArrowLeft className="w-5 h-5" /> Back </button> {currentSlide < 2 ? ( <button onClick={handleNext} disabled={!canProceedFromSlide(currentSlide)} className="flex items-center gap-2 px-8 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:cursor-not-allowed rounded-xl font-bold transition-all shadow-lg shadow-[rgba(59,130,246,0.2)] active:scale-95" > Next <ArrowRight className="w-5 h-5" /> </button> ) : ( <button onClick={handleSubmit} disabled={!canProceedFromSlide(currentSlide)} className="flex items-center gap-2 px-8 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-white/10 disabled:cursor-not-allowed rounded-xl font-bold transition-all shadow-lg shadow-[rgba(16,185,129,0.2)] active:scale-95" > Ignite Project <Zap className="w-5 h-5" /> </button> )} </div> {/* Close button */} <button onClick={() => onClose ? onClose() : navigate('/')}
                     aria-label="Close wizard"
                     className="absolute top-6 right-6 text-secondary hover:text-white transition-colors"
                 >

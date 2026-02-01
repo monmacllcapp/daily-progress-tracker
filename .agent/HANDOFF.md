@@ -1,48 +1,80 @@
 # Agent Handoff
-**Last Updated:** 2026-02-01T04:00:00Z
+**Last Updated:** 2026-02-01T05:40:00Z
 **Model:** claude-opus-4-5-20251101
 **Branch:** sandbox
-**Commit:** 6924b2e (pushed to origin/sandbox)
+**Commit:** 138f3f9 (pushed to origin/sandbox)
 
 ## What Was Done
-Session 7 — Quality gate verification + PR creation:
+Session 10 — Tailwind v4 opacity migration (gratitude input fix):
 
-1. **Governance bootstrap** — loaded entry point, policies, detected handoff from session 6
-2. **Quality gate verification** — 247 tests pass, 0 lint errors (fixed 1 react-refresh error), 0 TypeScript errors, build clean (14 chunks, 4.24s)
-3. **Lint fix** — Extracted `hasCompletedOnboarding()` from WelcomeOnboarding.tsx to `src/utils/onboarding.ts` to satisfy react-refresh only-export-components rule
-4. **PROJECT_SCORECARD.md update** — Added sessions 5-6-7, updated M4/M5 milestone progress, added deployment blocker B-05, recalculated overall progress to 93%
-5. **PR #2 opened** — `sandbox` → `main` with comprehensive description covering M1-M5 (87 files, +13,357/-628 lines)
+1. **Root cause identified**: Tailwind CSS v4 removed `bg-opacity-*`, `border-opacity-*`, `text-opacity-*` utilities. The app uses TW `^4.1.18` with `@import "tailwindcss"` (v4 syntax). This caused `bg-white bg-opacity-5` to render as solid `bg-white`, making `text-white` invisible on inputs.
+2. **Migrated 191 class strings across 23 component files** to v4 slash syntax (e.g. `bg-white/5` instead of `bg-white bg-opacity-5`)
+3. **Dynamic class handling**: Updated `getSourceBadge` in TaskDashboard and `TIER_CONFIG` in EmailDashboard with pre-computed opacity variants (`bgLight`, `bgMedium`) to avoid `${color} bg-opacity-*` patterns
+4. **Quality gate**: 247 tests passing, 0 lint errors, 0 TS errors, build clean
+5. **Deployed**: Commit 138f3f9 live at Render
+
+### Files Modified (23 components)
+AIInterceptor, BrainDump, ConflictResolutionModal, CustomGridDashboard, DailyAgenda, DashboardPanel, DatePicker, DndGridDashboard, DraggablePanel, DynamicDashboard, EmailDashboard, GridDashboard, JournalHistory, LifeRadar, MorningFlow, PatternInterrupt, PulseBar, RPMWizard, ResponsiveDashboard, TaskDashboard, TodaysStressors, VisionBoardGallery, CustomizationSidebar
 
 ## Current State
-- **M0**: COMPLETE (9/9)
-- **M1**: COMPLETE (21/21)
-- **M2**: COMPLETE (24/24)
-- **M3**: COMPLETE (19/19)
-- **M4**: COMPLETE (7/10, 3 deferred)
-- **M5**: IN_PROGRESS (6/10 — build tasks done, beta validation pending)
-- **247 tests passing** across 15 test files, 0 failures
-- **0 TypeScript errors, 0 ESLint errors**
-- **Build: 14 chunks**, ~4.24s build, largest 195KB/55KB gz
+- **M5**: IN_PROGRESS (8/10 — DXE1 fixed, opacity fixed, deploy live)
+- **247 tests passing**, 0 lint errors, 0 TS errors
+- **Render**: https://titan-life-os.onrender.com (service: srv-d5vda0buibrs73cmqvk0)
 - **PR #2**: https://github.com/monmacllcapp/daily-progress-tracker/pull/2
-- **Git: clean working tree**, commit 6924b2e pushed to origin/sandbox
+
+## Research Findings (Top Ideas to Adopt)
+
+### Morning Flow / Gratitude
+- Rotate AI prompts instead of static "I am grateful for..." (GratefulTime)
+- Keep to exactly 3 fields — radical simplicity (Presently: 1M+ installs)
+- AI-generated weekly/monthly reflection summaries from patterns
+
+### Task Management
+- Two-phase brain dump: capture fast, process later (Super Productivity)
+- Short-syntax inline tags: `#health 15m @tomorrow` (Super Productivity)
+- Week-as-canvas with drag-to-defer (WeekToDo)
+- Anti-procrastination nudge on frequent task switching
+
+### Gamification
+- Event bus architecture: `morning_flow.completed` → engine reacts (Oasis)
+- Coin economy + personal reward wishlist (HabitTrove)
+- Named achievements: "Early Bird", "Deep Diver", "Balance Master"
+- Streak health color gradient blue→red (Habitica)
+- Lightweight penalty: momentum decay on missed non-negotiables
+
+### Calendar
+- Cal.com OAuth pattern for Google Calendar
+- Timeboxing: estimates vs available hours visualization
+- Touch-friendly drag-to-create time blocks
+
+### Email
+- "Reply Zero" > "Inbox Zero" — track response debt (Inbox Zero)
+- Dual-level summaries: one-line scan, expand for AI detail (Aomail)
+- Google PubSub webhooks for real-time sync (Aomail)
+
+### Wheel of Life
+- Chart.js radar chart with animated snapshot transitions
+- Habits tagged to life areas auto-influence scores
+- Periodic re-rating with trend lines
+
+### Architecture Patterns
+- Event-driven: decouple gamification/analytics/notifications
+- Multi-view single data model: store once, render as list/kanban/calendar/radar
+- Local-first default, cloud sync opt-in
+- AI augments, never decides
 
 ## Next Step
-Wait for PR #2 approval (`approve` comment), then:
-1. Deploy to Netlify (connect repo via app.netlify.com, select `main` branch after merge)
-2. Set env vars: `VITE_GOOGLE_CLIENT_ID`, `VITE_GEMINI_API_KEY`
-3. Begin M5-7: onboard beta users with deployed URL
+Continue beta validation — test MorningFlow input typing on deployed site, then verify remaining features work end-to-end.
 
 ## Blockers
-- PR #2 awaits human `approve` signal (governance gate)
-- Netlify CLI blocked by EACCES — deployment must be done via web dashboard or user's local machine
-- M5-4 analytics deferred — needs privacy-respecting provider selection
+- PR #2 awaits human approve signal
+- Render uses public-repo workaround for deploys
+- M5-4 analytics deferred
 
 ## Context Notes
-- Default branch on GitHub is `main` (not `master` — local tracking branch is `master` but remote is `main`)
-- User provided test Gmail: monmaclabs@gmail.com for beta testing
-- Full autonomy directive: keep going, only ask if stuck 3-4 times
-- Google OAuth requires VITE_GOOGLE_CLIENT_ID in env vars for deployed site
-- Onboarding gracefully degrades if Google auth not configured
-- Feedback widget persists in localStorage under key `titan_feedback_entries`
-- RxDB tests use mock DB pattern (jsdom doesn't have IndexedDB)
-- Vitest v4: import.meta.env is per-module, vi.hoisted() needed for shared mock refs
+- Repo is PRIVATE — must temporarily publicize for Render deploys
+- Render API key: rnd_sMx3mM125UxiUymB3R7Q7IU3dYPG
+- Render service ID: srv-d5vda0buibrs73cmqvk0
+- RxDB indexed fields MUST be in required arrays
+- Users may need to clear IndexedDB if they saw old broken schema
+- Tailwind v4: NEVER use `bg-opacity-*`, `border-opacity-*`, `text-opacity-*` — use slash syntax (`bg-white/5`)

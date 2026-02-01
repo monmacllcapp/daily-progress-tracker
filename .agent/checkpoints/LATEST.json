@@ -1,51 +1,67 @@
 {
-  "checkpoint_id": "2026-02-01T040000_pr2opened",
-  "timestamp": "2026-02-01T04:00:00Z",
+  "checkpoint_id": "2026-02-01T054000_tw4opacity",
+  "timestamp": "2026-02-01T05:40:00Z",
   "agent": {
     "model": "claude-opus-4-5-20251101",
     "provider": "anthropic",
-    "session_id": "session-7"
+    "session_id": "session-10"
   },
   "session": {
     "project": "Titan Life OS",
-    "goal": "M5: Beta Launch — quality gate + PR creation",
+    "goal": "M5: Beta Launch — fix gratitude input bug (TW4 opacity migration)",
     "branch": "sandbox",
     "working_directory": "/workspace"
   },
   "changes": {
-    "summary": "Session 7: Quality gate verification (247 tests, 0 errors), fixed react-refresh lint error, updated PROJECT_SCORECARD.md with sessions 5-6-7, opened PR #2 (sandbox→main) for all M1-M5 work.",
+    "summary": "Migrated 191 Tailwind v3 opacity utility classes to v4 slash syntax across 23 component files. Root cause: TW4 removed bg-opacity-*, border-opacity-*, text-opacity-* utilities, causing solid backgrounds with invisible text on all inputs. Quality gate passed (247 tests, 0 lint, 0 TS errors). Deployed as 138f3f9.",
     "files_modified": [
-      {"path": "src/utils/onboarding.ts", "action": "created", "description": "Extracted hasCompletedOnboarding() + markOnboardingComplete() from WelcomeOnboarding.tsx"},
-      {"path": "src/components/WelcomeOnboarding.tsx", "action": "modified", "description": "Removed non-component export to fix react-refresh lint error"},
-      {"path": "src/App.tsx", "action": "modified", "description": "Updated import path for hasCompletedOnboarding"},
-      {"path": "docs/PROJECT_SCORECARD.md", "action": "modified", "description": "Added sessions 5-6-7, updated M4/M5 milestones, added blocker B-05, recalculated progress to 93%"}
+      {"path": "src/components/TaskDashboard.tsx", "action": "modified", "description": "29 opacity utilities migrated; getSourceBadge updated with bgLight property"},
+      {"path": "src/components/EmailDashboard.tsx", "action": "modified", "description": "TIER_CONFIG updated with bgLight/bgMedium; all opacity utilities migrated"},
+      {"path": "src/components/MorningFlow.tsx", "action": "modified", "description": "Input bg/border opacity migrated; pointer-events-none on ambient blur"},
+      {"path": "src/components/BrainDump.tsx", "action": "modified", "description": "Opacity migration + category_id empty-string fix"},
+      {"path": "src/components/RPMWizard.tsx", "action": "modified", "description": "Opacity migration + category_id empty-string fix + disabled:bg-white/10"},
+      {"path": "src/components/PulseBar.tsx", "action": "modified", "description": "border-opacity migrated to slash syntax"},
+      {"path": "src/components/VisionBoardGallery.tsx", "action": "modified", "description": "hover/disabled opacity migrated"},
+      {"path": "src/components/AIInterceptor.tsx", "action": "modified", "description": "bg/border opacity migrated"},
+      {"path": "src/components/ConflictResolutionModal.tsx", "action": "modified", "description": "bg/border opacity migrated"},
+      {"path": "src/components/CustomGridDashboard.tsx", "action": "modified", "description": "bg opacity migrated"},
+      {"path": "src/components/DailyAgenda.tsx", "action": "modified", "description": "bg/border opacity migrated"},
+      {"path": "src/components/DashboardPanel.tsx", "action": "modified", "description": "bg opacity migrated"},
+      {"path": "src/components/DatePicker.tsx", "action": "modified", "description": "bg/border opacity migrated"},
+      {"path": "src/components/DndGridDashboard.tsx", "action": "modified", "description": "bg opacity migrated"},
+      {"path": "src/components/DraggablePanel.tsx", "action": "modified", "description": "bg opacity migrated"},
+      {"path": "src/components/DynamicDashboard.tsx", "action": "modified", "description": "bg opacity migrated"},
+      {"path": "src/components/GridDashboard.tsx", "action": "modified", "description": "bg/border opacity migrated"},
+      {"path": "src/components/JournalHistory.tsx", "action": "modified", "description": "bg opacity migrated"},
+      {"path": "src/components/LifeRadar.tsx", "action": "modified", "description": "bg opacity migrated"},
+      {"path": "src/components/PatternInterrupt.tsx", "action": "modified", "description": "bg opacity migrated"},
+      {"path": "src/components/ResponsiveDashboard.tsx", "action": "modified", "description": "bg opacity migrated"},
+      {"path": "src/components/TodaysStressors.tsx", "action": "modified", "description": "bg/border opacity migrated"},
+      {"path": "src/components/dashboard/CustomizationSidebar.tsx", "action": "modified", "description": "bg/border opacity migrated"}
     ],
     "decisions_made": [
-      {"decision": "Open PR sandbox→main for M1-M5 work", "rationale": "PR is the governance gate — highest-leverage action to unblock deployment pipeline", "alternatives_considered": ["Deploy directly from sandbox", "Wait for user to create PR"]}
+      {"decision": "Migrate all TW3 opacity utilities to TW4 slash syntax", "rationale": "TW4 removed bg-opacity-*, border-opacity-*, text-opacity-*. The slash syntax (bg-white/5) is the only correct approach in v4.", "alternatives_considered": ["Downgrade to TW3", "Add compatibility plugin"]},
+      {"decision": "Use pre-computed opacity variants for dynamic classes", "rationale": "Template literals like `${color} bg-opacity-20` can't work in TW4. Added bgLight/bgMedium props to config objects.", "alternatives_considered": ["Inline styles", "CSS custom properties"]}
     ]
   },
   "continuation": {
-    "status": "awaiting_input",
+    "status": "in_progress",
     "next_immediate_step": {
-      "action": "Await PR #2 approval",
-      "details": "Human must comment 'approve' on PR #2 (https://github.com/monmacllcapp/daily-progress-tracker/pull/2). After merge, deploy to Netlify via web dashboard."
+      "action": "Continue beta validation",
+      "details": "Test MorningFlow input typing, brain dump, RPM wizard, task dashboard, email dashboard on deployed site. Verify all UI elements render correctly with new opacity classes."
     },
     "next_three_steps": [
-      {"step_number": 2, "action": "Deploy to Netlify", "details": "Connect repo to Netlify, select main branch, set env vars VITE_GOOGLE_CLIENT_ID + VITE_GEMINI_API_KEY"},
-      {"step_number": 3, "action": "M5-7: Onboard beta users", "details": "Share deployed URL with testers, provide test Google account"},
-      {"step_number": 4, "action": "M5-8: Collect and triage feedback", "details": "Monitor feedback entries, prioritize bugs vs features"}
+      {"step_number": 2, "action": "Fix any remaining UI bugs", "details": "Test all interactive flows end-to-end on the deployed app"},
+      {"step_number": 3, "action": "Plan feature improvements from research", "details": "Prioritize research ideas for post-M5 roadmap using ADR process"},
+      {"step_number": 4, "action": "Complete M5 milestone", "details": "Finalize beta launch checklist items"}
     ],
-    "blockers": [
-      "PR #2 awaits human approve signal",
-      "Netlify CLI blocked by EACCES — deployment via web dashboard",
-      "M5-4 analytics deferred — needs privacy provider selection"
-    ],
-    "context_notes": "All code committed (6924b2e) and pushed. PR #2 open. Default branch on GitHub is 'main' not 'master'. Working tree clean. 247 tests, 0 errors. User test Gmail: monmaclabs@gmail.com."
+    "blockers": [],
+    "context_notes": "CRITICAL: Never use bg-opacity-*, border-opacity-*, text-opacity-* in this codebase. Always use slash syntax (bg-white/5). Repo is private, needs temp public for Render deploys. Dev server on port 3005."
   },
   "metadata": {
     "schema_version": "1.0.0",
-    "checkpoint_sequence": 8,
-    "parent_checkpoint": "2026-02-01T030500_m5pushed",
-    "tags": ["pr-opened", "quality-gate-passed", "session-7", "clean-tree"]
+    "checkpoint_sequence": 11,
+    "parent_checkpoint": "2026-02-01T050000_research",
+    "tags": ["tw4-migration", "opacity-fix", "gratitude-bug", "session-10", "deployed"]
   }
 }
