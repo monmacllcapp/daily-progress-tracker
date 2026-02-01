@@ -9,9 +9,9 @@ interface DashboardPanelProps {
 
 export function DashboardPanel({ title, children, className = '' }: DashboardPanelProps) {
     return (
-        <div className={`h-full flex flex-col bg-zinc-900 bg-opacity-50 border border-white border-opacity-10 rounded-xl overflow-hidden ${className}`}>
+        <div className={`h-full flex flex-col bg-zinc-900/50 border border-white/10 rounded-xl overflow-hidden ${className}`}>
             {/* Panel Header with Drag Handle */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-white border-opacity-10 bg-zinc-900 bg-opacity-80 cursor-grab active:cursor-grabbing">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-zinc-900/80 cursor-grab active:cursor-grabbing">
                 <GripVertical className="w-4 h-4 text-secondary" />
                 <h3 className="font-bold text-sm uppercase tracking-wide">{title}</h3>
             </div>

@@ -48,7 +48,7 @@ export function DynamicDashboard({ children }: DynamicDashboardProps) {
             {/* Reset Layout Button */}
             <button
                 onClick={resetLayout}
-                className="fixed top-4 right-4 z-50 px-4 py-2 bg-white bg-opacity-10 hover:bg-white hover:bg-opacity-20 rounded-lg text-sm font-medium transition-all backdrop-blur-sm border border-white border-opacity-10"
+                className="fixed top-4 right-4 z-50 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-all backdrop-blur-sm border border-white/10"
             >
                 Reset Layout
             </button>
@@ -75,12 +75,12 @@ export function DynamicDashboard({ children }: DynamicDashboardProps) {
                                 className="glass-card h-full w-full overflow-hidden flex flex-col"
                             >
                                 {/* Drag Handle */}
-                                <div className="drag-handle cursor-move px-4 py-2 bg-gradient-to-r from-blue-500 from-10% to-purple-500 border-b border-white border-opacity-10 flex items-center justify-between">
+                                <div className="drag-handle cursor-move px-4 py-2 bg-gradient-to-r from-blue-500 from-10% to-purple-500 border-b border-white/10 flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <div className="flex gap-1">
-                                            <div className="w-1 h-1 rounded-full bg-white bg-opacity-30" />
-                                            <div className="w-1 h-1 rounded-full bg-white bg-opacity-30" />
-                                            <div className="w-1 h-1 rounded-full bg-white bg-opacity-30" />
+                                            <div className="w-1 h-1 rounded-full bg-white/30" />
+                                            <div className="w-1 h-1 rounded-full bg-white/30" />
+                                            <div className="w-1 h-1 rounded-full bg-white/30" />
                                         </div>
                                         <span className="text-xs text-secondary uppercase tracking-wider">
                                             {cardId.replace('-', ' ')}

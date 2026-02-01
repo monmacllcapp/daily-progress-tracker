@@ -147,7 +147,7 @@ export function VisionBoardGallery() {
     if (visions.length === 0 && !showCreateModal) {
         return (
             <div className="glass-card p-12 text-center h-full flex flex-col items-center justify-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-500 bg-opacity-20 mb-6">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-500/20 mb-6">
                     <Target className="w-10 h-10 text-blue-400" />
                 </div>
                 <h3 className="text-2xl font-bold mb-3">Your Vision Board</h3>
@@ -177,7 +177,7 @@ export function VisionBoardGallery() {
                         className="glass-card overflow-hidden group relative"
                     >
                         {/* Category Title Bar */}
-                        <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-4 py-2 border-b border-white border-opacity-10">
+                        <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-4 py-2 border-b border-white/10">
                             {editingCategory?.visionId === vision.id ? (
                                 <input
                                     autoFocus
@@ -194,11 +194,7 @@ export function VisionBoardGallery() {
                                 />
                             ) : (
                                 <div
-                                    onClick={() => setEditingCategory({ visionId: vision.id, name: vision.category_name || '' })}
-                                    className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all bg-white bg-opacity-5 border-white border-opacity-5 hover:bg-opacity-10"
-                                >
-                                    <span className="text-sm font-bold uppercase tracking-wider flex-1">
-                                        {vision.category_name || 'Uncategorized'}
+                                    onClick={() => setEditingCategory({ visionId: vision.id, name: vision.category_name || '' })} className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all bg-white/5 border-white/5 hover:bg-white/10" > <span className="text-sm font-bold uppercase tracking-wider flex-1"> {vision.category_name || 'Uncategorized'}
                                     </span>
                                     <Edit2 className="w-3 h-3 opacity-0 group-hover/title:opacity-100 transition-opacity" />
                                 </div>
@@ -217,7 +213,7 @@ export function VisionBoardGallery() {
                             </div>
                         ) : (
                             <div className="h-48 bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-                                <Target className="w-16 h-16 text-white text-opacity-30" />
+                                <Target className="w-16 h-16 text-white/30" />
                             </div>
                         )}
 
@@ -236,7 +232,7 @@ export function VisionBoardGallery() {
                         {/* Delete Button */}
                         <button
                             onClick={() => deleteVision(vision.id)}
-                            className="absolute top-12 right-3 p-2 bg-black bg-opacity-50 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300"
+                            className="absolute top-12 right-3 p-2 bg-black/50 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -258,7 +254,7 @@ export function VisionBoardGallery() {
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6"
                     onClick={() => setShowCreateModal(false)}
                 >
                     <motion.div
@@ -279,7 +275,7 @@ export function VisionBoardGallery() {
                                 value={newCategory}
                                 onChange={(e) => setNewCategory(e.target.value)}
                                 placeholder="e.g., Health, Wealth, Relationships"
-                                className="w-full px-4 py-3 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase tracking-wider"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase tracking-wider"
                             />
                             <p className="text-xs text-secondary mt-1">This will appear in your Wheel of Life</p>
                         </div>
@@ -298,13 +294,13 @@ export function VisionBoardGallery() {
                                     />
                                     <button
                                         onClick={() => setImagePreview('')}
-                                        className="absolute top-3 right-3 p-2 bg-black bg-opacity-50 backdrop-blur-sm rounded-lg text-red-400"
+                                        className="absolute top-3 right-3 p-2 bg-black/50 backdrop-blur-sm rounded-lg text-red-400"
                                     >
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
                             ) : (
-                                <label className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-white border-opacity-20 rounded-xl hover:border-white hover:border-opacity-40 transition-all cursor-pointer">
+                                <label className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-white/20 rounded-xl hover:border-white/40 transition-all cursor-pointer">
                                     <Upload className="w-12 h-12 text-secondary mb-3" />
                                     <span className="text-secondary">Click to upload image</span>
                                     <input
@@ -327,7 +323,7 @@ export function VisionBoardGallery() {
                                 value={newDeclaration}
                                 onChange={(e) => setNewDeclaration(e.target.value)}
                                 placeholder="e.g., Make $1 Million, Complete Spartan Race"
-                                className="w-full px-4 py-3 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold"
                             />
                         </div>
 
@@ -341,7 +337,7 @@ export function VisionBoardGallery() {
                                 onChange={(e) => setNewPurpose(e.target.value)}
                                 placeholder="The deeper reason this vision drives you..."
                                 rows={3}
-                                className="w-full px-4 py-3 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                             />
                         </div>
 
@@ -349,14 +345,14 @@ export function VisionBoardGallery() {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setShowCreateModal(false)}
-                                className="flex-1 px-6 py-3 bg-white bg-opacity-10 hover:bg-white hover:bg-opacity-20 rounded-xl font-medium transition-all"
+                                className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-all"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={createVision}
                                 disabled={!newDeclaration.trim() || !newCategory.trim()}
-                                className="flex-1 px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-white disabled:bg-opacity-10 disabled:cursor-not-allowed rounded-xl font-bold transition-all shadow-lg shadow-[rgba(59,130,246,0.2)]"
+                                className="flex-1 px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:cursor-not-allowed rounded-xl font-bold transition-all shadow-lg shadow-[rgba(59,130,246,0.2)]"
                             >
                                 Create Vision
                             </button>

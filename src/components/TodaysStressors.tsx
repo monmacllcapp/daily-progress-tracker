@@ -115,7 +115,7 @@ export function TodaysStressors() {
                 <p className="text-secondary text-sm mb-4">No urgent tasks for today</p>
                 <button
                     onClick={() => setIsAdding(true)}
-                    className="px-4 py-2 bg-rose-500 bg-opacity-20 hover:bg-rose-500 hover:bg-opacity-30 border border-rose-500 border-opacity-30 rounded-lg text-sm font-medium transition-all"
+                    className="px-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 rounded-lg text-sm font-medium transition-all"
                 >
                     + Add Stressor
                 </button>
@@ -186,10 +186,7 @@ export function TodaysStressors() {
                                 >
                                     <button
                                         onClick={() => toggleMilestone(milestone.id)}
-                                        className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${milestone.is_completed
-                                            ? 'bg-green-500 border-green-500'
-                                            : 'border-white border-opacity-30 hover:border-white hover:border-opacity-50'
-                                            }`}
+                                        className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${milestone.is_completed ? 'bg-green-500 border-green-500' : 'border-white/30 hover:border-white/50' }`}
                                     >
                                         {milestone.is_completed && (
                                             <div className="w-2 h-2 bg-white rounded-sm" />
@@ -226,7 +223,7 @@ export function TodaysStressors() {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="glass-card p-4 border-l-4 border-rose-500 border-opacity-50"
+                    className="glass-card p-4 border-l-4 border-rose-500/50"
                 >
                     <input
                         autoFocus
@@ -234,28 +231,28 @@ export function TodaysStressors() {
                         value={newTitle}
                         onChange={(e) => setNewTitle(e.target.value)}
                         placeholder="What's stressing you out?"
-                        className="w-full px-3 py-2 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-rose-500"
                     />
                     <textarea
                         value={newDescription}
                         onChange={(e) => setNewDescription(e.target.value)}
                         placeholder="Description (optional)"
                         rows={2}
-                        className="w-full px-3 py-2 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none"
                     />
                     <div className="flex gap-2 items-center mb-3">
                         <input
                             type="number"
                             value={newTimeEstimate}
                             onChange={(e) => setNewTimeEstimate(e.target.value)}
-                            className="w-20 px-3 py-2 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                            className="w-20 px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
                         />
                         <span className="text-sm text-secondary">minutes</span>
                     </div>
                     <div className="flex gap-2">
                         <button
                             onClick={() => setIsAdding(false)}
-                            className="flex-1 px-4 py-2 bg-white bg-opacity-10 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all"
+                            className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all"
                         >
                             Cancel
                         </button>
@@ -270,7 +267,7 @@ export function TodaysStressors() {
             ) : (
                 <button
                     onClick={() => setIsAdding(true)}
-                    className="w-full py-2 border border-dashed border-white border-opacity-20 rounded-lg text-secondary hover:text-white hover:border-white hover:border-opacity-40 transition-all"
+                    className="w-full py-2 border border-dashed border-white/20 rounded-lg text-secondary hover:text-white hover:border-white/40 transition-all"
                 >
                     + Add Stressor
                 </button>

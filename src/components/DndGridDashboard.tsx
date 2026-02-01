@@ -86,7 +86,7 @@ export function DndGridDashboard() {
             {/* Reset Button */}
             <button
                 onClick={handleReset}
-                className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-white border-opacity-10 rounded-lg hover:bg-zinc-800 transition-all shadow-lg"
+                className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-white/10 rounded-lg hover:bg-zinc-800 transition-all shadow-lg"
                 title="Reset Layout"
             >
                 <RotateCcw className="w-4 h-4" />

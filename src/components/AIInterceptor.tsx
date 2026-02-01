@@ -34,7 +34,7 @@ export function AIInterceptor({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
                     />
 
                     {/* Modal */}
@@ -56,7 +56,7 @@ export function AIInterceptor({
 
                             {/* Header */}
                             <div className="flex items-start gap-4 mb-6">
-                                <div className="w-12 h-12 rounded-full bg-amber-500 bg-opacity-20 flex items-center justify-center flex-shrink-0">
+                                <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
                                     <AlertTriangle className="w-6 h-6 text-amber-400 animate-pulse" />
                                 </div>
                                 <div className="flex-1">
@@ -68,7 +68,7 @@ export function AIInterceptor({
                             </div>
 
                             {/* Task Info */}
-                            <div className="bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg p-4 mb-6">
+                            <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-6">
                                 <h3 className="font-medium mb-3">{task.title}</h3>
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div>
@@ -80,7 +80,7 @@ export function AIInterceptor({
                                         <p className="text-lg font-bold text-amber-400">{task.time_actual_minutes}m</p>
                                     </div>
                                 </div>
-                                <div className="mt-3 pt-3 border-t border-white border-opacity-10">
+                                <div className="mt-3 pt-3 border-t border-white/10">
                                     <span className="text-red-400 font-medium text-sm">
                                         {driftPercent}% over estimate
                                     </span>
@@ -96,9 +96,9 @@ export function AIInterceptor({
                                         onExtendTime(30);
                                         onClose();
                                     }}
-                                    className="w-full flex items-center gap-3 p-4 bg-white bg-opacity-5 hover:bg-white hover:bg-opacity-10 border border-white border-opacity-10 rounded-lg transition-all group"
+                                    className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all group"
                                 >
-                                    <div className="w-10 h-10 rounded-lg bg-blue-500 bg-opacity-20 flex items-center justify-center group-hover:bg-blue-500 group-hover:bg-opacity-30 transition-colors">
+                                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
                                         <Clock className="w-5 h-5 text-blue-400" />
                                     </div>
                                     <div className="flex-1 text-left">
@@ -112,9 +112,9 @@ export function AIInterceptor({
                                         onBreakDown();
                                         onClose();
                                     }}
-                                    className="w-full flex items-center gap-3 p-4 bg-white bg-opacity-5 hover:bg-white hover:bg-opacity-10 border border-white border-opacity-10 rounded-lg transition-all group"
+                                    className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all group"
                                 >
-                                    <div className="w-10 h-10 rounded-lg bg-emerald-500 bg-opacity-20 flex items-center justify-center group-hover:bg-emerald-500 group-hover:bg-opacity-30 transition-colors">
+                                    <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
                                         <Scissors className="w-5 h-5 text-emerald-400" />
                                     </div>
                                     <div className="flex-1 text-left">
@@ -128,9 +128,9 @@ export function AIInterceptor({
                                         onAbort();
                                         onClose();
                                     }}
-                                    className="w-full flex items-center gap-3 p-4 bg-white bg-opacity-5 hover:bg-red-500 hover:bg-opacity-10 border border-white border-opacity-10 hover:border-red-500 hover:border-opacity-30 rounded-lg transition-all group"
+                                    className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 rounded-lg transition-all group"
                                 >
-                                    <div className="w-10 h-10 rounded-lg bg-red-500 bg-opacity-20 flex items-center justify-center group-hover:bg-red-500 group-hover:bg-opacity-30 transition-colors">
+                                    <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center group-hover:bg-red-500/30 transition-colors">
                                         <X className="w-5 h-5 text-red-400" />
                                     </div>
                                     <div className="flex-1 text-left">

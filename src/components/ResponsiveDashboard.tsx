@@ -42,7 +42,7 @@ export function ResponsiveDashboard({ children }: ResponsiveDashboardProps) {
                     className="col-span-12 row-span-4"
                 >
                     <div className="glass-card h-full overflow-auto">
-                        <div className="sticky top-0 z-10 px-4 py-2 bg-gradient-to-r from-[rgba(59,130,246,0.1)] to-[rgba(168,85,247,0.1)] border-b border-white border-opacity-10 backdrop-blur-sm">
+                        <div className="sticky top-0 z-10 px-4 py-2 bg-gradient-to-r from-[rgba(59,130,246,0.1)] to-[rgba(168,85,247,0.1)] border-b border-white/10 backdrop-blur-sm">
                             <span className="text-xs text-secondary uppercase tracking-wider">Vision Board</span>
                         </div>
                         <div className="p-4 h-[calc(100%-40px)] overflow-auto">
@@ -59,7 +59,7 @@ export function ResponsiveDashboard({ children }: ResponsiveDashboardProps) {
                     className="col-span-12 md:col-span-4 row-span-6"
                 >
                     <div className="glass-card h-full overflow-auto">
-                        <div className="sticky top-0 z-10 px-4 py-2 bg-gradient-to-r from-[rgba(59,130,246,0.1)] to-[rgba(168,85,247,0.1)] border-b border-white border-opacity-10 backdrop-blur-sm">
+                        <div className="sticky top-0 z-10 px-4 py-2 bg-gradient-to-r from-[rgba(59,130,246,0.1)] to-[rgba(168,85,247,0.1)] border-b border-white/10 backdrop-blur-sm">
                             <span className="text-xs text-secondary uppercase tracking-wider">Wheel of Life</span>
                         </div>
                         <div className="p-4 h-[calc(100%-40px)] overflow-auto">
@@ -76,7 +76,7 @@ export function ResponsiveDashboard({ children }: ResponsiveDashboardProps) {
                     className="col-span-12 md:col-span-8 row-span-6"
                 >
                     <div className="glass-card h-full overflow-auto">
-                        <div className="sticky top-0 z-10 px-4 py-2 bg-gradient-to-r from-[rgba(59,130,246,0.1)] to-[rgba(168,85,247,0.1)] border-b border-white border-opacity-10 backdrop-blur-sm">
+                        <div className="sticky top-0 z-10 px-4 py-2 bg-gradient-to-r from-[rgba(59,130,246,0.1)] to-[rgba(168,85,247,0.1)] border-b border-white/10 backdrop-blur-sm">
                             <span className="text-xs text-secondary uppercase tracking-wider">Projects</span>
                         </div>
                         <div className="p-4 h-[calc(100%-40px)] overflow-auto">

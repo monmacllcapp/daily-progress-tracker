@@ -113,7 +113,7 @@ export function CustomGridDashboard() {
             {/* Reset Button */}
             <button
                 onClick={handleReset}
-                className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-white border-opacity-10 rounded-lg hover:bg-zinc-800 transition-all shadow-lg"
+                className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-white/10 rounded-lg hover:bg-zinc-800 transition-all shadow-lg"
                 title="Reset Layout"
             >
                 <RotateCcw className="w-4 h-4" />
@@ -125,7 +125,7 @@ export function CustomGridDashboard() {
                 {items.map((item) => (
                     <div
                         key={item.id}
-                        className="absolute bg-zinc-900 bg-opacity-50 border border-white border-opacity-10 rounded-xl overflow-hidden"
+                        className="absolute bg-zinc-900/50 border border-white/10 rounded-xl overflow-hidden"
                         style={{
                             left: `${(item.x / 12) * 100}%`,
                             top: `${item.y}px`,
@@ -137,7 +137,7 @@ export function CustomGridDashboard() {
                     >
                         {/* Header with Drag Handle */}
                         <div
-                            className="flex items-center gap-2 px-4 py-3 border-b border-white border-opacity-10 bg-zinc-900 bg-opacity-80 cursor-grab active:cursor-grabbing"
+                            className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-zinc-900/80 cursor-grab active:cursor-grabbing"
                             onMouseDown={(e) => handleMouseDown(e, item, 'move')}
                         >
                             <GripVertical className="w-4 h-4 text-secondary" />
@@ -155,7 +155,7 @@ export function CustomGridDashboard() {
                             className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize group"
                             onMouseDown={(e) => handleMouseDown(e, item, 'resize')}
                         >
-                            <div className="absolute bottom-1 right-1 w-3 h-3 border-r-2 border-b-2 border-white border-opacity-30 group-hover:border-white group-hover:border-opacity-60 transition-colors" />
+                            <div className="absolute bottom-1 right-1 w-3 h-3 border-r-2 border-b-2 border-white/30 group-hover:border-white/60 transition-colors" />
                         </div>
                     </div>
                 ))}

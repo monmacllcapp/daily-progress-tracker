@@ -66,7 +66,7 @@ export function JournalHistory() {
             <div className="flex items-center gap-3 mb-4">
                 <BookOpen className="w-5 h-5 text-purple-400" />
                 <h2 className="text-lg font-bold">Journal</h2>
-                <span className="px-2 py-0.5 bg-purple-500 bg-opacity-20 text-purple-400 text-xs font-bold rounded-full">
+                <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs font-bold rounded-full">
                     {journals.length} {journals.length === 1 ? 'entry' : 'entries'}
                 </span>
             </div>
@@ -88,7 +88,7 @@ export function JournalHistory() {
                             <div key={journal.id}>
                                 <button
                                     onClick={() => toggleDate(journal.date)}
-                                    className="w-full flex items-center gap-2 py-2 px-2 rounded-lg text-left hover:bg-white hover:bg-opacity-5 transition-all"
+                                    className="w-full flex items-center gap-2 py-2 px-2 rounded-lg text-left hover:bg-white/5 transition-all"
                                 >
                                     {isExpanded
                                         ? <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
@@ -158,11 +158,7 @@ export function JournalHistory() {
                                                         {Object.entries(journal.habits).map(([habit, done]) => (
                                                             <span
                                                                 key={habit}
-                                                                className={`text-[10px] px-2 py-0.5 rounded ${
-                                                                    done
-                                                                        ? 'bg-blue-500 bg-opacity-20 text-blue-400'
-                                                                        : 'bg-white bg-opacity-5 text-slate-600 line-through'
-                                                                }`}
+                                                                className={`text-[10px] px-2 py-0.5 rounded ${ done ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-slate-600 line-through' }`}
                                                             >
                                                                 {habit}
                                                             </span>

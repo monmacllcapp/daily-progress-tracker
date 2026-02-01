@@ -101,10 +101,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                     e.stopPropagation();
                     setIsOpen(!isOpen);
                 }}
-                className={`relative z-50 pointer-events-auto flex items-center gap-1.5 px-2.5 py-2 rounded-lg border transition-all text-xs whitespace-nowrap ${selectedDate
-                    ? 'bg-emerald-500 bg-opacity-10 border-emerald-500 border-opacity-30 text-emerald-400'
-                    : 'bg-white bg-opacity-5 border-white border-opacity-10 text-secondary hover:bg-white hover:bg-opacity-10'
-                    }`}
+                className={`relative z-50 pointer-events-auto flex items-center gap-1.5 px-2.5 py-2 rounded-lg border transition-all text-xs whitespace-nowrap ${selectedDate ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-white/5 border-white/30 text-secondary hover:bg-white/10' }`}
             >
                 <Calendar className="w-3.5 h-3.5" />
                 <span>{formatDisplayDate()}</span>
@@ -117,7 +114,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ duration: 0.1 }}
-                        className="absolute bottom-full mb-2 right-0 z-[9999] bg-zinc-900 border border-white border-opacity-10 rounded-lg shadow-2xl p-2 w-56"
+                        className="absolute bottom-full mb-2 right-0 z-[9999] bg-zinc-900 border border-white/10 rounded-lg shadow-2xl p-2 w-56"
                     >
                         {/* Compact Month/Year Navigation */}
                         <div className="flex items-center justify-between mb-1.5 px-0.5">
@@ -127,7 +124,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                                     e.stopPropagation();
                                     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
                                 }}
-                                className="p-0.5 hover:bg-white hover:bg-opacity-10 rounded text-xs w-5 h-5 flex items-center justify-center"
+                                className="p-0.5 hover:bg-white/10 rounded text-xs w-5 h-5 flex items-center justify-center"
                             >
                                 ←
                             </button>
@@ -138,7 +135,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                                     e.stopPropagation();
                                     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
                                 }}
-                                className="p-0.5 hover:bg-white hover:bg-opacity-10 rounded text-xs w-5 h-5 flex items-center justify-center"
+                                className="p-0.5 hover:bg-white/10 rounded text-xs w-5 h-5 flex items-center justify-center"
                             >
                                 →
                             </button>
@@ -160,13 +157,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                                         if (day) handleDateSelect(day);
                                     }}
                                     disabled={!day}
-                                    className={`aspect-square rounded text-[10px] transition-all ${!day
-                                        ? 'invisible'
-                                        : selectedDate?.getDate() === day &&
-                                            selectedDate?.getMonth() === currentMonth.getMonth()
-                                            ? 'bg-emerald-500 text-white font-bold'
-                                            : 'hover:bg-white hover:bg-opacity-10'
-                                        }`}
+                                    className={`aspect-square rounded text-[10px] transition-all ${!day ? 'invisible' : selectedDate?.getDate() === day && selectedDate?.getMonth() === currentMonth.getMonth() ? 'bg-emerald-500 text-white font-bold' : 'hover:bg-white/10' }`}
                                 >
                                     {day}
                                 </button>
@@ -174,7 +165,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                         </div>
 
                         {/* Time Picker */}
-                        <div className="flex items-center gap-1 pt-1 border-t border-white border-opacity-10">
+                        <div className="flex items-center gap-1 pt-1 border-t border-white/10">
                             <Clock className="w-3 h-3 text-secondary flex-shrink-0" />
                             <input
                                 type="time"
@@ -183,7 +174,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                                     e.stopPropagation();
                                     handleTimeChange(e.target.value);
                                 }}
-                                className="flex-1 px-1.5 py-0.5 bg-white bg-opacity-5 border border-white border-opacity-10 rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                className="flex-1 px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             />
                             {selectedDate && (
                                 <button
@@ -194,7 +185,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                                         onChange('');
                                         setIsOpen(false);
                                     }}
-                                    className="p-0.5 hover:bg-red-500 hover:bg-opacity-20 rounded text-red-400 transition-all flex-shrink-0"
+                                    className="p-0.5 hover:bg-red-500/20 rounded text-red-400 transition-all flex-shrink-0"
                                     title="Clear"
                                 >
                                     <X className="w-3 h-3" />

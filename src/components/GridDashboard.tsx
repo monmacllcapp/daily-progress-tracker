@@ -44,7 +44,7 @@ export function GridDashboard() {
             {/* Reset Button */}
             <button
                 onClick={handleReset}
-                className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-white border-opacity-10 rounded-lg hover:bg-zinc-800 transition-all shadow-lg"
+                className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-white/10 rounded-lg hover:bg-zinc-800 transition-all shadow-lg"
                 title="Reset Layout"
             >
                 <RotateCcw className="w-4 h-4" />
@@ -67,8 +67,8 @@ export function GridDashboard() {
                     onLayoutChange={handleLayoutChange}
                 >
                     {/* Vision Board */}
-                    <div key="vision" className="bg-zinc-900 bg-opacity-50 border border-white border-opacity-10 rounded-xl overflow-hidden">
-                        <div className="px-4 py-3 border-b border-white border-opacity-10 bg-zinc-900 bg-opacity-80">
+                    <div key="vision" className="bg-zinc-900/50 border border-white/10 rounded-xl overflow-hidden">
+                        <div className="px-4 py-3 border-b border-white/10 bg-zinc-900/80">
                             <h3 className="font-bold text-sm uppercase tracking-wide">Vision Board</h3>
                         </div>
                         <div className="p-4 overflow-auto h-[calc(100%-52px)] pointer-events-auto">
@@ -77,8 +77,8 @@ export function GridDashboard() {
                     </div>
 
                     {/* Wheel of Life */}
-                    <div key="wheel" className="bg-zinc-900 bg-opacity-50 border border-white border-opacity-10 rounded-xl overflow-hidden">
-                        <div className="px-4 py-3 border-b border-white border-opacity-10 bg-zinc-900 bg-opacity-80">
+                    <div key="wheel" className="bg-zinc-900/50 border border-white/10 rounded-xl overflow-hidden">
+                        <div className="px-4 py-3 border-b border-white/10 bg-zinc-900/80">
                             <h3 className="font-bold text-sm uppercase tracking-wide">Wheel of Life</h3>
                         </div>
                         <div className="p-4 overflow-auto h-[calc(100%-52px)] pointer-events-auto">
@@ -87,8 +87,8 @@ export function GridDashboard() {
                     </div>
 
                     {/* Projects */}
-                    <div key="stressors" className="bg-zinc-900 bg-opacity-50 border border-white border-opacity-10 rounded-xl overflow-hidden">
-                        <div className="px-4 py-3 border-b border-white border-opacity-10 bg-zinc-900 bg-opacity-80">
+                    <div key="stressors" className="bg-zinc-900/50 border border-white/10 rounded-xl overflow-hidden">
+                        <div className="px-4 py-3 border-b border-white/10 bg-zinc-900/80">
                             <h3 className="font-bold text-sm uppercase tracking-wide">Projects</h3>
                         </div>
                         <div className="p-4 overflow-auto h-[calc(100%-52px)] pointer-events-auto">

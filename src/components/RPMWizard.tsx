@@ -201,7 +201,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
         // Slide 0: Result
         <div key="result" className="space-y-6">
             <div className="text-center space-y-3">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500 bg-opacity-20 mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/20 mb-4">
                     <Target className="w-8 h-8 text-blue-400" />
                 </div>
                 <h2 className="text-3xl font-bold">What's the Result?</h2>
@@ -213,7 +213,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                 value={result}
                 onChange={(e) => setResult(e.target.value)}
                 placeholder="e.g., Launch MVP of my SaaS product"
-                className="w-full px-6 py-4 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 autoFocus
             />
 
@@ -226,7 +226,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                     <select
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     >
                         <option value="">None</option>
                         {categories.map(cat => (
@@ -241,7 +241,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                     <select
                         value={selectedVision}
                         onChange={(e) => setSelectedVision(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     >
                         <option value="">None</option>
                         {visions.map(v => (
@@ -259,7 +259,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
         // Slide 1: Purpose
         <div key="purpose" className="space-y-6">
             <div className="text-center space-y-3">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-500 bg-opacity-20 mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-500/20 mb-4">
                     <Sparkles className="w-8 h-8 text-rose-400" />
                 </div>
                 <h2 className="text-3xl font-bold">Why is this a MUST?</h2>
@@ -271,7 +271,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                 onChange={(e) => setPurpose(e.target.value)}
                 placeholder="This matters because..."
                 rows={6}
-                className="w-full px-6 py-4 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all resize-none"
+                className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all resize-none"
                 autoFocus
             />
 
@@ -286,7 +286,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
         // Slide 2: Massive Action
         <div key="action" className="space-y-6">
             <div className="text-center space-y-3">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500 bg-opacity-20 mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 mb-4">
                     <Zap className="w-8 h-8 text-emerald-400" />
                 </div>
                 <h2 className="text-3xl font-bold">Massive Action Plan</h2>
@@ -307,7 +307,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                             value={st.title}
                             onChange={(e) => updateSubtask(st.id, 'title', e.target.value)}
                             placeholder="Milestone title"
-                            className="flex-1 px-3 py-2.5 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm"
+                            className="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm"
                         />
                         <input
                             type="text"
@@ -317,12 +317,12 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                                 const value = e.target.value.replace(/^0+/, '') || '0';
                                 updateSubtask(st.id, 'time_estimate_minutes', parseInt(value) || 0);
                             }}
-                            className="w-14 px-2 py-2.5 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                            className="w-14 px-2 py-2.5 bg-white/5 border border-white/10 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
                         />
                         <select
                             value={st.time_unit}
                             onChange={(e) => updateSubtask(st.id, 'time_unit', e.target.value as 'minutes' | 'hours' | 'days' | 'months')}
-                            className="w-16 px-1 py-2.5 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
+                            className="w-16 px-1 py-2.5 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
                         >
                             <option value="minutes">min</option>
                             <option value="hours">hrs</option>
@@ -338,7 +338,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                                 const dateValue = e.target.value ? new Date(e.target.value).toISOString() : '';
                                 updateSubtask(st.id, 'due_date', dateValue);
                             }}
-                            className="w-10 px-2.5 py-2 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                            className="w-10 px-2.5 py-2 bg-white/5 border border-white/10 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                             style={{ colorScheme: 'dark' }}
                         />
 
@@ -357,7 +357,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
 
             <button
                 onClick={addSubtask}
-                className="w-full py-3 border border-dashed border-white border-opacity-20 rounded-lg text-secondary hover:text-white hover:border-white hover:border-opacity-40 transition-all"
+                className="w-full py-3 border border-dashed border-white/20 rounded-lg text-secondary hover:text-white hover:border-white/40 transition-all"
             >
                 + Add Milestone
             </button>
@@ -376,8 +376,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                     {[0, 1, 2].map(idx => (
                         <motion.div
                             key={idx}
-                            className={`h-2 rounded-full transition-all ${idx === currentSlide ? 'w-8 bg-blue-500' : 'w-2 bg-white bg-opacity-20'
-                                }`}
+                            className={`h-2 rounded-full transition-all ${idx === currentSlide ? 'w-8 bg-blue-500' : 'w-2 bg-white/20' }`}
                             animate={{ width: idx === currentSlide ? 32 : 8 }}
                         />
                     ))}
@@ -393,49 +392,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                             initial="enter"
                             animate="center"
                             exit="exit"
-                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                            className="absolute inset-0"
-                        >
-                            {slides[currentSlide]}
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
-
-                {/* Navigation */}
-                <div className="flex justify-between mt-12">
-                    <button
-                        onClick={handleBack}
-                        disabled={currentSlide === 0}
-                        className="flex items-center gap-2 px-6 py-3 text-secondary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                        Back
-                    </button>
-
-                    {currentSlide < 2 ? (
-                        <button
-                            onClick={handleNext}
-                            disabled={!canProceedFromSlide(currentSlide)}
-                            className="flex items-center gap-2 px-8 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-white disabled:bg-opacity-10 disabled:cursor-not-allowed rounded-xl font-bold transition-all shadow-lg shadow-[rgba(59,130,246,0.2)] active:scale-95"
-                        >
-                            Next
-                            <ArrowRight className="w-5 h-5" />
-                        </button>
-                    ) : (
-                        <button
-                            onClick={handleSubmit}
-                            disabled={!canProceedFromSlide(currentSlide)}
-                            className="flex items-center gap-2 px-8 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-white disabled:bg-opacity-10 disabled:cursor-not-allowed rounded-xl font-bold transition-all shadow-lg shadow-[rgba(16,185,129,0.2)] active:scale-95"
-                        >
-                            Ignite Project
-                            <Zap className="w-5 h-5" />
-                        </button>
-                    )}
-                </div>
-
-                {/* Close button */}
-                <button
-                    onClick={() => navigate('/')}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="absolute inset-0" > {slides[currentSlide]} </motion.div> </AnimatePresence> </div> {/* Navigation */} <div className="flex justify-between mt-12"> <button onClick={handleBack} disabled={currentSlide === 0} className="flex items-center gap-2 px-6 py-3 text-secondary hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all" > <ArrowLeft className="w-5 h-5" /> Back </button> {currentSlide < 2 ? ( <button onClick={handleNext} disabled={!canProceedFromSlide(currentSlide)} className="flex items-center gap-2 px-8 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-white/10 disabled:cursor-not-allowed rounded-xl font-bold transition-all shadow-lg shadow-[rgba(59,130,246,0.2)] active:scale-95" > Next <ArrowRight className="w-5 h-5" /> </button> ) : ( <button onClick={handleSubmit} disabled={!canProceedFromSlide(currentSlide)} className="flex items-center gap-2 px-8 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-white/10 disabled:cursor-not-allowed rounded-xl font-bold transition-all shadow-lg shadow-[rgba(16,185,129,0.2)] active:scale-95" > Ignite Project <Zap className="w-5 h-5" /> </button> )} </div> {/* Close button */} <button onClick={() => navigate('/')}
                     aria-label="Close wizard"
                     className="absolute top-6 right-6 text-secondary hover:text-white transition-colors"
                 >

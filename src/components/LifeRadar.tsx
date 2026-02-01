@@ -144,7 +144,7 @@ export function LifeRadar() {
                     </div>
 
                     {/* Stats */}
-                    <div className="mt-6 pt-6 border-t border-white border-opacity-10 space-y-3">
+                    <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
                         <div className="flex items-center justify-between">
                             <span className="text-secondary text-sm">Average Growth</span>
                             <span className="text-xl font-bold text-blue-400">
@@ -156,12 +156,12 @@ export function LifeRadar() {
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="flex items-start gap-2 p-3 bg-red-500 bg-opacity-10 border border-red-500 border-opacity-20 rounded-lg"
+                                className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"
                             >
                                 <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5 animate-pulse" />
                                 <div className="flex-1">
                                     <p className="font-bold text-red-300">Needs Attention</p>
-                                    <p className="text-red-300 text-opacity-70 text-xs mt-1">
+                                    <p className="text-red-300 text-xs/70 mt-1">
                                         Review lowest scores
                                     </p>
                                 </div>
