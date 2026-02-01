@@ -18,7 +18,7 @@ import { useSidebarStore } from './SidebarStore';
 
 interface NavItem {
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   path: string;
 }
 
