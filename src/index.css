@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0f172a;
+  --color-background: #0a0e1a;
   --color-foreground: #f8fafc;
   --color-primary: #3b82f6;
   --color-secondary: #64748b;
@@ -12,25 +12,74 @@
 :root {
   --background: 222.2 84% 4.9%;
   --foreground: 210 40% 98%;
+  --glass-bg: rgba(15, 23, 42, 0.4);
+  --glass-bg-elevated: rgba(15, 23, 42, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.15);
+  --glow-blue: rgba(59, 130, 246, 0.15);
+  --glow-rose: rgba(244, 63, 94, 0.12);
 }
 
 @layer utilities {
   .glass-panel {
-    background-color: rgba(15, 23, 42, 0.6);
-    /* slate-900/60 */
+    background-color: var(--glass-bg-elevated);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 
   .glass-card {
-    background-color: rgba(15, 23, 42, 0.6);
-    /* slate-900/60 */
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.75rem;
-    /* rounded-xl */
-    transition: all 300ms;
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(16px) saturate(1.1);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+    transition: border-color 200ms, box-shadow 200ms;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+      0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-card:hover {
+    border-color: var(--glass-border-hover);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 20px rgba(59, 130, 246, 0.08);
+  }
+
+  .glass-sidebar {
+    background: var(--glass-bg-elevated);
+    backdrop-filter: blur(24px) saturate(1.2);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-topbar {
+    background: var(--glass-bg-elevated);
+    backdrop-filter: blur(24px) saturate(1.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .nav-item-active {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .glass-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+  }
+  .glass-input:focus {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
   }
 }
 
@@ -48,14 +97,46 @@ input[type=number] {
 
 body {
   background-color: var(--color-background);
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(244, 63, 94, 0.04) 0%, transparent 50%);
   color: var(--color-foreground);
-  /* Ensure this maps to a light color like slate-200 in variables if not already */
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
 @layer base {
   body {
     @apply text-slate-200;
-    /* Force light text */
   }
+}
+
+/* Page transition animation */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 200ms ease-out;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 300ms ease-out;
 }

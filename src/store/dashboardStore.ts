@@ -1,7 +1,6 @@
 import { create } from 'zustand';
-import { Layout } from 'react-grid-layout';
+import type { Layout } from 'react-grid-layout';
 import { WIDGET_REGISTRY } from '../config/widgetRegistry';
-
 
 interface DashboardState {
     layouts: Layout[];
@@ -16,10 +15,18 @@ interface DashboardState {
     loadLayout: () => void;
 }
 
-const STORAGE_KEY = 'titan_glass_layout_v4';
+const STORAGE_KEY = 'titan_glass_layout_v5';
+
+function getDefaultLayouts(): Layout[] {
+    return WIDGET_REGISTRY.map(w => ({
+        i: w.id,
+        ...w.defaultLayout
+    }));
+}
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
-    layouts: [],
+    // Start with defaults so widgets render immediately
+    layouts: getDefaultLayouts(),
     hiddenWidgets: [],
     isSidebarOpen: false,
 
@@ -39,11 +46,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
             ? hiddenWidgets.filter(id => id !== widgetId)
             : [...hiddenWidgets, widgetId];
 
-        // If unhiding, we might need to add it back to layout if missing,
-        // but typically RGL handles the "layout" array separate from "children".
-        // Use default layout from registry if not found in current layouts
-        let newLayouts = [...layouts];
-        if (isHidden) { // We are showing it now
+        const newLayouts = [...layouts];
+        if (isHidden) {
             const existingItem = layouts.find(l => l.i === widgetId);
             if (!existingItem) {
                 const config = WIDGET_REGISTRY.find(w => w.id === widgetId);
@@ -67,23 +71,27 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     setSidebarOpen: (isOpen) => set({ isSidebarOpen: isOpen }),
 
     resetLayout: () => {
-        const defaults = WIDGET_REGISTRY.map(w => ({
-            i: w.id,
-            ...w.defaultLayout
-        }));
+        const defaults = getDefaultLayouts();
         set({ layouts: defaults, hiddenWidgets: [] });
         localStorage.removeItem(STORAGE_KEY);
     },
 
     loadLayout: () => {
+        const defaults = getDefaultLayouts();
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
-                const { layouts, hiddenWidgets } = JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                const savedLayouts = parsed.layouts as Layout[] | undefined;
+                const savedHidden = parsed.hiddenWidgets as string[] | undefined;
 
-                // Robust Merge: Ensure all registry items exist (or are handled)
+                if (!Array.isArray(savedLayouts) || savedLayouts.length === 0) {
+                    set({ layouts: defaults, hiddenWidgets: [] });
+                    return;
+                }
+
                 // Filter out ghosts (widgets no longer in registry)
-                const validLayouts = layouts.filter((l: Layout) =>
+                const validLayouts = savedLayouts.filter((l: Layout) =>
                     WIDGET_REGISTRY.some(w => w.id === l.i)
                 );
 
@@ -97,22 +105,22 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
                     }
                 });
 
-                set({ layouts: validLayouts, hiddenWidgets: hiddenWidgets || [] });
+                const hidden = Array.isArray(savedHidden) ? savedHidden : [];
+
+                // Safety: if all widgets would be hidden, reset
+                const visibleCount = validLayouts.filter(l => !hidden.includes(l.i)).length;
+                if (visibleCount === 0) {
+                    set({ layouts: defaults, hiddenWidgets: [] });
+                    localStorage.removeItem(STORAGE_KEY);
+                    return;
+                }
+
+                set({ layouts: validLayouts, hiddenWidgets: hidden });
             } else {
-                // Initial Load defaults
-                const defaults = WIDGET_REGISTRY.map(w => ({
-                    i: w.id,
-                    ...w.defaultLayout
-                }));
                 set({ layouts: defaults, hiddenWidgets: [] });
             }
         } catch (e) {
             console.error("Failed to load layout", e);
-            // Fallback
-            const defaults = WIDGET_REGISTRY.map(w => ({
-                i: w.id,
-                ...w.defaultLayout
-            }));
             set({ layouts: defaults, hiddenWidgets: [] });
         }
     }

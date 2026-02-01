@@ -1,0 +1,28 @@
+{
+  "name": "${localWorkspaceFolderBasename}",
+  "image": "ghcr.io/monmacllcapp/claude-yolo-base:latest",
+  "containerEnv": {
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "70"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/home/claude/.claude,type=bind",
+    "source=${localEnv:HOME}/governance-ref,target=/home/claude/governance-ref,type=bind",
+    "source=${localEnv:HOME}/.config/gh,target=/home/claude/.config/gh,type=bind"
+  ],
+  "forwardPorts": [3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007],
+  "portsAttributes": {
+    "3000-3007": {
+      "onAutoForward": "silent",
+      "label": "Dev Server"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-vscode-remote.remote-containers"]
+    }
+  },
+  "postCreateCommand": "bootstrap.sh || true",
+  "remoteUser": "claude",
+  "workspaceFolder": "/workspace"
+}

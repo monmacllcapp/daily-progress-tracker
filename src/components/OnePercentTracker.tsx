@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Award } from 'lucide-react';
 import { createDatabase } from '../db';
-import type { SubTask } from '../types/schema';
 
 export function OnePercentTracker() {
     const [todayCount, setTodayCount] = useState(0);
@@ -19,7 +18,6 @@ export function OnePercentTracker() {
 
                 // For demo purposes, we'll count completed tasks
                 // In production, you'd track completion timestamps
-                const today = new Date().toISOString().split('T')[0];
 
                 // Count today's completions (simplified - would need timestamps in real app)
                 const todayCompleted = tasks.filter(t => t.is_completed).length;

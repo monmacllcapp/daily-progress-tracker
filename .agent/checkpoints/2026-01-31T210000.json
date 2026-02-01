@@ -1,0 +1,68 @@
+{
+  "checkpoint_id": "2026-01-31T210000_m1compl",
+  "timestamp": "2026-01-31T21:00:00Z",
+  "agent": {
+    "model": "claude-opus-4-5-20251101",
+    "provider": "anthropic",
+    "session_id": "session-2"
+  },
+  "session": {
+    "project": "Titan Life OS",
+    "goal": "Complete M1 Core Planning Engine, update docs, begin M2",
+    "branch": "sandbox",
+    "working_directory": "/workspace"
+  },
+  "changes": {
+    "summary": "M1 Core Planning Engine fully complete (21/21 tasks). All 4 waves done: data foundation, morning flow upgrade, persistent task list + AI, RPM wizard + progress. 44 tests passing. Project docs updated to reflect M1 completion.",
+    "files_modified": [
+      {"path": "src/types/schema.ts", "action": "modified", "description": "Added Task entity type, updated Category with streak_count/current_progress"},
+      {"path": "src/db/index.ts", "action": "modified", "description": "Added taskSchema, registered tasks collection, fixed replication"},
+      {"path": "src/services/task-rollover.ts", "action": "created", "description": "TaskRolloverService with rollover, create, complete, dismiss, defer functions"},
+      {"path": "src/components/MorningFlow.tsx", "action": "modified", "description": "4-step wizard, auto-creates Task entities from non-negotiables and stressors"},
+      {"path": "src/components/TaskDashboard.tsx", "action": "modified", "description": "Added progress bar, Power Batch, AI focus suggestion, category grouping"},
+      {"path": "src/components/BrainDump.tsx", "action": "modified", "description": "Integrated AI auto-categorization via Gemini"},
+      {"path": "src/components/RPMWizard.tsx", "action": "modified", "description": "Added category/vision selectors, Task entity creation from subtasks"},
+      {"path": "src/components/JournalHistory.tsx", "action": "created", "description": "Journal history widget with collapsible date timeline"},
+      {"path": "src/services/ai-advisor.ts", "action": "created", "description": "AI categorization + leverage advisor using Gemini with graceful degradation"},
+      {"path": "src/config/widgetRegistry.ts", "action": "modified", "description": "Added journal-history widget, adjusted layout"},
+      {"path": "src/workers/daily-reset-worker.ts", "action": "modified", "description": "Added ROLLOVER_TASKS message type"},
+      {"path": "src/App.tsx", "action": "modified", "description": "Added rolloverTasks handler for worker messages"},
+      {"path": "vitest.config.ts", "action": "created", "description": "Vitest configuration with jsdom"},
+      {"path": "src/test/setup.ts", "action": "created", "description": "Test setup with crypto polyfill"},
+      {"path": "src/services/__tests__/task-rollover.test.ts", "action": "created", "description": "8 unit tests for TaskRolloverService"},
+      {"path": "src/store/__tests__/time-engine.test.ts", "action": "created", "description": "16 unit tests for time engine"},
+      {"path": "src/services/__tests__/wave4-rpm-quickwin.test.ts", "action": "created", "description": "9 tests for RPM wizard + quick-win detection"},
+      {"path": "src/services/__tests__/ai-advisor.test.ts", "action": "created", "description": "6 tests for AI advisor graceful degradation"},
+      {"path": "src/services/__tests__/morning-flow-integration.test.ts", "action": "created", "description": "5 integration tests for morning flow pipeline"},
+      {"path": "docs/MILESTONES.md", "action": "modified", "description": "M1 all items checked, status COMPLETE"},
+      {"path": "docs/PROJECT_SCORECARD.md", "action": "modified", "description": "F01 100%, F02 100%, M1 21/21, overall 41%, blockers resolved"}
+    ],
+    "decisions_made": [
+      {"decision": "Task entity as central data model", "rationale": "Single entity handles morning flow tasks, brain dump entries, RPM subtasks — simplifies rollover and dashboard", "alternatives_considered": ["Separate entity per source", "Extend existing Project entity"]},
+      {"decision": "Gemini for AI features with graceful degradation", "rationale": "Existing pattern in conflict-detector.ts, returns null when no API key", "alternatives_considered": ["OpenAI", "Local inference", "No AI features"]},
+      {"decision": "Power Batch inline in TaskDashboard", "rationale": "Quick-win section shown above category groups for immediate visibility", "alternatives_considered": ["Separate widget", "Sidebar panel"]}
+    ]
+  },
+  "continuation": {
+    "status": "in_progress",
+    "next_immediate_step": {
+      "action": "Begin M2 Wave 1: Google Auth + Calendar",
+      "details": "Read existing google-calendar.ts, refactor OAuth2 flow with proper token refresh, build CalendarEvent RxDB entity, create unified auth service"
+    },
+    "next_three_steps": [
+      {"step_number": 2, "action": "Build daily agenda view", "details": "CalendarEvent entity + timeline component showing events + tasks"},
+      {"step_number": 3, "action": "Implement time blocking", "details": "Task → calendar event scheduling, power blocks, deep work blocks, conflict detection UI"},
+      {"step_number": 4, "action": "Gmail integration", "details": "Gmail API setup, email entity, AI classifier, unsubscribe, draft responses"}
+    ],
+    "blockers": [
+      {"id": "B-03", "description": "No Gmail API integration — blocks F04 entirely", "severity": "MAJOR"}
+    ],
+    "context_notes": "User has full autonomy directive. Google OAuth requires VITE_GOOGLE_CLIENT_ID. Existing google-calendar.ts and conflict-detector.ts provide starting patterns. 44 tests must continue passing."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 2,
+    "parent_checkpoint": "2026-01-31T000000_a1b2c3d4",
+    "tags": ["m1-complete", "docs-updated", "44-tests-passing"]
+  }
+}

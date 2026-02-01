@@ -27,5 +27,6 @@ export async function resetDatabase() {
 
 // Make it available globally for console access
 if (typeof window !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- expose utility on window for console access
     (window as any).resetDB = resetDatabase;
 }

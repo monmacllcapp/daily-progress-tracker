@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, X } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 interface PatternInterruptProps {
     isOpen: boolean;
@@ -16,7 +16,7 @@ export function PatternInterrupt({ isOpen, onDismiss }: PatternInterruptProps) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-md z-[100]"
+                        className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100]"
                     />
 
                     {/* Center card */}
@@ -45,7 +45,7 @@ export function PatternInterrupt({ isOpen, onDismiss }: PatternInterruptProps) {
                             <p className="text-secondary text-lg mb-2">
                                 You've been focused for 60 minutes
                             </p>
-                            <p className="text-white text-opacity-60 text-sm mb-8">
+                            <p className="text-white text-sm/60 mb-8">
                                 Time to stand, stretch, and reset your nervous system
                             </p>
 

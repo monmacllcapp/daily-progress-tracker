@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, RotateCcw, CheckCircle, Circle, LayoutDashboard } from 'lucide-react';
+import { X, RotateCcw, LayoutDashboard } from 'lucide-react';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { WIDGET_REGISTRY } from '../../config/widgetRegistry';
 import { clsx } from 'clsx';
@@ -16,7 +16,7 @@ export function CustomizationSidebar() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
                         onClick={() => setSidebarOpen(false)}
                     />
 
@@ -29,14 +29,14 @@ export function CustomizationSidebar() {
                         className="fixed right-0 top-0 bottom-0 w-80 bg-slate-900 border-l border-white/10 z-50 shadow-2xl flex flex-col backdrop-blur-xl"
                     >
                         {/* Header */}
-                        <div className="p-6 border-b border-white border-opacity-10 flex justify-between items-center">
-                            <div className="flex items-center gap-2 text-white text-opacity-90">
+                        <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                            <div className="flex items-center gap-2 text-white/90">
                                 <LayoutDashboard className="w-5 h-5 text-blue-500" />
                                 <h2 className="font-bold text-lg">Customize</h2>
                             </div>
                             <button
                                 onClick={() => setSidebarOpen(false)}
-                                className="text-white text-opacity-40 hover:text-white transition-colors"
+                                className="text-white/40 hover:text-white transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -46,7 +46,7 @@ export function CustomizationSidebar() {
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
                             <div>
-                                <h3 className="text-xs font-bold text-white text-opacity-40 uppercase tracking-wider mb-4">
+                                <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-4">
                                     Available Key Widgets
                                 </h3>
                                 <div className="space-y-2">
@@ -85,14 +85,14 @@ export function CustomizationSidebar() {
                         </div>
 
                         {/* Footer Actions */}
-                        <div className="p-6 border-t border-white border-opacity-10 bg-white bg-opacity-5 relative">
+                        <div className="p-6 border-t border-white/10 bg-white/5 relative">
                             <button
                                 onClick={() => {
                                     if (confirm('Are you sure you want to reset the layout to default?')) {
                                         resetLayout();
                                     }
                                 }}
-                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg border border-white border-opacity-10 hover:bg-white hover:bg-opacity-5 text-slate-400 hover:text-white transition-all text-sm font-medium"
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg border border-white/10 hover:bg-white/5 text-slate-400 hover:text-white transition-all text-sm font-medium"
                             >
                                 <RotateCcw className="w-4 h-4" />
                                 Reset to Default Layout

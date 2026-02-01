@@ -3,13 +3,42 @@ export type UUID = string;
 // -- 1. Morning Stack --
 export interface DailyJournal {
   id: UUID;
-  date: string; // ISO 8601 string
+  date: string; // ISO 8601 date string (YYYY-MM-DD)
   gratitude: string[]; // Limit 3
-  stressors: string[]; // "Quick Wins"
-  habits: Record<string, boolean>; // JSONB in DB ("Non-Negotiables" checklist)
+  non_negotiables: string[]; // "3 things that if done = big win"
+  stressors: string[]; // "Things that if knocked off, you'd feel relief"
+  habits: Record<string, boolean>; // Checklist (hydration, meditation, movement, deep work)
+  created_at?: string;
+  updated_at?: string;
 }
 
-// -- 2. Projects ("The Big Rocks") --
+// -- 2. Task (Central Entity — Persistent Task List) --
+export type TaskStatus = 'active' | 'completed' | 'dismissed' | 'deferred';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type TaskSource = 'morning_flow' | 'brain_dump' | 'rpm_wizard' | 'email' | 'calendar' | 'manual';
+
+export interface Task {
+  id: UUID;
+  title: string;
+  description?: string;
+  category_id?: UUID;             // FK to Category (life bucket)
+  goal_id?: UUID;                 // FK to Project (RPM goal)
+  time_estimate_minutes?: number;
+  priority: TaskPriority;
+  status: TaskStatus;
+  source: TaskSource;
+  created_date: string;           // ISO 8601 date
+  due_date?: string;              // ISO 8601 date
+  rolled_from_date?: string;      // Date this was rolled from (auto-rollover tracking)
+  completed_date?: string;        // When completed/dismissed
+  defer_reason?: string;          // Why deferred
+  sort_order: number;
+  tags?: string[];                // e.g. ['relief', 'quick-win']
+  created_at?: string;
+  updated_at?: string;
+}
+
+// -- 3. Projects ("The Big Rocks" — RPM Results) --
 export type ProjectStatus = 'active' | 'completed';
 
 export interface ProjectMotivation {
@@ -21,7 +50,7 @@ export interface ProjectMotivation {
 export interface ProjectMetrics {
   total_time_estimated: number; // minutes
   total_time_spent: number; // minutes
-  optimism_ratio: number; // float (spent / estimated? or estimated / spent? Logic in engine)
+  optimism_ratio: number; // Estimate / Actual
 }
 
 export interface Project {
@@ -39,7 +68,7 @@ export interface Project {
   updated_at?: string;
 }
 
-// -- 3. SubTasks ("The Milestones") --
+// -- 4. SubTasks ("The Milestones" — RPM Massive Actions) --
 export interface SubTask {
   id: UUID;
   project_id: UUID;
@@ -48,10 +77,11 @@ export interface SubTask {
   time_actual_minutes: number; // Tracked via timer
   is_completed: boolean;
   sort_order: number;
+  completed_date?: string;
   updated_at?: string;
 }
 
-// -- 4. Vision Board (The "Why" - RPM Framework) --
+// -- 5. Vision Board (The "Why" - RPM Framework) --
 export interface VisionBoard {
   id: UUID;
   user_id?: UUID;
@@ -66,19 +96,62 @@ export interface VisionBoard {
   updated_at?: string;
 }
 
-// -- 5. Categories (The "Tire Slices" - Atomic Habits) --
+// -- 6. Categories (User-defined life buckets) --
 export interface Category {
   id: UUID;
   user_id?: UUID;
   name: string;                   // "Health", "Wealth", "Relationships"
   color_theme: string;            // Hex color for radar chart
-  current_inflation: number;      // 0.0 to 1.0 (growth score)
-  last_1_percent_date?: string;   // Track daily streaks
+  icon?: string;                  // Lucide icon name (e.g. 'heart', 'dollar-sign')
+  current_progress: number;       // 0.0 to 1.0 (growth score)
+  streak_count: number;           // Consecutive days of activity
+  last_active_date?: string;      // Last day a task was completed in this category
+  sort_order: number;
   created_at?: string;
   updated_at?: string;
 }
 
-// -- 6. Today's Stressors (Urgent Tasks) --
+// -- 7. Calendar Events (Google Calendar + local time blocks) --
+export type CalendarEventSource = 'google' | 'app';
+
+export interface CalendarEvent {
+  id: UUID;
+  google_event_id?: string;       // Google Calendar event ID (for synced events)
+  summary: string;
+  description?: string;
+  start_time: string;              // ISO 8601 datetime
+  end_time: string;                // ISO 8601 datetime
+  all_day: boolean;
+  linked_task_id?: UUID;           // FK to Task (if this is a task time block)
+  source: CalendarEventSource;
+  color?: string;                  // Hex color or Google color ID
+  is_focus_block?: boolean;        // Deep work designation
+  created_at?: string;
+  updated_at?: string;
+}
+
+// -- 8. Email (Gmail integration) --
+export type EmailTier = 'urgent' | 'important' | 'promotions' | 'unsubscribe';
+export type EmailStatus = 'unread' | 'read' | 'drafted' | 'replied' | 'archived';
+
+export interface Email {
+  id: UUID;
+  gmail_id: string;                // Gmail message ID
+  thread_id?: string;              // Gmail thread ID
+  from: string;
+  subject: string;
+  snippet: string;                 // Preview text
+  tier: EmailTier;                 // AI-classified tier
+  tier_override?: EmailTier;       // User reclassification
+  status: EmailStatus;
+  ai_draft?: string;               // AI-drafted response
+  received_at: string;             // ISO 8601 datetime
+  labels?: string[];               // Gmail labels
+  created_at?: string;
+  updated_at?: string;
+}
+
+// -- 9. Today's Stressors (Legacy — migrating into Task system) --
 export interface Stressor {
   id: UUID;
   user_id?: UUID;

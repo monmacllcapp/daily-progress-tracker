@@ -1,0 +1,348 @@
+import { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, ChevronLeft, ChevronRight, Zap, Focus, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { createDatabase } from '../db';
+import { syncCalendarEvents } from '../services/google-calendar';
+import { isGoogleAuthAvailable, isGoogleConnected, requestGoogleAuth } from '../services/google-auth';
+import { syncCalendarTaskStatus } from '../services/task-scheduler';
+import { completeTask } from '../services/task-rollover';
+import type { CalendarEvent } from '../types/schema';
+import type { Task } from '../types/schema';
+
+const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6 AM to 10 PM
+const HOUR_HEIGHT = 48; // pixels per hour
+
+function formatHour(hour: number): string {
+    if (hour === 0) return '12 AM';
+    if (hour < 12) return `${hour} AM`;
+    if (hour === 12) return '12 PM';
+    return `${hour - 12} PM`;
+}
+
+function formatDate(date: Date): string {
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function toDateString(date: Date): string {
+    return date.toISOString().split('T')[0];
+}
+
+interface TimeBlock {
+    type: 'event' | 'task';
+    id: string;
+    title: string;
+    startHour: number;
+    startMinute: number;
+    durationMinutes: number;
+    color: string;
+    isFocusBlock?: boolean;
+    linkedTaskId?: string;
+}
+
+function parseTimeBlocks(events: CalendarEvent[]): TimeBlock[] {
+    const blocks: TimeBlock[] = [];
+
+    for (const event of events) {
+        if (event.all_day) continue;
+
+        const start = new Date(event.start_time);
+        const end = new Date(event.end_time);
+        const duration = (end.getTime() - start.getTime()) / 60000;
+
+        blocks.push({
+            type: 'event',
+            id: event.id,
+            title: event.summary,
+            startHour: start.getHours(),
+            startMinute: start.getMinutes(),
+            durationMinutes: duration,
+            color: event.source === 'google' ? '#3b82f6' : '#8b5cf6',
+            isFocusBlock: event.is_focus_block,
+            linkedTaskId: event.linked_task_id,
+        });
+    }
+
+    // Tasks with time estimates that aren't already in calendar events
+    // Unscheduled tasks (not linked to calendar events) show in the sidebar,
+    // not positioned on the timeline.
+
+    return blocks;
+}
+
+export function DailyAgenda() {
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    useEffect(() => {
+        let mounted = true;
+
+        async function load() {
+            const db = await createDatabase();
+            const dateStr = toDateString(selectedDate);
+
+            // Load local calendar events for this date
+            const dayStart = new Date(dateStr + 'T00:00:00');
+            const dayEnd = new Date(dateStr + 'T23:59:59');
+
+            const eventDocs = await db.calendar_events.find({
+                selector: {
+                    start_time: { $gte: dayStart.toISOString(), $lte: dayEnd.toISOString() }
+                }
+            }).exec();
+
+            if (mounted) {
+                setEvents(eventDocs.map(d => d.toJSON() as CalendarEvent));
+            }
+
+            // Load active tasks for this date
+            const taskDocs = await db.tasks.find({
+                selector: { status: 'active' }
+            }).exec();
+
+            if (mounted) {
+                setTasks(taskDocs.map(d => d.toJSON() as Task));
+            }
+        }
+
+        load();
+
+        // Auto-sync: mark tasks complete whose calendar events have passed
+        if (toDateString(selectedDate) === toDateString(new Date())) {
+            createDatabase().then(db => syncCalendarTaskStatus(db)).then(completedIds => {
+                if (completedIds.length > 0 && mounted) {
+                    // Reload tasks to reflect status changes
+                    createDatabase().then(db =>
+                        db.tasks.find({ selector: { status: 'active' } }).exec()
+                    ).then(taskDocs => {
+                        if (mounted) setTasks(taskDocs.map(d => d.toJSON() as Task));
+                    });
+                }
+            });
+        }
+
+        return () => { mounted = false; };
+    }, [selectedDate]);
+
+    const timeBlocks = useMemo(() => parseTimeBlocks(events), [events]);
+
+    const currentHour = new Date().getHours();
+    const currentMinute = new Date().getMinutes();
+    const isToday = toDateString(selectedDate) === toDateString(new Date());
+
+    const handleSync = async () => {
+        if (!isGoogleConnected()) {
+            try {
+                await requestGoogleAuth();
+            } catch (err) {
+                console.error('[DailyAgenda] Auth failed:', err);
+                return;
+            }
+        }
+
+        setIsSyncing(true);
+        try {
+            const db = await createDatabase();
+            const dayStart = new Date(toDateString(selectedDate) + 'T00:00:00');
+            const dayEnd = new Date(toDateString(selectedDate) + 'T23:59:59');
+            await syncCalendarEvents(db, dayStart, dayEnd);
+
+            // Reload events
+            const eventDocs = await db.calendar_events.find({
+                selector: {
+                    start_time: { $gte: dayStart.toISOString(), $lte: dayEnd.toISOString() }
+                }
+            }).exec();
+            setEvents(eventDocs.map(d => d.toJSON() as CalendarEvent));
+        } catch (err) {
+            console.error('[DailyAgenda] Sync failed:', err);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    const handleCompleteFromBlock = async (block: TimeBlock) => {
+        if (!block.linkedTaskId) return;
+        try {
+            const db = await createDatabase();
+            await completeTask(db, block.linkedTaskId);
+            // Reload tasks
+            const taskDocs = await db.tasks.find({ selector: { status: 'active' } }).exec();
+            setTasks(taskDocs.map(d => d.toJSON() as Task));
+        } catch (err) {
+            console.error('[DailyAgenda] Failed to complete task:', err);
+        }
+    };
+
+    const navigateDate = (delta: number) => {
+        const next = new Date(selectedDate);
+        next.setDate(next.getDate() + delta);
+        setSelectedDate(next);
+    };
+
+    const unscheduledTasks = tasks.filter(
+        t => t.status === 'active' && t.time_estimate_minutes &&
+        !events.some(e => e.linked_task_id === t.id)
+    );
+
+    const allDayEvents = events.filter(e => e.all_day);
+
+    return (
+        <div className="h-full flex flex-col text-white overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm font-bold">Daily Agenda</span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => navigateDate(-1)}
+                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                    >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                        onClick={() => setSelectedDate(new Date())}
+                        className="px-2 py-0.5 text-xs hover:bg-white/10 rounded transition-colors"
+                    >
+                        {formatDate(selectedDate)}
+                    </button>
+                    <button
+                        onClick={() => navigateDate(1)}
+                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                    >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+                {isGoogleAuthAvailable() && (
+                    <button
+                        onClick={handleSync}
+                        disabled={isSyncing}
+                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                        title={isGoogleConnected() ? 'Sync with Google Calendar' : 'Connect Google Calendar'}
+                    >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''} ${isGoogleConnected() ? 'text-green-400' : 'text-slate-500'}`} />
+                    </button>
+                )}
+            </div>
+
+            {/* All-day events */}
+            {allDayEvents.length > 0 && (
+                <div className="px-3 py-1.5 border-b border-white/5">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500">All Day</span>
+                    {allDayEvents.map(event => (
+                        <div
+                            key={event.id}
+                            className="mt-1 px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-300"
+                        >
+                            {event.summary}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Timeline */}
+            <div className="flex-1 overflow-y-auto">
+                <div className="relative" style={{ height: HOURS.length * HOUR_HEIGHT }}>
+                    {/* Hour grid lines */}
+                    {HOURS.map(hour => (
+                        <div
+                            key={hour}
+                            className="absolute left-0 right-0 border-t border-white/5 flex items-start"
+                            style={{ top: (hour - 6) * HOUR_HEIGHT }}
+                        >
+                            <span className="text-[10px] text-slate-600 w-12 text-right pr-2 pt-0.5 flex-shrink-0">
+                                {formatHour(hour)}
+                            </span>
+                            <div className="flex-1" />
+                        </div>
+                    ))}
+
+                    {/* Current time indicator */}
+                    {isToday && currentHour >= 6 && currentHour <= 22 && (
+                        <div
+                            className="absolute left-12 right-0 z-20 flex items-center"
+                            style={{ top: (currentHour - 6) * HOUR_HEIGHT + (currentMinute / 60) * HOUR_HEIGHT }}
+                        >
+                            <div className="w-2 h-2 rounded-full bg-red-500" />
+                            <div className="flex-1 h-px bg-red-500/60" />
+                        </div>
+                    )}
+
+                    {/* Time blocks */}
+                    <AnimatePresence>
+                        {timeBlocks.map(block => {
+                            if (block.startHour < 6 || block.startHour > 22) return null;
+
+                            const top = (block.startHour - 6) * HOUR_HEIGHT + (block.startMinute / 60) * HOUR_HEIGHT;
+                            const height = Math.max((block.durationMinutes / 60) * HOUR_HEIGHT, 20);
+
+                            return (
+                                <motion.div
+                                    key={block.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute left-14 right-2 rounded-md px-2 py-1 overflow-hidden cursor-pointer hover:brightness-110 transition-all group"
+                                    style={{
+                                        top,
+                                        height,
+                                        backgroundColor: block.color + '33',
+                                        borderLeft: `3px solid ${block.color}`,
+                                    }}
+                                    title={`${block.title} (${block.durationMinutes}min)`}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        {block.isFocusBlock && <Focus className="w-3 h-3 text-purple-400 flex-shrink-0" />}
+                                        <span className="text-xs font-medium truncate flex-1" style={{ color: block.color }}>
+                                            {block.title}
+                                        </span>
+                                        {block.linkedTaskId && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleCompleteFromBlock(block); }}
+                                                className="p-0.5 hover:bg-emerald-500/20 rounded transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                                                title="Mark task complete"
+                                            >
+                                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    {height > 30 && (
+                                        <span className="text-[10px] text-slate-400">
+                                            {block.durationMinutes}min
+                                        </span>
+                                    )}
+                                </motion.div>
+                            );
+                        })}
+                    </AnimatePresence>
+                </div>
+            </div>
+
+            {/* Unscheduled tasks */}
+            {unscheduledTasks.length > 0 && (
+                <div className="border-t border-white/10 px-3 py-2 max-h-32 overflow-y-auto">
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <Zap className="w-3 h-3 text-yellow-400" />
+                        <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                            Unscheduled ({unscheduledTasks.length})
+                        </span>
+                    </div>
+                    {unscheduledTasks.slice(0, 5).map(task => (
+                        <div
+                            key={task.id}
+                            className="flex items-center justify-between py-0.5"
+                        >
+                            <span className="text-xs text-slate-400 truncate">{task.title}</span>
+                            <span className="text-[10px] text-slate-600 flex-shrink-0 ml-2">
+                                {task.time_estimate_minutes}m
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}

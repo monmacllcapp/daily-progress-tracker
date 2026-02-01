@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { createDatabase } from '../db';
+import { createTask } from '../services/task-rollover';
 
 const steps = [
     { id: 'gratitude', title: 'Gratitude Stack', prompt: 'What are 3 things you are grateful for?' },
-    { id: 'stressors', title: 'Quick Wins', prompt: 'What stressors can you squash in <5 mins?' },
-    { id: 'projects', title: '3 Non-Negotiables', prompt: 'The massive projects to move today.' },
+    { id: 'non_negotiables', title: '3 Non-Negotiable Wins', prompt: 'What are 3 things that if you did today, you\'d feel like it\'s a big win?' },
+    { id: 'stressors', title: 'Stress Relief', prompt: 'What stressors, if knocked off your plate, would bring you relief?' },
+    { id: 'habits', title: 'Daily Habits', prompt: 'Check off your non-negotiable habits.' },
 ];
 
 interface MorningFlowProps {
@@ -19,17 +21,15 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
 
     const [formData, setFormData] = useState({
         gratitude: [''],
-        projects: [''],
+        non_negotiables: [''],
         stressors: [''],
         habits: {} as Record<string, boolean>
     });
 
-    // Helper to update array fields (gratitude, projects, stressors)
-    const updateArrayField = (field: 'gratitude' | 'projects' | 'stressors', index: number, value: string) => {
+    const updateArrayField = (field: 'gratitude' | 'non_negotiables' | 'stressors', index: number, value: string) => {
         setFormData(prev => {
             const newArray = [...prev[field]];
             newArray[index] = value;
-            // Auto-add new line if typing in the last one (up to 3)
             if (index === newArray.length - 1 && value.trim() !== '' && newArray.length < 3) {
                 newArray.push('');
             }
@@ -48,42 +48,68 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
         try {
             const db = await createDatabase();
             const timestamp = new Date().toISOString();
+            const today = timestamp.split('T')[0];
+
+            const validGratitude = formData.gratitude.filter(g => g.trim());
+            const validNonNegotiables = formData.non_negotiables.filter(n => n.trim());
+            const validStressors = formData.stressors.filter(s => s.trim());
 
             // 1. Create Daily Journal
             await db.daily_journal.insert({
                 id: crypto.randomUUID(),
-                date: timestamp,
-                gratitude: formData.gratitude.filter(g => g.trim()),
-                stressors: formData.stressors.filter(s => s.trim()),
-                habits: formData.habits
+                date: today,
+                gratitude: validGratitude,
+                non_negotiables: validNonNegotiables,
+                stressors: validStressors,
+                habits: formData.habits,
+                created_at: timestamp,
+                updated_at: timestamp,
             });
 
-            // 2. Create Projects from "Project" inputs
-            const validProjects = formData.projects.filter(p => p.trim());
+            // 2. Create Task entities from non-negotiable wins (high priority)
+            const existingTasks = await db.tasks.find({ selector: { status: 'active' } }).exec();
+            const nextSortOrder = existingTasks.length;
 
-            await Promise.all(validProjects.map(async (title) => {
-                await db.projects.insert({
-                    id: crypto.randomUUID(),
-                    title: title,
+            await Promise.all(validNonNegotiables.map(async (title, i) => {
+                await createTask(db, {
+                    title,
+                    priority: 'high',
                     status: 'active',
-                    motivation_payload: { why: '', impact_positive: '', impact_negative: '' },
-                    metrics: { total_time_estimated: 0, total_time_spent: 0, optimism_ratio: 1 },
-                    created_at: timestamp,
-                    updated_at: timestamp
+                    source: 'morning_flow',
+                    created_date: today,
+                    sort_order: nextSortOrder + i,
+                    tags: ['non-negotiable'],
                 });
             }));
 
-            console.log("Ignition Sequence Start...");
+            // 3. Create Task entities from stressors (medium priority, relief tag)
+            await Promise.all(validStressors.map(async (title, i) => {
+                await createTask(db, {
+                    title,
+                    priority: 'medium',
+                    status: 'active',
+                    source: 'morning_flow',
+                    created_date: today,
+                    sort_order: nextSortOrder + validNonNegotiables.length + i,
+                    tags: ['relief'],
+                });
+            }));
 
-            // Call onComplete callback if provided
+            console.log('[MorningFlow] Day ignited:', {
+                gratitude: validGratitude.length,
+                nonNegotiables: validNonNegotiables.length,
+                stressors: validStressors.length,
+                habits: Object.keys(formData.habits).filter(k => formData.habits[k]).length,
+            });
+
             if (onComplete) {
                 onComplete();
             } else {
                 navigate('/');
             }
         } catch (err) {
-            console.error("Ignition Failed:", err);
-            alert("System Failure. Check Console.");
+            console.error('Ignition Failed:', err);
+            alert('System Failure. Check Console.');
         }
     };
 
@@ -114,28 +140,28 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                             <input
                                 key={i}
                                 type="text"
-                                autoFocus={i === 0} // Auto-focus first input
+                                autoFocus={i === 0}
                                 placeholder={`I am grateful for...`}
                                 value={item}
                                 onChange={(e) => updateArrayField('gratitude', i, e.target.value)}
-                                className="w-full bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                             />
                         ))}
                     </div>
                 );
-            case 'projects':
+            case 'non_negotiables':
                 return (
                     <div className="space-y-4">
-                        <p className="text-sm text-slate-500 mb-2">Identify 1-3 major outcomes.</p>
-                        {formData.projects.map((item, i) => (
+                        <p className="text-sm text-slate-500 mb-2">These become today's high-priority tasks.</p>
+                        {formData.non_negotiables.map((item, i) => (
                             <input
                                 key={i}
                                 type="text"
                                 autoFocus={i === 0}
-                                placeholder={`Project #${i + 1}`}
+                                placeholder={`Win #${i + 1}`}
                                 value={item}
-                                onChange={(e) => updateArrayField('projects', i, e.target.value)}
-                                className="w-full bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors"
+                                onChange={(e) => updateArrayField('non_negotiables', i, e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors"
                             />
                         ))}
                     </div>
@@ -143,7 +169,7 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
             case 'stressors':
                 return (
                     <div className="space-y-4">
-                        <p className="text-sm text-slate-500 mb-2">Name it to tame it.</p>
+                        <p className="text-sm text-slate-500 mb-2">Name it to tame it. These become tasks you can knock out for relief.</p>
                         {formData.stressors.map((item, i) => (
                             <input
                                 key={i}
@@ -152,12 +178,12 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                                 placeholder={`Stressor #${i + 1}`}
                                 value={item}
                                 onChange={(e) => updateArrayField('stressors', i, e.target.value)}
-                                className="w-full bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
                             />
                         ))}
                     </div>
                 );
-            case 'habits':
+            case 'habits': {
                 const defaultHabits = ['Hydrate', 'Meditate', 'Movement', 'Deep Work Block'];
                 return (
                     <div className="grid grid-cols-2 gap-4">
@@ -165,10 +191,7 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                             <button
                                 key={habit}
                                 onClick={() => toggleHabit(habit)}
-                                className={`p-6 rounded-xl border transition-all text-left ${formData.habits[habit]
-                                    ? 'bg-blue-500 bg-opacity-20 border-blue-500 text-white'
-                                    : 'bg-white bg-opacity-5 border-white border-opacity-10 text-slate-400 hover:bg-white hover:bg-opacity-10'
-                                    }`}
+                                className={`p-6 rounded-xl border transition-all text-left ${formData.habits[habit] ? 'bg-blue-500/20 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10' }`}
                             >
                                 <div className="font-bold mb-1">{habit}</div>
                                 <div className="text-xs opacity-70">{formData.habits[habit] ? 'Completed' : 'Pending'}</div>
@@ -176,6 +199,7 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                         ))}
                     </div>
                 );
+            }
             default:
                 return null;
         }
@@ -184,7 +208,7 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
     return (
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
             {/* Ambient Background */}
-            <div className="absolute top-0 left-0 w-full h-1/2 bg-blue-500 bg-opacity-10 blur-[120px] rounded-full" />
+            <div className="absolute top-0 left-0 w-full h-1/2 bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
 
             <AnimatePresence mode="wait">
                 <motion.div
@@ -192,15 +216,15 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 1.05, y: -20 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="relative z-10 w-full max-w-4xl" // Widened to max-w-4xl
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    className="relative z-10 w-full max-w-4xl"
                 >
-                    <div className="glass-panel p-12 rounded-2xl border-white border-opacity-5 shadow-2xl min-h-[500px] flex flex-col">
+                    <div className="glass-panel p-12 rounded-2xl border-white/5 shadow-2xl min-h-[500px] flex flex-col">
                         <motion.h6
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                             className="text-blue-400 font-mono text-sm uppercase tracking-widest mb-4"
                         >
-                            Step 0{currentStepIndex + 1} / 04
+                            Step {String(currentStepIndex + 1).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}
                         </motion.h6>
 
                         <h2 className="text-4xl font-bold text-white mb-4 tracking-tight">
@@ -215,7 +239,7 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                             {renderStepContent()}
                         </div>
 
-                        <div className="flex justify-between items-center mt-12 pt-8 border-t border-white border-opacity-10">
+                        <div className="flex justify-between items-center mt-12 pt-8 border-t border-white/10">
                             <button
                                 onClick={handleBack}
                                 disabled={isFirst}
@@ -226,7 +250,7 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
 
                             <button
                                 onClick={handleNext}
-                                className="bg-white text-slate-950 px-8 py-3 rounded-lg font-bold hover:bg-slate-200 transition-all active:scale-95 shadow-lg shadow-white shadow-opacity-10"
+                                className="bg-white text-slate-950 px-8 py-3 rounded-lg font-bold hover:bg-slate-200 transition-all active:scale-95 shadow-lg shadow-white/10"
                             >
                                 {isLast ? 'Ignite Day' : 'Next Step'}
                             </button>

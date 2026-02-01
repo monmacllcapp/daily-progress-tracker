@@ -50,7 +50,7 @@ export function ConflictResolutionModal({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6"
                 onClick={onCancel}
             >
                 <motion.div
@@ -62,7 +62,7 @@ export function ConflictResolutionModal({
                 >
                     {/* Header */}
                     <div className="flex items-start gap-4 mb-6">
-                        <div className="p-3 bg-amber-500 bg-opacity-20 rounded-lg">
+                        <div className="p-3 bg-amber-500/20 rounded-lg">
                             <AlertTriangle className="w-6 h-6 text-amber-400" />
                         </div>
                         <div className="flex-1">
@@ -76,7 +76,7 @@ export function ConflictResolutionModal({
                     {/* Conflict Details */}
                     < div className="space-y-4 mb-6">
                         {/* New Project */}
-                        <div className="p-4 bg-blue-500 bg-opacity-10 border border-blue-500 border-opacity-20 rounded-lg">
+                        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                             < div className="flex items-center gap-2 mb-2">
                                 < Calendar className="w-4 h-4 text-blue-400" />
                                 < span className="text-xs text-blue-400 font-medium uppercase">New Project</span>
@@ -100,12 +100,12 @@ export function ConflictResolutionModal({
 
                         {/* Conflicting Event */}
                         < div className="flex items-center justify-center">
-                            < div className="p-2 bg-red-500 bg-opacity-20 rounded-full">
+                            < div className="p-2 bg-red-500/20 rounded-full">
                                 < AlertTriangle className="w-4 h-4 text-red-400" />
                             </div >
                         </div >
 
-                        <div className="p-4 bg-red-500 bg-opacity-10 border border-red-500 border-opacity-20 rounded-lg">
+                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
                             < div className="flex items-center gap-2 mb-2">
                                 < Calendar className="w-4 h-4 text-red-400" />
                                 < span className="text-xs text-red-400 font-medium uppercase">Conflicts With</span>
@@ -113,17 +113,17 @@ export function ConflictResolutionModal({
                             <h3 className="font-bold text-lg mb-1">{primaryConflict.existingEvent.summary}</h3>
                             < div className="flex items-center gap-2 text-sm text-secondary">
                                 <span>
-                                    {formatTime(primaryConflict.existingEvent.start.dateTime)} -{' '}
-                                    {formatTime(primaryConflict.existingEvent.end.dateTime)}
+                                    {primaryConflict.existingEvent.start.dateTime && formatTime(primaryConflict.existingEvent.start.dateTime)} -{' '}
+                                    {primaryConflict.existingEvent.end.dateTime && formatTime(primaryConflict.existingEvent.end.dateTime)}
                                 </span >
                             </div >
                         </div >
                     </div >
 
                     {/* AI Suggestion */}
-                    < div className="p-4 bg-gradient-to-r from-[rgba(168,85,247,0.1)] to-[rgba(59,130,246,0.1)] border border-purple-500 border-opacity-20 rounded-lg mb-6">
+                    < div className="p-4 bg-gradient-to-r from-[rgba(168,85,247,0.1)] to-[rgba(59,130,246,0.1)] border border-purple-500/20 rounded-lg mb-6">
                         < div className="flex items-start gap-3">
-                            < div className="p-2 bg-purple-500 bg-opacity-20 rounded-lg flex-shrink-0">
+                            < div className="p-2 bg-purple-500/20 rounded-lg flex-shrink-0">
                                 < Sparkles className="w-4 h-4 text-purple-400" />
                             </div >
                             <div className="flex-1">
@@ -138,13 +138,13 @@ export function ConflictResolutionModal({
                     < div className="flex gap-3">
                         < button
                             onClick={onCancel}
-                            className="flex-1 px-6 py-3 bg-white bg-opacity-10 hover:bg-white hover:bg-opacity-20 rounded-xl font-medium transition-all"
+                            className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-all"
                         >
                             Cancel
                         </button >
                         <button
                             onClick={onOverride}
-                            className="flex-1 px-6 py-3 bg-amber-500 bg-opacity-20 hover:bg-amber-500 hover:bg-opacity-30 border border-amber-500 border-opacity-30 rounded-xl font-medium transition-all text-amber-400"
+                            className="flex-1 px-6 py-3 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-xl font-medium transition-all text-amber-400"
                         >
                             Override Anyway
                         </button >
@@ -160,7 +160,7 @@ export function ConflictResolutionModal({
                     {/* Additional Conflicts */}
                     {
                         conflicts.length > 1 && (
-                            <div className="mt-4 pt-4 border-t border-white border-opacity-10">
+                            <div className="mt-4 pt-4 border-t border-white/10">
                                 < p className="text-xs text-secondary">
                                     + {conflicts.length - 1} more conflict{conflicts.length - 1 > 1 ? 's' : ''} detected
                                 </p >
