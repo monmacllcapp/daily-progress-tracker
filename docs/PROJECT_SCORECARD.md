@@ -246,7 +246,7 @@
 | B-03 | No Gmail API integration | MAJOR | F04 (entire email feature) | 2026-01-31 | 2026-01-31 |
 | B-04 | Build not verified | MINOR | Confidence in existing code | 2026-01-31 | 2026-01-31 |
 | B-05 | Netlify CLI blocked by EACCES | MAJOR | M5-7 through M5-10 (deployment + beta validation) | 2026-02-01 | 2026-02-01 (switched to Render) |
-| B-06 | Render deploys from stale `master` branch | MAJOR | Deploy fails — real code is on `main` | 2026-02-01 | -- (user must change Render branch setting) |
+| B-06 | Render deploys from stale `master` branch | MAJOR | Deploy fails — real code is on `main` | 2026-02-01 | 2026-02-01 (switched to main via API, site LIVE) |
 <!-- SCORECARD_BLOCKERS_END -->
 
 ---
