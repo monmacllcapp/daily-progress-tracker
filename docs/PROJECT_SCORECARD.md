@@ -231,6 +231,7 @@
 | 5 | 2026-02-01 | claude-opus-4-5-20251101 | 7 tasks | M4 Testing & Hardening COMPLETE (7/10, 3 deferred). Vitest setup with jsdom, mock DB pattern for RxDB (IndexedDB unavailable in jsdom). Achieved 88.9% services coverage (target 80%). End-to-end flow tests. Security audit (no exposed secrets, .env in .gitignore). ESLint + TypeScript zero errors. ErrorBoundary.tsx wrapping all routes. Accessibility review. Deferred: offline persistence testing, performance audit, Supabase sync. 153 new tests (247 total across 15 files). |
 | 6 | 2026-02-01 | claude-opus-4-5-20251101 | 6 tasks | M5 Beta Launch build tasks (M5-1 through M5-6). M5-1: Vite manual chunks (vendor-react, vendor-ui, vendor-data, vendor-google) + React.lazy code splitting — 14 chunks, largest 195KB/55KB gz. M5-2: netlify.toml with SPA redirects, 1yr immutable cache, security headers. M5-3: .env.example + runtime env logging. M5-5: WelcomeOnboarding.tsx (2-step: features + Google connect). M5-6: FeedbackWidget.tsx (floating button, modal form, localStorage). M5-4 deferred (analytics needs privacy provider). All committed (7821224), pushed to origin/sandbox. |
 | 7 | 2026-02-01 | claude-opus-4-5-20251101 | 3 items | Session resume: quality gate verification (247 tests pass, 0 lint errors, 0 TS errors, build clean). Fixed react-refresh ESLint error (extracted hasCompletedOnboarding to utils/onboarding.ts). Updated PROJECT_SCORECARD.md with sessions 5-6. Opened PR sandbox→master for M1-M5 work. |
+| 8 | 2026-02-01 | claude-opus-4-5-20251101 | 2 items | Governance bootstrap + scorecard display. Fixed TS error in Sidebar.tsx (NavItem icon type too narrow for style prop). Diagnosed Render deploy failure: service deploys from stale `master` branch — real code is on `main` (PR #2 merged). Opened PR #3 (sandbox→main) with TS fix. User needs to switch Render deploy branch from `master` to `main`. |
 <!-- SCORECARD_HISTORY_END -->
 
 ---
@@ -244,7 +245,8 @@
 | B-02 | No Task entity in RxDB | MAJOR | F02 (persistent task list), F01 (morning flow → tasks) | 2026-01-31 | 2026-01-31 |
 | B-03 | No Gmail API integration | MAJOR | F04 (entire email feature) | 2026-01-31 | 2026-01-31 |
 | B-04 | Build not verified | MINOR | Confidence in existing code | 2026-01-31 | 2026-01-31 |
-| B-05 | Netlify CLI blocked by EACCES | MAJOR | M5-7 through M5-10 (deployment + beta validation) | 2026-02-01 | -- |
+| B-05 | Netlify CLI blocked by EACCES | MAJOR | M5-7 through M5-10 (deployment + beta validation) | 2026-02-01 | 2026-02-01 (switched to Render) |
+| B-06 | Render deploys from stale `master` branch | MAJOR | Deploy fails — real code is on `main` | 2026-02-01 | -- (user must change Render branch setting) |
 <!-- SCORECARD_BLOCKERS_END -->
 
 ---
