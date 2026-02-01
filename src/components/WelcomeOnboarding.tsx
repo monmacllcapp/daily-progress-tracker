@@ -2,12 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Mail, Brain, Zap, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { isGoogleAuthAvailable, requestGoogleAuth, isGoogleConnected } from '../services/google-auth';
-
-const ONBOARDING_KEY = 'titan_onboarding_completed';
-
-export function hasCompletedOnboarding(): boolean {
-    return localStorage.getItem(ONBOARDING_KEY) === 'true';
-}
+import { markOnboardingComplete } from '../utils/onboarding';
 
 interface WelcomeOnboardingProps {
     onComplete: () => void;
@@ -59,12 +54,12 @@ export function WelcomeOnboarding({ onComplete }: WelcomeOnboardingProps) {
     };
 
     const handleFinish = () => {
-        localStorage.setItem(ONBOARDING_KEY, 'true');
+        markOnboardingComplete();
         onComplete();
     };
 
     const handleSkip = () => {
-        localStorage.setItem(ONBOARDING_KEY, 'true');
+        markOnboardingComplete();
         onComplete();
     };
 

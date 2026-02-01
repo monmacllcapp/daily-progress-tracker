@@ -10,7 +10,8 @@ import { DailyProgressHeader } from './components/DailyProgressHeader';
 import { Celebration } from './components/Celebration';
 import { HealthNudge } from './components/HealthNudge';
 import type { NudgeType } from './components/HealthNudge';
-import { WelcomeOnboarding, hasCompletedOnboarding } from './components/WelcomeOnboarding';
+import { WelcomeOnboarding } from './components/WelcomeOnboarding';
+import { hasCompletedOnboarding } from './utils/onboarding';
 import { FeedbackWidget } from './components/FeedbackWidget';
 
 // Log active integrations at startup
