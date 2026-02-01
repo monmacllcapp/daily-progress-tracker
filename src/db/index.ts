@@ -34,7 +34,7 @@ const taskSchema = {
         created_at: { type: 'string' },
         updated_at: { type: 'string' }
     },
-    required: ['id', 'title', 'status', 'source', 'created_date'],
+    required: ['id', 'title', 'status', 'source', 'created_date', 'category_id'],
     indexes: ['status', 'created_date', 'category_id']
 };
 
@@ -183,7 +183,7 @@ const calendarEventSchema = {
         created_at: { type: 'string' },
         updated_at: { type: 'string' }
     },
-    required: ['id', 'summary', 'start_time', 'end_time', 'source'],
+    required: ['id', 'summary', 'start_time', 'end_time', 'source', 'linked_task_id', 'google_event_id'],
     indexes: ['start_time', 'linked_task_id', 'google_event_id']
 };
 
@@ -207,7 +207,7 @@ const emailSchema = {
         created_at: { type: 'string' },
         updated_at: { type: 'string' }
     },
-    required: ['id', 'gmail_id', 'from', 'subject', 'tier', 'status'],
+    required: ['id', 'gmail_id', 'from', 'subject', 'tier', 'status', 'received_at'],
     indexes: ['tier', 'status', 'received_at']
 };
 

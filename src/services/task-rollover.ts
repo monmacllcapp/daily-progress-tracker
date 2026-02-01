@@ -65,6 +65,7 @@ export async function createTask(
     const newTask: Task = {
         ...task,
         id: crypto.randomUUID(),
+        category_id: task.category_id || '',
         created_at: now,
         updated_at: now,
     };

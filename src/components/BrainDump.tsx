@@ -51,7 +51,7 @@ export function BrainDump({ onTasksCreated }: BrainDumpProps) {
                     source: 'brain_dump',
                     created_date: today,
                     sort_order: sortOrder++,
-                    category_id: categoryId || undefined,
+                    category_id: categoryId || '',
                 });
             }
 

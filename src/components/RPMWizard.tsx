@@ -158,7 +158,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                     created_date: today,
                     sort_order: sortOrder + i,
                     goal_id: projectId,
-                    category_id: selectedCategory || undefined,
+                    category_id: selectedCategory || '',
                     time_estimate_minutes: convertToMinutes(st.time_estimate_minutes, st.time_unit),
                     due_date: st.due_date || undefined,
                     tags: ['rpm-action'],

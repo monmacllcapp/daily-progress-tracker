@@ -147,6 +147,7 @@ export async function syncCalendarEvents(
             await db.calendar_events.insert({
                 id: crypto.randomUUID(),
                 google_event_id: ge.id,
+                linked_task_id: '',
                 summary: ge.summary || '(No title)',
                 description: ge.description || '',
                 start_time: startTime,

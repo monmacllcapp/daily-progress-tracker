@@ -38,6 +38,7 @@ export async function scheduleTask(
     const eventId = crypto.randomUUID();
     await db.calendar_events.insert({
         id: eventId,
+        google_event_id: '',
         summary: task.title,
         description: task.description || '',
         start_time: options.startTime,
@@ -90,6 +91,8 @@ export async function schedulePowerBatch(
 
     await db.calendar_events.insert({
         id: eventId,
+        google_event_id: '',
+        linked_task_id: '',
         summary: `Power Batch (${tasks.length} tasks)`,
         description: titles,
         start_time: startTime,
