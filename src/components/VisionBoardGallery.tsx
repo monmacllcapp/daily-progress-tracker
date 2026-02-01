@@ -2,8 +2,17 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Target, Upload, X, Edit2 } from 'lucide-react';
 import { createDatabase } from '../db';
-import type { VisionBoard, Category } from '../types/schema';
+import type { VisionBoard } from '../types/schema';
 import { v4 as uuidv4 } from 'uuid';
+
+const CATEGORY_COLORS = [
+    '#F59E0B', '#3B82F6', '#8B5CF6', '#6366F1',
+    '#10B981', '#059669', '#1E40AF', '#EF4444'
+];
+
+function getRandomColor(): string {
+    return CATEGORY_COLORS[Math.floor(Math.random() * CATEGORY_COLORS.length)];
+}
 
 export function VisionBoardGallery() {
     const [visions, setVisions] = useState<VisionBoard[]>([]);
@@ -35,7 +44,7 @@ export function VisionBoardGallery() {
         }
     };
 
-    const createOrUpdateCategory = async (categoryName: string, visionId: string) => {
+    const createOrUpdateCategory = async (categoryName: string) => {
         if (!categoryName.trim()) return null;
 
         try {
@@ -57,8 +66,9 @@ export function VisionBoardGallery() {
                 user_id: 'default-user',
                 name: categoryName.trim(),
                 color_theme: getRandomColor(),
-                current_inflation: 0,
-                last_1_percent_date: new Date().toISOString(),
+                current_progress: 0,
+                streak_count: 0,
+                sort_order: 0,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             });
@@ -70,19 +80,11 @@ export function VisionBoardGallery() {
         }
     };
 
-    const getRandomColor = () => {
-        const colors = [
-            '#F59E0B', '#3B82F6', '#8B5CF6', '#6366F1',
-            '#10B981', '#059669', '#1E40AF', '#EF4444'
-        ];
-        return colors[Math.floor(Math.random() * colors.length)];
-    };
-
     const createVision = async () => {
         if (!newDeclaration.trim() || !newCategory.trim()) return;
 
         try {
-            const categoryId = await createOrUpdateCategory(newCategory, '');
+            const categoryId = await createOrUpdateCategory(newCategory);
 
             const db = await createDatabase();
             await db.vision_board.insert({
@@ -117,7 +119,7 @@ export function VisionBoardGallery() {
             const vision = await db.vision_board.findOne(visionId).exec();
 
             if (vision) {
-                const categoryId = await createOrUpdateCategory(newName, visionId);
+                const categoryId = await createOrUpdateCategory(newName);
                 await vision.patch({
                     category_name: newName.trim(),
                     category_id: categoryId || undefined

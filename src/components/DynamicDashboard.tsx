@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { motion } from 'framer-motion';
 import 'react-grid-layout/css/styles.css';
@@ -30,7 +30,7 @@ export function DynamicDashboard({ children }: DynamicDashboardProps) {
         return saved ? JSON.parse(saved) : DEFAULT_LAYOUT;
     });
 
-    const handleLayoutChange = (newLayout: any[]) => {
+    const handleLayoutChange = (newLayout: DashboardCard[]) => {
         setLayout(newLayout);
         localStorage.setItem('dashboard-layout', JSON.stringify(newLayout));
     };
@@ -64,7 +64,7 @@ export function DynamicDashboard({ children }: DynamicDashboardProps) {
                 compactType={null}
                 preventCollision={false}
             >
-                {childArray.map((child: any, index) => {
+                {childArray.map((child: React.ReactNode, index: number) => {
                     const cardId = layout[index]?.i || `card-${index}`;
 
                     return (

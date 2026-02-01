@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- entry point file, no exports needed */
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css' // Restore CSS
@@ -7,7 +8,7 @@ console.log("Restoring Titan Planner...");
 
 // Dynamic Import Wrapper to catch module loading errors
 function RootErrorBoundary() {
-  const [AppComponent, setAppComponent] = useState<any>(null);
+  const [AppComponent, setAppComponent] = useState<React.ComponentType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,5 +52,10 @@ try {
   )
 } catch (e) {
   console.error("Critical Render Error:", e);
-  document.getElementById('root')!.innerHTML = `<h1 style="color:red">Critical Error: ${e}</h1>`;
+  const root = document.getElementById('root')!;
+  root.textContent = '';
+  const h1 = document.createElement('h1');
+  h1.style.color = 'red';
+  h1.textContent = `Critical Error: ${e}`;
+  root.appendChild(h1);
 }

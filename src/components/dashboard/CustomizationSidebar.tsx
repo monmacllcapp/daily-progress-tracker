@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, RotateCcw, CheckCircle, Circle, LayoutDashboard } from 'lucide-react';
+import { X, RotateCcw, LayoutDashboard } from 'lucide-react';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { WIDGET_REGISTRY } from '../../config/widgetRegistry';
 import { clsx } from 'clsx';

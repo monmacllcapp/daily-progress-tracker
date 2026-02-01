@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Trash2, Plus, GripVertical, CheckCircle2, Circle } from 'lucide-react';
+import React from 'react';
+import { Trash2, Plus, CheckCircle2, Circle } from 'lucide-react';
 import type { ProjectData } from '../store/plannerStore';
 import { usePlannerStore } from '../store/plannerStore';
 import { clsx } from 'clsx';
@@ -11,16 +11,10 @@ interface ProjectCardProps {
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ data, configId }) => {
     const { updateProjectTitle, addTask, toggleTask, updateTask, deleteTask } = usePlannerStore();
-    const [isHovering, setIsHovering] = useState(false);
-
-    // Track editing state for tasks
-    const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
     return (
         <div
             className="flex flex-col h-full"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
         >
             {/* Progress Bar (Emerald Line) */}
             <div className="h-0.5 w-full bg-slate-800">
@@ -59,6 +53,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ data, configId }) => {
                     >
                         <button
                             onClick={() => toggleTask(configId, task.id)}
+                            aria-label={task.completed ? 'Mark task incomplete' : 'Mark task complete'}
                             className={clsx(
                                 "flex-shrink-0 transition-colors",
                                 task.completed ? "text-emerald-500" : "text-slate-600 hover:text-slate-400"
@@ -71,16 +66,16 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ data, configId }) => {
                             type="text"
                             value={task.text}
                             onChange={(e) => updateTask(configId, task.id, e.target.value)}
+                            aria-label="Task name"
                             className={clsx(
                                 "flex-1 bg-transparent text-sm focus:outline-none",
                                 task.completed ? "text-slate-500 line-through" : "text-slate-300"
                             )}
-                            onFocus={() => setEditingTaskId(task.id)}
-                            onBlur={() => setEditingTaskId(null)}
                         />
 
                         <button
                             onClick={() => deleteTask(configId, task.id)}
+                            aria-label="Delete task"
                             className="opacity-0 group-hover/task:opacity-100 text-slate-600 hover:text-red-400 transition-all"
                         >
                             <Trash2 className="w-3.5 h-3.5" />

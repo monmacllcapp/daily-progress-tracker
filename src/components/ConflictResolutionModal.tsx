@@ -113,8 +113,8 @@ export function ConflictResolutionModal({
                             <h3 className="font-bold text-lg mb-1">{primaryConflict.existingEvent.summary}</h3>
                             < div className="flex items-center gap-2 text-sm text-secondary">
                                 <span>
-                                    {formatTime(primaryConflict.existingEvent.start.dateTime)} -{' '}
-                                    {formatTime(primaryConflict.existingEvent.end.dateTime)}
+                                    {primaryConflict.existingEvent.start.dateTime && formatTime(primaryConflict.existingEvent.start.dateTime)} -{' '}
+                                    {primaryConflict.existingEvent.end.dateTime && formatTime(primaryConflict.existingEvent.end.dateTime)}
                                 </span >
                             </div >
                         </div >

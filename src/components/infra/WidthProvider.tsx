@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { WidthProvider as RGLWidthProvider, Layout } from "react-grid-layout";
+import type { Layout } from "react-grid-layout";
 
 /*
  * Legacy width provider from RGL often causes hydration mismatch or
@@ -18,14 +18,20 @@ export interface WidthProviderProps {
 export function WidthProvider<P>(
     ComposedComponent: React.ComponentType<P>
 ): React.FC<P & WidthProviderProps> {
-    return (props: P & WidthProviderProps) => {
+    function WidthProviderWrapper(props: P & WidthProviderProps) {
         const [width, setWidth] = useState<number>(1200);
         const [mounted, setMounted] = useState(false);
         const containerRef = useRef<HTMLDivElement>(null);
 
-        useEffect(() => {
-            setMounted(true);
+        const refCallback = React.useCallback((node: HTMLDivElement | null) => {
+            if (node) {
+                containerRef.current = node;
+                setWidth(node.offsetWidth);
+                setMounted(true);
+            }
+        }, []);
 
+        useEffect(() => {
             if (!containerRef.current) return;
 
             const observer = new ResizeObserver((entries) => {
@@ -37,19 +43,16 @@ export function WidthProvider<P>(
 
             observer.observe(containerRef.current);
 
-            // Initial measure
-            setWidth(containerRef.current.offsetWidth);
-
             return () => {
                 observer.disconnect();
             };
-        }, []);
+        }, [mounted]);
 
         // Prevent hydration mismatch by rendering a placeholder or default width first
         // optionally could wait for mount, but RGL handles width updates well if passed
         return (
             <div
-                ref={containerRef}
+                ref={refCallback}
                 className={props.className}
                 style={{ width: '100%', ...props.style }}
             >
@@ -65,5 +68,8 @@ export function WidthProvider<P>(
                 )}
             </div>
         );
-    };
+    }
+
+    WidthProviderWrapper.displayName = `WidthProvider(${ComposedComponent.displayName || ComposedComponent.name || 'Component'})`;
+    return WidthProviderWrapper;
 }

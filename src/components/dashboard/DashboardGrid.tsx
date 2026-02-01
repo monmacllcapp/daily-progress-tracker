@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Responsive } from 'react-grid-layout';
 
 import { useDashboardStore } from '../../store/dashboardStore';
@@ -10,22 +10,28 @@ import 'react-resizable/css/styles.css';
 
 export function DashboardGrid() {
     const { layouts, updateLayout, loadLayout, hiddenWidgets } = useDashboardStore();
-    const [mounted, setMounted] = useState(false);
     const [width, setWidth] = useState(1200);
     const containerRef = useRef<HTMLDivElement>(null);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         loadLayout();
-        setMounted(true);
+    }, [loadLayout]);
 
+    const containerRefCallback = useCallback((node: HTMLDivElement | null) => {
+        if (node) {
+            containerRef.current = node;
+            setWidth(node.offsetWidth);
+            setMounted(true);
+        }
+    }, []);
+
+    useEffect(() => {
         const updateWidth = () => {
             if (containerRef.current) {
                 setWidth(containerRef.current.offsetWidth);
             }
         };
-
-        // Initial measure
-        updateWidth();
 
         // Resize observer for robust width tracking
         const observer = new ResizeObserver(() => {
@@ -46,7 +52,7 @@ export function DashboardGrid() {
             observer.disconnect();
             window.removeEventListener('resize', updateWidth);
         };
-    }, []);
+    }, [mounted]);
 
     if (!mounted) return null;
 
@@ -54,7 +60,7 @@ export function DashboardGrid() {
     const activeLayout = layouts.filter(l => !hiddenWidgets.includes(l.i));
 
     return (
-        <div ref={containerRef} className="w-full h-full pb-20">
+        <div ref={containerRefCallback} className="w-full h-full pb-20">
             <Responsive
                 className="layout"
                 width={width}

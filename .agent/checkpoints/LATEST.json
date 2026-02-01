@@ -1,0 +1,56 @@
+{
+  "checkpoint_id": "2026-02-01T025000_m5prog",
+  "timestamp": "2026-02-01T02:50:00Z",
+  "agent": {
+    "model": "claude-opus-4-5-20251101",
+    "provider": "anthropic",
+    "session_id": "session-6"
+  },
+  "session": {
+    "project": "Titan Life OS",
+    "goal": "M5: Beta Launch — build, deploy, onboarding, feedback",
+    "branch": "sandbox",
+    "working_directory": "/workspace"
+  },
+  "changes": {
+    "summary": "M5 Beta Launch IN_PROGRESS. Completed: production build optimization (code splitting from 700KB to 14 chunks, largest 195KB/55KB gz), Netlify deployment config (netlify.toml + _redirects), .env.example with 4 env vars, WelcomeOnboarding component (2-step flow), FeedbackWidget component (floating button + modal). 247 tests still passing, 0 TS/ESLint errors.",
+    "files_modified": [
+      {"path": "vite.config.ts", "action": "modified", "description": "Added manual chunks for vendor splitting (react, ui, data, google)"},
+      {"path": "src/App.tsx", "action": "modified", "description": "React.lazy code splitting for MorningFlow/RPMWizard/TitanDashboard/PatternInterrupt, Suspense wrappers, runtime env logging, WelcomeOnboarding + FeedbackWidget integration"},
+      {"path": "netlify.toml", "action": "created", "description": "Netlify build config, SPA redirects, cache + security headers"},
+      {"path": "public/_redirects", "action": "created", "description": "Fallback SPA redirect for Netlify"},
+      {"path": ".env.example", "action": "created", "description": "Documents all 4 env vars with instructions"},
+      {"path": "src/components/WelcomeOnboarding.tsx", "action": "created", "description": "2-step onboarding: feature overview + Google connect, localStorage persistence, skip option"},
+      {"path": "src/components/FeedbackWidget.tsx", "action": "created", "description": "Floating feedback button + modal form with bug/feature/general types, localStorage storage"},
+      {"path": "docs/MILESTONES.md", "action": "modified", "description": "M5 status IN_PROGRESS, M5-1 through M5-6 marked complete with details"}
+    ],
+    "decisions_made": [
+      {"decision": "Vite manual chunks for vendor splitting", "rationale": "Separates rarely-changing vendor code from app code for better caching", "alternatives_considered": ["Single bundle", "per-page splitting only"]},
+      {"decision": "Feedback stored in localStorage not RxDB", "rationale": "Avoids schema migration complexity for a beta collection feature; feedback is transient", "alternatives_considered": ["RxDB feedback collection", "Direct GitHub issue creation"]},
+      {"decision": "Onboarding before morning flow", "rationale": "First-time users should understand the app before being prompted for daily planning", "alternatives_considered": ["Onboarding after first morning flow", "Inline hints instead of wizard"]},
+      {"decision": "Deferred M5-4 analytics", "rationale": "Needs privacy-respecting analytics provider selection — not a blocker for beta launch", "alternatives_considered": ["Plausible", "PostHog", "Custom event tracking"]}
+    ]
+  },
+  "continuation": {
+    "status": "in_progress",
+    "next_immediate_step": {
+      "action": "Deploy to Netlify and begin beta validation",
+      "details": "Push sandbox branch to remote, connect repo to Netlify dashboard, set env vars in Netlify UI, deploy. Then begin M5-7 (onboard beta users) with the test Gmail account."
+    },
+    "next_three_steps": [
+      {"step_number": 2, "action": "M5-7: Onboard beta users", "details": "Share deployed URL with beta testers, provide the test Google account for those who need it"},
+      {"step_number": 3, "action": "M5-8: Collect feedback", "details": "Monitor feedback entries in localStorage, triage bug reports vs feature requests"},
+      {"step_number": 4, "action": "M5-9: Bug fix sprint", "details": "Address critical bugs found during beta testing, prioritize UX issues"}
+    ],
+    "blockers": [
+      "Netlify CLI cannot be installed in current environment (EACCES). Deployment must be done via Netlify dashboard or by user."
+    ],
+    "context_notes": "M0-M5 (build tasks) complete. 247 tests, 15 files, 0 failures. Build: 14 chunks, largest 195KB/55KB gz, ~6s build time. User provided test Gmail: monmaclabs@gmail.com. Full autonomy directive active. M5-7 through M5-10 require deployment + real users."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 6,
+    "parent_checkpoint": "2026-01-31T230500_m4compl",
+    "tags": ["m5-in-progress", "247-tests", "session-6", "code-splitting", "netlify-ready"]
+  }
+}

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Responsive, Layout } from 'react-grid-layout';
+import React, { useMemo } from 'react';
+import { Responsive } from 'react-grid-layout';
+import type { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
@@ -8,24 +9,21 @@ import { usePlannerStore } from '../../store/plannerStore';
 import { WidgetWrapper } from '../dashboard/WidgetWrapper';
 import { ProjectCard } from '../ProjectCard';
 
-// @ts-ignore - Types for ResponsiveGridLayout can be tricky with HOCs
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 export const TitanGrid: React.FC = () => {
     const { widgets, updateLayout } = usePlannerStore();
-    const [layouts, setLayouts] = useState<{ lg: Layout[] }>({ lg: [] });
 
-    // Sync store widgets to RGL layout format
-    useEffect(() => {
-        const currentLayout = widgets.map(w => ({
+    // Derive layout from store widgets (no effect needed)
+    const layouts = useMemo<{ lg: Layout[] }>(() => ({
+        lg: widgets.map(w => ({
             i: w.id,
             x: w.layout.x,
             y: w.layout.y,
             w: w.layout.w,
             h: w.layout.h,
-        }));
-        setLayouts({ lg: currentLayout });
-    }, [widgets]);
+        })),
+    }), [widgets]);
 
     const handleLayoutChange = (currentLayout: Layout[]) => {
         // We only want to update if it's a real user interaction change

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X, GripVertical } from 'lucide-react';
+import { X } from 'lucide-react';
 import { createDatabase } from '../db';
 import type { Stressor, StressorMilestone } from '../types/schema';
 import { v4 as uuidv4 } from 'uuid';
@@ -131,7 +131,7 @@ export function TodaysStressors() {
                 const totalEstimate = stressor.time_estimate_minutes;
 
                 // Convert milestones to SubTask format for PulseBar
-                const subtasksForBar = stressorMilestones.map((m, idx) => ({
+                const subtasksForBar = stressorMilestones.map((m) => ({
                     id: m.id,
                     project_id: stressor.id,
                     title: m.title,

@@ -1,6 +1,5 @@
 import { forwardRef } from 'react';
 import { GripHorizontal } from 'lucide-react';
-import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 interface WidgetWrapperProps extends React.HTMLAttributes<HTMLDivElement> {

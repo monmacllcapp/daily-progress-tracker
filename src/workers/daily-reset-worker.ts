@@ -41,6 +41,12 @@ function performReset() {
         date: today
     });
 
+    // Trigger task rollover — move incomplete tasks to new day
+    self.postMessage({
+        type: 'ROLLOVER_TASKS',
+        date: today
+    });
+
     // Update last reset date
     lastResetDate = today;
 

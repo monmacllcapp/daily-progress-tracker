@@ -157,7 +157,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        day && handleDateSelect(day);
+                                        if (day) handleDateSelect(day);
                                     }}
                                     disabled={!day}
                                     className={`aspect-square rounded text-[10px] transition-all ${!day

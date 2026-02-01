@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
 import { createDatabase } from '../db';
@@ -15,7 +15,6 @@ export function LifeRadar() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [subtasks, setSubtasks] = useState<SubTask[]>([]);
-    const [radarData, setRadarData] = useState<RadarDataPoint[]>([]);
 
     useEffect(() => {
         const initData = async () => {
@@ -40,9 +39,9 @@ export function LifeRadar() {
         initData();
     }, []);
 
-    useEffect(() => {
+    const radarData = useMemo((): RadarDataPoint[] => {
         // Calculate growth score for each category
-        const data: RadarDataPoint[] = categories.map(cat => {
+        return categories.map(cat => {
             // Find projects in this category
             const categoryProjects = projects.filter(p => p.category_id === cat.id);
 
@@ -73,7 +72,7 @@ export function LifeRadar() {
 
             // Add streak bonus (if completed something today)
             const today = new Date().toISOString().split('T')[0];
-            const streakBonus = cat.last_1_percent_date === today ? 0.1 : 0;
+            const streakBonus = cat.last_active_date === today ? 0.1 : 0;
 
             // Final growth score (0-1 scale, converted to 0-100 for radar)
             const growthScore = Math.min(1, completionRatio + streakBonus);
@@ -84,8 +83,6 @@ export function LifeRadar() {
                 color: cat.color_theme
             };
         });
-
-        setRadarData(data);
     }, [categories, projects, subtasks]);
 
     const flatTireCategories = radarData.filter(d => d.value < 20);

@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { CalendarEvent } from './google-calendar';
+import type { GoogleCalendarEvent as CalendarEvent } from './google-calendar';
 import type { Project } from '../types/schema';
 
 export interface Conflict {
@@ -37,6 +37,7 @@ export class ConflictDetector {
         );
 
         for (const event of existingEvents) {
+            if (!event.start.dateTime || !event.end.dateTime) continue;
             const eventStart = new Date(event.start.dateTime);
             const eventEnd = new Date(event.end.dateTime);
 
@@ -124,6 +125,7 @@ export class ConflictDetector {
         let totalMinutes = newDurationMinutes;
 
         for (const event of events) {
+            if (!event.start.dateTime || !event.end.dateTime) continue;
             const eventStart = new Date(event.start.dateTime);
             const eventEnd = new Date(event.end.dateTime);
 
@@ -202,16 +204,17 @@ Format your response as JSON:
         existingEvents: CalendarEvent[],
         startSearchFrom: Date = new Date()
     ): Date {
-        const sortedEvents = [...existingEvents].sort((a, b) =>
-            new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime()
+        const timedEvents = existingEvents.filter(e => e.start.dateTime && e.end.dateTime);
+        const sortedEvents = timedEvents.sort((a, b) =>
+            new Date(a.start.dateTime!).getTime() - new Date(b.start.dateTime!).getTime()
         );
 
         let currentTime = new Date(startSearchFrom);
         currentTime.setMinutes(0, 0, 0); // Round to hour
 
         for (const event of sortedEvents) {
-            const eventStart = new Date(event.start.dateTime);
-            const eventEnd = new Date(event.end.dateTime);
+            const eventStart = new Date(event.start.dateTime!);
+            const eventEnd = new Date(event.end.dateTime!);
 
             // Check if there's enough space before this event
             const availableTime = eventStart.getTime() - currentTime.getTime();

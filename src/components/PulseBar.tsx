@@ -9,14 +9,14 @@ interface PulseBarProps {
 }
 
 export const PulseBar: React.FC<PulseBarProps> = ({ subtasks, totalEstimatedMinutes }) => {
-    if (totalEstimatedMinutes === 0 || subtasks.length === 0) {
-        return <div className="h-2 w-full bg-white bg-opacity-5 rounded-full" />;
-    }
-
     // Sort subtasks by sort_order to match display order
     const sortedSubtasks = useMemo(() => {
         return [...subtasks].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     }, [subtasks]);
+
+    if (totalEstimatedMinutes === 0 || subtasks.length === 0) {
+        return <div className="h-2 w-full bg-white bg-opacity-5 rounded-full" />;
+    }
 
     return (
         <div className="relative w-full h-3 bg-slate-800 bg-opacity-50 rounded-full overflow-visible flex items-center">

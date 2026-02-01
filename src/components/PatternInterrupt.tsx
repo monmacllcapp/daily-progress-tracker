@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, X } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 interface PatternInterruptProps {
     isOpen: boolean;

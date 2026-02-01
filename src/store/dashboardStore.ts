@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Layout } from 'react-grid-layout';
+import type { Layout } from 'react-grid-layout';
 import { WIDGET_REGISTRY } from '../config/widgetRegistry';
 
 
@@ -42,7 +42,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         // If unhiding, we might need to add it back to layout if missing,
         // but typically RGL handles the "layout" array separate from "children".
         // Use default layout from registry if not found in current layouts
-        let newLayouts = [...layouts];
+        const newLayouts = [...layouts];
         if (isHidden) { // We are showing it now
             const existingItem = layouts.find(l => l.i === widgetId);
             if (!existingItem) {

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { createDatabase } from '../db';
-import { Sparkles, Target, Zap, ArrowRight, ArrowLeft } from 'lucide-react';
+import { createTask } from '../services/task-rollover';
+import { Sparkles, Target, Zap, ArrowRight, ArrowLeft, FolderOpen, Eye } from 'lucide-react';
 import { DatePicker } from './DatePicker';
+import type { Category, VisionBoard } from '../types/schema';
 
 interface SubTaskInput {
     id: string;
@@ -31,6 +33,21 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
     ]);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [selectedVision, setSelectedVision] = useState<string>('');
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [visions, setVisions] = useState<VisionBoard[]>([]);
+
+    useEffect(() => {
+        const loadData = async () => {
+            const db = await createDatabase();
+            db.categories.find().$.subscribe(docs => {
+                setCategories(docs.map(d => d.toJSON() as Category));
+            });
+            db.vision_board.find().$.subscribe(docs => {
+                setVisions(docs.map(d => d.toJSON() as VisionBoard));
+            });
+        };
+        loadData();
+    }, []);
 
     const canProceedFromSlide = (slide: number): boolean => {
         if (slide === 0) return result.trim().length > 0;
@@ -125,6 +142,30 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
             }
 
             console.log('[RPM Wizard] All subtasks created');
+
+            // Create Task entities for each subtask so they appear in the persistent task list
+            const existingTasks = await db.tasks.find({ selector: { status: 'active' } }).exec();
+            const sortOrder = existingTasks.length;
+            const today = new Date().toISOString().split('T')[0];
+
+            for (let i = 0; i < validSubtasks.length; i++) {
+                const st = validSubtasks[i];
+                await createTask(db, {
+                    title: st.title,
+                    priority: 'medium',
+                    status: 'active',
+                    source: 'rpm_wizard',
+                    created_date: today,
+                    sort_order: sortOrder + i,
+                    goal_id: projectId,
+                    category_id: selectedCategory || undefined,
+                    time_estimate_minutes: convertToMinutes(st.time_estimate_minutes, st.time_unit),
+                    due_date: st.due_date || undefined,
+                    tags: ['rpm-action'],
+                });
+            }
+
+            console.log('[RPM Wizard] Created', validSubtasks.length, 'task entities');
             console.log('[RPM Wizard] Closing modal, onClose:', !!onClose);
 
             // Close modal or navigate back
@@ -175,6 +216,44 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                 className="w-full px-6 py-4 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 autoFocus
             />
+
+            {/* Category, Vision, and Due Date */}
+            <div className="grid grid-cols-3 gap-3 mt-4">
+                <div>
+                    <label className="text-xs text-slate-500 mb-1 flex items-center gap-1">
+                        <FolderOpen className="w-3 h-3" /> Life Bucket
+                    </label>
+                    <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    >
+                        <option value="">None</option>
+                        {categories.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label className="text-xs text-slate-500 mb-1 flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> Vision
+                    </label>
+                    <select
+                        value={selectedVision}
+                        onChange={(e) => setSelectedVision(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    >
+                        <option value="">None</option>
+                        {visions.map(v => (
+                            <option key={v.id} value={v.id}>{v.declaration}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Due Date</label>
+                    <DatePicker value={dueDate} onChange={setDueDate} />
+                </div>
+            </div>
         </div>,
 
         // Slide 1: Purpose
@@ -266,6 +345,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                         {subtasks.length > 1 && (
                             <button
                                 onClick={() => removeSubtask(st.id)}
+                                aria-label="Remove subtask"
                                 className="text-red-400 hover:text-red-300 transition-colors p-1"
                             >
                                 ✕
@@ -356,6 +436,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                 {/* Close button */}
                 <button
                     onClick={() => navigate('/')}
+                    aria-label="Close wizard"
                     className="absolute top-6 right-6 text-secondary hover:text-white transition-colors"
                 >
                     ✕

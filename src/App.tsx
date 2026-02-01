@@ -1,14 +1,44 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { createDatabase } from './db'
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { MorningFlow } from './components/MorningFlow';
-import { RPMWizard } from './components/RPMWizard';
-import { TitanDashboard } from './components/dashboard/TitanDashboard';
-import { PatternInterrupt } from './components/PatternInterrupt';
-import { Plus, Sparkles } from 'lucide-react';
+import type { TitanDatabase } from './db'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { Plus } from 'lucide-react';
+import { rolloverTasks } from './services/task-rollover';
+import { checkStreakResets } from './services/streak-service';
+import { DailyProgressHeader } from './components/DailyProgressHeader';
+import { Celebration } from './components/Celebration';
+import { HealthNudge } from './components/HealthNudge';
+import type { NudgeType } from './components/HealthNudge';
+import { WelcomeOnboarding, hasCompletedOnboarding } from './components/WelcomeOnboarding';
+import { FeedbackWidget } from './components/FeedbackWidget';
 
-import type { Project, SubTask } from './types/schema';
-import { ProjectCard } from './components/ProjectCard';
+// Log active integrations at startup
+if (typeof window !== 'undefined') {
+  const env = import.meta.env;
+  console.log('[Titan] Active integrations:', {
+    google: !!env.VITE_GOOGLE_CLIENT_ID,
+    gemini: !!env.VITE_GEMINI_API_KEY,
+    supabase: !!(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_ANON_KEY),
+  });
+}
+
+// Lazy-loaded route components for code splitting
+const MorningFlow = lazy(() => import('./components/MorningFlow').then(m => ({ default: m.MorningFlow })));
+const RPMWizard = lazy(() => import('./components/RPMWizard').then(m => ({ default: m.RPMWizard })));
+const TitanDashboard = lazy(() => import('./components/dashboard/TitanDashboard').then(m => ({ default: m.TitanDashboard })));
+const PatternInterrupt = lazy(() => import('./components/PatternInterrupt').then(m => ({ default: m.PatternInterrupt })));
+
+function LoadingSpinner() {
+  return (
+    <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-slate-400 text-sm">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 // Toast notification component
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
@@ -25,36 +55,49 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 }
 
 function Home() {
-  const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [subtasks, setSubtasks] = useState<SubTask[]>([]);
   const [showRPM, setShowRPM] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [showPatternInterrupt, setShowPatternInterrupt] = useState(false);
   const [showMorningFlow, setShowMorningFlow] = useState(false);
   const [isCheckingMorningFlow, setIsCheckingMorningFlow] = useState(true);
+  const [celebration, setCelebration] = useState<{ show: boolean; message?: string }>({ show: false });
+  const [activeNudge, setActiveNudge] = useState<NudgeType | null>(null);
+  const healthWorkerRef = useRef<Worker | null>(null);
+  const [onboardingDone, setOnboardingDone] = useState(() => hasCompletedOnboarding());
+
+  const handleTaskRollover = async () => {
+    try {
+      const db = await createDatabase();
+      const count = await rolloverTasks(db);
+      // Check for broken streaks on daily reset
+      await checkStreakResets(db);
+      if (count > 0) {
+        setToast(`${count} task${count > 1 ? 's' : ''} rolled to today`);
+      }
+    } catch (err) {
+      console.error('Failed to rollover tasks:', err);
+    }
+  };
+
+  const clearTodaysStressors = async () => {
+    try {
+      const db = await createDatabase();
+      const stressors = await db.stressors?.find({ selector: { is_today: true } }).exec();
+
+      if (stressors) {
+        await Promise.all(stressors.map(doc => doc.patch({ is_today: false })));
+      }
+    } catch (err) {
+      console.error('Failed to clear stressors:', err);
+    }
+  };
 
   useEffect(() => {
-    const loadData = async () => {
-      // FORCE CLEAR CACHE for layout issues
-      localStorage.removeItem('titan_glass_layout_v1');
-      localStorage.removeItem('titan_glass_layout_v2');
-      localStorage.removeItem('titan_glass_layout_v3');
-      localStorage.removeItem('dashboard_panels'); // Clear old DndGrid dashboard
-      // console.log("Cache Cleared");
-
-      const db = await createDatabase();
-
-      db.projects.find().$.subscribe(docs => {
-        setProjects(docs.map(d => d.toJSON()));
-      });
-
-      db.sub_tasks.find().$.subscribe(docs => {
-        setSubtasks(docs.map(d => d.toJSON()));
-      });
-    };
-
-    loadData();
+    // FORCE CLEAR CACHE for layout issues
+    localStorage.removeItem('titan_glass_layout_v1');
+    localStorage.removeItem('titan_glass_layout_v2');
+    localStorage.removeItem('titan_glass_layout_v3');
+    localStorage.removeItem('dashboard_panels'); // Clear old DndGrid dashboard
 
     // Check if morning flow completed today
     const checkMorningFlow = () => {
@@ -82,13 +125,16 @@ function Home() {
     const healthWorker = new Worker(new URL('./workers/health-worker.ts', import.meta.url), { type: 'module' });
 
     healthWorker.onmessage = (e) => {
-      if (e.data.type === 'HYDRATE') {
-        setToast('💧 Time to hydrate! Drink some water.');
-      } else if (e.data.type === 'PATTERN_INTERRUPT') {
+      const msgType = e.data.type;
+      if (msgType === 'HYDRATE' || msgType === 'STRETCH' || msgType === 'EYE_BREAK') {
+        setActiveNudge(msgType as NudgeType);
+      } else if (msgType === 'PATTERN_INTERRUPT') {
+        // Legacy support
         setShowPatternInterrupt(true);
       }
     };
 
+    healthWorkerRef.current = healthWorker;
     healthWorker.postMessage({ type: 'START' });
 
     // Daily reset worker setup
@@ -101,8 +147,10 @@ function Home() {
         setShowMorningFlow(true);
       } else if (e.data.type === 'RESET_STRESSORS') {
         console.log('[App] Stressors reset triggered for', e.data.date);
-        // Clear stressors is_today flags in database
         clearTodaysStressors();
+      } else if (e.data.type === 'ROLLOVER_TASKS') {
+        console.log('[App] Task rollover triggered for', e.data.date);
+        handleTaskRollover();
       }
     };
 
@@ -115,31 +163,12 @@ function Home() {
     };
   }, []);
 
-  const clearTodaysStressors = async () => {
-    try {
-      const db = await createDatabase();
-      const stressors = await db.stressors?.find({ selector: { is_today: true } }).exec();
-
-      if (stressors) {
-        await Promise.all(stressors.map(doc => doc.patch({ is_today: false })));
-      }
-    } catch (err) {
-      console.error('Failed to clear stressors:', err);
-    }
-  };
-
   const handleMorningFlowComplete = () => {
     const today = new Date().toISOString().split('T')[0];
     localStorage.setItem('morning_flow_completed', JSON.stringify({ date: today, completed: true }));
     localStorage.setItem('last_reset_date', today);
     setShowMorningFlow(false);
     setIsCheckingMorningFlow(false); // Ensure dashboard shows
-  };
-
-  const getProjectSubtasks = (projectId: string) => {
-    return subtasks
-      .filter(st => st.project_id === projectId)
-      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   };
 
   // Show loading state while checking morning flow
@@ -159,25 +188,45 @@ function Home() {
   //   return null; // Don't render anything while checking
   // }
 
+  // Show onboarding on first visit
+  if (!onboardingDone) {
+    return <WelcomeOnboarding onComplete={() => setOnboardingDone(true)} />;
+  }
+
   // Show morning flow if not completed today
   if (showMorningFlow) {
-    return <MorningFlow onComplete={handleMorningFlowComplete} />;
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <MorningFlow onComplete={handleMorningFlowComplete} />
+      </Suspense>
+    );
   }
 
   return (
     <>
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
       <PatternInterrupt isOpen={showPatternInterrupt} onDismiss={() => setShowPatternInterrupt(false)} />
+      <Celebration show={celebration.show} message={celebration.message} onComplete={() => setCelebration({ show: false })} />
+      <HealthNudge
+        type={activeNudge}
+        onDismiss={() => setActiveNudge(null)}
+        onSnooze={(nudgeType) => {
+          setActiveNudge(null);
+          healthWorkerRef.current?.postMessage({ type: 'SNOOZE', nudgeType });
+        }}
+      />
 
+      <FeedbackWidget />
       <main className="min-h-screen bg-zinc-950 text-white p-6">
         {/* Header */}
-        <header className="w-full px-4 sm:px-6 lg:px-8 mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-rose-400 bg-clip-text text-transparent">
-              Titan Life OS
-            </h1>
-            <p className="text-secondary mt-1">Your cognitive operating system</p>
-          </div>
+        <header className="w-full px-4 sm:px-6 lg:px-8 mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-rose-400 bg-clip-text text-transparent">
+                Titan Life OS
+              </h1>
+              <p className="text-secondary mt-1">Your cognitive operating system</p>
+            </div>
 
           <button
             onClick={() => setShowRPM(true)}
@@ -186,16 +235,26 @@ function Home() {
             <Plus className="w-5 h-5" />
             New Project
           </button>
+          </div>
+
+          {/* Daily Progress Summary */}
+          <div className="mt-4">
+            <DailyProgressHeader />
+          </div>
         </header>
 
         {/* RPM Wizard Modal */}
         {showRPM && (
-          <RPMWizard onClose={() => setShowRPM(false)} />
+          <Suspense fallback={<LoadingSpinner />}>
+            <RPMWizard onClose={() => setShowRPM(false)} />
+          </Suspense>
         )}
 
         {/* Dashboard - Always Show */}
         <div className="w-full">
-          <TitanDashboard />
+          <Suspense fallback={<LoadingSpinner />}>
+            <TitanDashboard />
+          </Suspense>
         </div>
       </main>
     </>
@@ -203,7 +262,7 @@ function Home() {
 }
 
 function App() {
-  const [db, setDb] = useState<any>(null);
+  const [db, setDb] = useState<TitanDatabase | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -244,13 +303,17 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/morning" element={<MorningFlow />} />
-        <Route path="/rpm" element={<RPMWizard />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/morning" element={<MorningFlow />} />
+            <Route path="/rpm" element={<RPMWizard />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
