@@ -2,13 +2,21 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Mail, AlertCircle, MessageSquare, Tag, Trash2,
-    RefreshCw, Send, Edit3, Archive, ChevronDown, ChevronRight, Trophy
+    RefreshCw, Send, Edit3, Archive, ChevronDown, ChevronRight, Trophy,
+    Clock, Bell, ExternalLink, Newspaper
 } from 'lucide-react';
 import { createDatabase } from '../db';
 import { isGoogleConnected, requestGoogleAuth, isGoogleAuthAvailable } from '../services/google-auth';
 import { syncGmailInbox, archiveMessage, sendReply } from '../services/gmail';
 import { classifyEmail, draftResponse, isClassifierAvailable } from '../services/email-classifier';
+import { scoreAllEmails } from '../services/email-scorer';
+import { detectNewsletters, getNewsletterSenders, bulkArchiveBySender, buildUnsubscribeAction } from '../services/newsletter-detector';
+import { snoozeEmail, unsnoozeEmail } from '../services/email-snooze';
+import type { NewsletterSender } from '../services/newsletter-detector';
+import type { SnoozePreset } from '../services/email-snooze';
 import type { Email, EmailTier } from '../types/schema';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 const TIER_CONFIG: Record<EmailTier, { label: string; icon: typeof AlertCircle; color: string; bgColor: string; bgLight: string; bgMedium: string }> = {
     urgent: { label: 'Urgent', icon: AlertCircle, color: 'text-red-400', bgColor: 'bg-red-500', bgLight: 'bg-red-500/20', bgMedium: 'bg-red-500/30' },
@@ -20,23 +28,26 @@ const TIER_CONFIG: Record<EmailTier, { label: string; icon: typeof AlertCircle; 
 const TIER_ORDER: EmailTier[] = ['urgent', 'important', 'promotions', 'unsubscribe'];
 
 export function EmailDashboard() {
-    const [emails, setEmails] = useState<Email[]>([]);
+    const [db] = useDatabase();
+    const [emails] = useRxQuery<Email>(db?.emails, { sort: [{ received_at: 'desc' }] });
     const [isSyncing, setIsSyncing] = useState(false);
     const [expandedTiers, setExpandedTiers] = useState<Set<EmailTier>>(new Set(['urgent', 'important']));
     const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
     const [draftText, setDraftText] = useState('');
     const [isDrafting, setIsDrafting] = useState(false);
     const [toast, setToast] = useState<string | null>(null);
+    const [newsletterSenders, setNewsletterSenders] = useState<NewsletterSender[]>([]);
+    const [showNewsletters, setShowNewsletters] = useState(false);
+    const [showSnoozed, setShowSnoozed] = useState(false);
+    const [snoozeDropdownId, setSnoozeDropdownId] = useState<string | null>(null);
 
+    // Load newsletter senders when db is ready
     useEffect(() => {
-        createDatabase().then(db => {
-            db.emails.find({
-                sort: [{ received_at: 'desc' }]
-            }).$.subscribe(docs => {
-                setEmails(docs.map(d => d.toJSON() as Email));
-            });
+        if (!db) return;
+        getNewsletterSenders(db).then(setNewsletterSenders).catch(err => {
+            console.error('[EmailDashboard] Failed to load newsletter senders:', err);
         });
-    }, []);
+    }, [db]);
 
     const showToast = (msg: string) => {
         setToast(msg);
@@ -56,6 +67,10 @@ export function EmailDashboard() {
         try {
             const db = await createDatabase();
             const count = await syncGmailInbox(db, classifyEmail);
+            // Post-sync: score emails and detect newsletters
+            await scoreAllEmails(db);
+            await detectNewsletters(db);
+            setNewsletterSenders(await getNewsletterSenders(db));
             showToast(count > 0 ? `Synced ${count} new emails` : 'Inbox up to date');
         } catch (err) {
             console.error('[EmailDashboard] Sync failed:', err);
@@ -122,6 +137,39 @@ export function EmailDashboard() {
         }
     };
 
+    const handleSnooze = async (email: Email, preset: SnoozePreset) => {
+        try {
+            const db = await createDatabase();
+            await snoozeEmail(db, email.id, preset);
+            setSnoozeDropdownId(null);
+            setSelectedEmail(null);
+            showToast('Email snoozed');
+        } catch (err) {
+            console.error('[EmailDashboard] Snooze failed:', err);
+        }
+    };
+
+    const handleUnsnooze = async (email: Email) => {
+        try {
+            const db = await createDatabase();
+            await unsnoozeEmail(db, email.id);
+            showToast('Email unsnoozed');
+        } catch (err) {
+            console.error('[EmailDashboard] Unsnooze failed:', err);
+        }
+    };
+
+    const handleBulkArchive = async (senderAddress: string) => {
+        try {
+            const db = await createDatabase();
+            const count = await bulkArchiveBySender(db, senderAddress);
+            setNewsletterSenders(await getNewsletterSenders(db));
+            showToast(`Archived ${count} emails`);
+        } catch (err) {
+            console.error('[EmailDashboard] Bulk archive failed:', err);
+        }
+    };
+
     const toggleTier = (tier: EmailTier) => {
         setExpandedTiers(prev => {
             const next = new Set(prev);
@@ -135,12 +183,19 @@ export function EmailDashboard() {
     const emailsByTier = new Map<EmailTier, Email[]>();
     for (const tier of TIER_ORDER) emailsByTier.set(tier, []);
     for (const email of emails) {
-        if (email.status === 'archived') continue;
+        if (email.status === 'archived' || email.status === 'snoozed') continue;
         const effectiveTier = email.tier_override || email.tier;
         emailsByTier.get(effectiveTier)?.push(email);
     }
+    // Sort within each tier by score (highest first)
+    for (const tier of TIER_ORDER) {
+        emailsByTier.get(tier)?.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    }
 
-    const totalActive = emails.filter(e => e.status !== 'archived' && e.status !== 'replied').length;
+    // Snoozed emails
+    const snoozedEmails = emails.filter(e => e.status === 'snoozed');
+
+    const totalActive = emails.filter(e => e.status !== 'archived' && e.status !== 'replied' && e.status !== 'snoozed').length;
     const processedCount = emails.filter(e => e.status === 'archived' || e.status === 'replied').length;
     const inboxZeroProgress = emails.length > 0 ? (processedCount / emails.length) * 100 : 0;
 
@@ -201,11 +256,129 @@ export function EmailDashboard() {
                                                         <span className={`text-xs font-medium truncate ${email.status === 'unread' ? 'text-white' : 'text-slate-400'}`}>
                                                             {email.from.split('<')[0].trim()}
                                                         </span>
+                                                        {email.score != null && (
+                                                            <span className={`text-[9px] px-1 py-0.5 rounded font-bold ${
+                                                                email.score >= 70 ? 'bg-red-500/20 text-red-400' :
+                                                                email.score >= 40 ? 'bg-blue-500/20 text-blue-400' :
+                                                                'bg-slate-500/20 text-slate-400'
+                                                            }`}>
+                                                                {email.score}
+                                                            </span>
+                                                        )}
                                                         <span className="text-[10px] text-slate-600">
                                                             {new Date(email.received_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                                         </span>
                                                     </div>
-                                                    <p className={`text-xs truncate mt-0.5 ${email.status === 'unread' ? 'text-slate-300' : 'text-slate-500'}`}> {email.subject} </p> <p className="text-[10px] text-slate-600 truncate">{email.snippet}</p> </div> {/* Quick Actions */} <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"> <button onClick={e => { e.stopPropagation(); handleArchive(email); }} className="p-1 hover:bg-white/10 rounded" title="Archive" > <Archive className="w-3 h-3 text-slate-400" /> </button> </div> </div> </motion.div> ))} </AnimatePresence> </div> ); }) )} </div> {/* Email Detail / Reply Modal */} <AnimatePresence> {selectedEmail && ( <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setSelectedEmail(null)} > <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} onClick={e => e.stopPropagation()} className="glass-card p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto" > {/* Header */} <div className="flex items-start justify-between mb-3"> <div className="min-w-0 flex-1"> <h3 className="text-sm font-bold text-white truncate">{selectedEmail.subject}</h3> <p className="text-xs text-slate-500 mt-0.5">{selectedEmail.from}</p> <p className="text-[10px] text-slate-600"> {new Date(selectedEmail.received_at).toLocaleString()} </p> </div> {/* Tier Reclassify */} <div className="flex gap-1 ml-2 flex-shrink-0"> {TIER_ORDER.map(t => { const cfg = TIER_CONFIG[t]; const TierIcon = cfg.icon; const effectiveTier = selectedEmail.tier_override || selectedEmail.tier; return ( <button key={t} onClick={() => handleReclassify(selectedEmail, t)} className={`p-1 rounded transition-colors ${effectiveTier === t ? `${cfg.bgMedium}` : 'hover:bg-white/10'}`} title={cfg.label} > <TierIcon className={`w-3 h-3 ${cfg.color}`} /> </button> ); })} </div> </div> {/* Snippet */} <div className="text-xs text-slate-400 bg-white/5 rounded-lg p-3 mb-3"> {selectedEmail.snippet} </div> {/* AI Draft / Reply */} <div className="space-y-2"> {isClassifierAvailable() && !draftText && ( <button onClick={() => handleDraftAI(selectedEmail)} disabled={isDrafting} className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg text-xs text-indigo-400 transition-colors w-full" > <Edit3 className={`w-3.5 h-3.5 ${isDrafting ? 'animate-pulse' : ''}`} />
+                                                    <p className={`text-xs truncate mt-0.5 ${email.status === 'unread' ? 'text-slate-300' : 'text-slate-500'}`}> {email.subject} </p> <p className="text-[10px] text-slate-600 truncate">{email.snippet}</p> </div> {/* Quick Actions */} <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"> <button onClick={e => { e.stopPropagation(); handleArchive(email); }} className="p-1 hover:bg-white/10 rounded" title="Archive" > <Archive className="w-3 h-3 text-slate-400" /> </button> </div> </div> </motion.div> ))} </AnimatePresence> </div> ); }) )} </div>
+
+            {/* Newsletter Senders Section */}
+            {newsletterSenders.length > 0 && (
+                <div className="border-b border-white/5">
+                    <button
+                        onClick={() => setShowNewsletters(!showNewsletters)}
+                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/5 transition-colors"
+                    >
+                        {showNewsletters ? <ChevronDown className="w-3 h-3 text-slate-500" /> : <ChevronRight className="w-3 h-3 text-slate-500" />}
+                        <Newspaper className="w-3.5 h-3.5 text-purple-400" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-purple-400">Newsletters</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded-full font-bold">
+                            {newsletterSenders.length}
+                        </span>
+                    </button>
+                    <AnimatePresence>
+                        {showNewsletters && newsletterSenders.map(sender => {
+                            const action = buildUnsubscribeAction(sender);
+                            return (
+                                <motion.div
+                                    key={sender.address}
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="px-3"
+                                >
+                                    <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-white/5 transition-all">
+                                        <div className="flex-1 min-w-0">
+                                            <span className="text-xs font-medium text-slate-300 truncate block">{sender.displayName}</span>
+                                            <span className="text-[10px] text-slate-600">
+                                                {sender.emailCount} emails · Last: {new Date(sender.lastReceived).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            {action && action.type === 'url' && (
+                                                <a
+                                                    href={action.target}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-1 hover:bg-purple-500/20 rounded text-purple-400 text-[10px] flex items-center gap-0.5"
+                                                    title="Unsubscribe"
+                                                >
+                                                    <ExternalLink className="w-3 h-3" /> Unsub
+                                                </a>
+                                            )}
+                                            <button
+                                                onClick={() => handleBulkArchive(sender.address)}
+                                                className="p-1 hover:bg-white/10 rounded text-slate-400 text-[10px] flex items-center gap-0.5"
+                                                title="Archive all from this sender"
+                                            >
+                                                <Archive className="w-3 h-3" /> All
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
+                    </AnimatePresence>
+                </div>
+            )}
+
+            {/* Snoozed Emails Section */}
+            {snoozedEmails.length > 0 && (
+                <div className="border-b border-white/5">
+                    <button
+                        onClick={() => setShowSnoozed(!showSnoozed)}
+                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/5 transition-colors"
+                    >
+                        {showSnoozed ? <ChevronDown className="w-3 h-3 text-slate-500" /> : <ChevronRight className="w-3 h-3 text-slate-500" />}
+                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Snoozed</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded-full font-bold">
+                            {snoozedEmails.length}
+                        </span>
+                    </button>
+                    <AnimatePresence>
+                        {showSnoozed && snoozedEmails.map(email => (
+                            <motion.div
+                                key={email.id}
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="px-3"
+                            >
+                                <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-white/5 transition-all">
+                                    <div className="flex-1 min-w-0">
+                                        <span className="text-xs font-medium text-slate-300 truncate block">
+                                            {email.from.split('<')[0].trim()} — {email.subject}
+                                        </span>
+                                        <span className="text-[10px] text-amber-500 flex items-center gap-1">
+                                            <Bell className="w-2.5 h-2.5" />
+                                            {email.snooze_until ? new Date(email.snooze_until).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Snoozed'}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => handleUnsnooze(email)}
+                                        className="p-1 hover:bg-amber-500/20 rounded text-amber-400 text-[10px] flex-shrink-0"
+                                        title="Unsnooze"
+                                    >
+                                        Unsnooze
+                                    </button>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+            )}
+
+            {/* Email Detail / Reply Modal */} <AnimatePresence> {selectedEmail && ( <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setSelectedEmail(null)} > <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} onClick={e => e.stopPropagation()} className="glass-card p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto" > {/* Header */} <div className="flex items-start justify-between mb-3"> <div className="min-w-0 flex-1"> <h3 className="text-sm font-bold text-white truncate">{selectedEmail.subject}</h3> <p className="text-xs text-slate-500 mt-0.5">{selectedEmail.from}</p> <p className="text-[10px] text-slate-600"> {new Date(selectedEmail.received_at).toLocaleString()} </p> </div> {/* Tier Reclassify */} <div className="flex gap-1 ml-2 flex-shrink-0"> {TIER_ORDER.map(t => { const cfg = TIER_CONFIG[t]; const TierIcon = cfg.icon; const effectiveTier = selectedEmail.tier_override || selectedEmail.tier; return ( <button key={t} onClick={() => handleReclassify(selectedEmail, t)} className={`p-1 rounded transition-colors ${effectiveTier === t ? `${cfg.bgMedium}` : 'hover:bg-white/10'}`} title={cfg.label} > <TierIcon className={`w-3 h-3 ${cfg.color}`} /> </button> ); })} </div> </div> {/* Snippet */} <div className="text-xs text-slate-400 bg-white/5 rounded-lg p-3 mb-3"> {selectedEmail.snippet} </div> {/* AI Draft / Reply */} <div className="space-y-2"> {isClassifierAvailable() && !draftText && ( <button onClick={() => handleDraftAI(selectedEmail)} disabled={isDrafting} className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg text-xs text-indigo-400 transition-colors w-full" > <Edit3 className={`w-3.5 h-3.5 ${isDrafting ? 'animate-pulse' : ''}`} />
                                         {isDrafting ? 'Drafting...' : 'AI Draft Response'}
                                     </button>
                                 )}
@@ -233,6 +406,32 @@ export function EmailDashboard() {
                                 >
                                     Close
                                 </button>
+                                {/* Snooze dropdown */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setSnoozeDropdownId(snoozeDropdownId === selectedEmail.id ? null : selectedEmail.id)}
+                                        className="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg text-xs text-amber-300 transition-colors flex items-center gap-1"
+                                    >
+                                        <Clock className="w-3 h-3" /> Snooze
+                                    </button>
+                                    {snoozeDropdownId === selectedEmail.id && (
+                                        <div className="absolute bottom-full mb-1 left-0 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-50 min-w-[160px]">
+                                            {([
+                                                { preset: 'later_today' as SnoozePreset, label: 'Later Today (3h)' },
+                                                { preset: 'tomorrow_morning' as SnoozePreset, label: 'Tomorrow 9 AM' },
+                                                { preset: 'next_week' as SnoozePreset, label: 'Next Monday 9 AM' },
+                                            ]).map(opt => (
+                                                <button
+                                                    key={opt.preset}
+                                                    onClick={() => handleSnooze(selectedEmail, opt.preset)}
+                                                    className="block w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-white/10 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                                 <button
                                     onClick={() => handleArchive(selectedEmail)}
                                     className="px-3 py-2 bg-slate-500/20 hover:bg-slate-500/30 rounded-lg text-xs text-slate-300 transition-colors flex items-center gap-1"

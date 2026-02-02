@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronLeft, ChevronRight, Zap, Focus, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Zap, Focus, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { createDatabase } from '../db';
 import { syncCalendarEvents } from '../services/google-calendar';
 import { isGoogleAuthAvailable, isGoogleConnected, requestGoogleAuth } from '../services/google-auth';
 import { syncCalendarTaskStatus } from '../services/task-scheduler';
 import { completeTask } from '../services/task-rollover';
+import { detectAllConflicts, getMeetingLoadStats } from '../services/calendar-monitor';
+import type { EventConflict, MeetingLoadStats } from '../services/calendar-monitor';
 import type { CalendarEvent } from '../types/schema';
 import type { Task } from '../types/schema';
 
@@ -74,6 +76,8 @@ export function DailyAgenda() {
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [conflicts, setConflicts] = useState<EventConflict[]>([]);
+    const [meetingLoad, setMeetingLoad] = useState<MeetingLoadStats | null>(null);
 
     useEffect(() => {
         let mounted = true;
@@ -94,6 +98,16 @@ export function DailyAgenda() {
 
             if (mounted) {
                 setEvents(eventDocs.map(d => d.toJSON() as CalendarEvent));
+            }
+
+            // Compute conflicts and meeting load
+            const [detectedConflicts, loadStats] = await Promise.all([
+                detectAllConflicts(db, selectedDate),
+                getMeetingLoadStats(db, selectedDate),
+            ]);
+            if (mounted) {
+                setConflicts(detectedConflicts);
+                setMeetingLoad(loadStats);
             }
 
             // Load active tasks for this date
@@ -117,8 +131,12 @@ export function DailyAgenda() {
                         db.tasks.find({ selector: { status: 'active' } }).exec()
                     ).then(taskDocs => {
                         if (mounted) setTasks(taskDocs.map(d => d.toJSON() as Task));
+                    }).catch(err => {
+                        console.error('[DailyAgenda] Failed to reload tasks after sync:', err);
                     });
                 }
+            }).catch(err => {
+                console.error('[DailyAgenda] Auto-sync calendar task status failed:', err);
             });
         }
 
@@ -243,6 +261,47 @@ export function DailyAgenda() {
                 </div>
             )}
 
+            {/* Meeting Load Stats */}
+            {meetingLoad && meetingLoad.meetingCount > 0 && (
+                <div className="px-3 py-2 border-b border-white/5">
+                    <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] uppercase tracking-wider text-slate-500">Meeting Load</span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                            {Math.round(meetingLoad.totalMeetingMinutes / 60 * 10) / 10}h / {Math.round(meetingLoad.totalFreeMinutes / 60 * 10) / 10}h free
+                        </span>
+                    </div>
+                    <div className="h-1 bg-white/5 rounded-full overflow-hidden mb-1">
+                        <div
+                            className={`h-full rounded-full transition-all ${meetingLoad.percentBooked > 70 ? 'bg-red-500' : meetingLoad.percentBooked > 40 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                            style={{ width: `${Math.min(meetingLoad.percentBooked, 100)}%` }}
+                        />
+                    </div>
+                    <div className="flex gap-3 text-[10px] text-slate-600">
+                        <span>{meetingLoad.meetingCount} meetings</span>
+                        {meetingLoad.backToBackCount > 0 && (
+                            <span className="text-amber-500">{meetingLoad.backToBackCount} back-to-back</span>
+                        )}
+                        {meetingLoad.overlapCount > 0 && (
+                            <span className="text-red-400">{meetingLoad.overlapCount} overlaps</span>
+                        )}
+                        <span>Longest free: {Math.round(meetingLoad.longestFreeBlock)}min</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Conflict Alert Banner */}
+            {conflicts.length > 0 && (
+                <div className="px-3 py-2 border-b border-red-500/20 bg-red-500/5">
+                    <div className="flex items-center gap-1.5">
+                        <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />
+                        <span className="text-[10px] text-red-400 font-medium">
+                            {conflicts.length} conflict{conflicts.length > 1 ? 's' : ''}: {conflicts[0].message}
+                            {conflicts.length > 1 && ` (+${conflicts.length - 1} more)`}
+                        </span>
+                    </div>
+                </div>
+            )}
+
             {/* Timeline */}
             <div>
                 <div className="relative" style={{ height: HOURS.length * HOUR_HEIGHT }}>
@@ -278,6 +337,7 @@ export function DailyAgenda() {
 
                             const top = (block.startHour - 6) * HOUR_HEIGHT + (block.startMinute / 60) * HOUR_HEIGHT;
                             const height = Math.max((block.durationMinutes / 60) * HOUR_HEIGHT, 20);
+                            const hasConflict = conflicts.some(c => c.eventA.id === block.id || c.eventB.id === block.id);
 
                             return (
                                 <motion.div
@@ -285,12 +345,12 @@ export function DailyAgenda() {
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0 }}
-                                    className="absolute left-14 right-2 rounded-md px-2 py-1 overflow-hidden cursor-pointer hover:brightness-110 transition-all group"
+                                    className={`absolute left-14 right-2 rounded-md px-2 py-1 overflow-hidden cursor-pointer hover:brightness-110 transition-all group ${hasConflict ? 'ring-1 ring-red-500/40' : ''}`}
                                     style={{
                                         top,
                                         height,
-                                        backgroundColor: block.color + '33',
-                                        borderLeft: `3px solid ${block.color}`,
+                                        backgroundColor: hasConflict ? 'rgba(239, 68, 68, 0.15)' : block.color + '33',
+                                        borderLeft: `3px solid ${hasConflict ? '#ef4444' : block.color}`,
                                     }}
                                     title={`${block.title} (${block.durationMinutes}min)`}
                                 >

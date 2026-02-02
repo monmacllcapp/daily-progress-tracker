@@ -9,18 +9,21 @@ import type { FocusSuggestion } from '../services/ai-advisor';
 import { scheduleTask, scheduleDeepWork, schedulePowerBatch, checkLocalConflicts } from '../services/task-scheduler';
 import type { LocalConflict } from '../services/task-scheduler';
 import { BrainDump } from './BrainDump';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 type FilterStatus = 'active' | 'completed' | 'all';
 
 export function TaskDashboard() {
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
+    const [db] = useDatabase();
+    const [tasks] = useRxQuery<Task>(db?.tasks);
+    const [categories] = useRxQuery<Category>(db?.categories);
+    const [projects] = useRxQuery<Project>(db?.projects);
     const [filterStatus, setFilterStatus] = useState<FilterStatus>('active');
     const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['uncategorized']));
     const [deferringTaskId, setDeferringTaskId] = useState<string | null>(null);
     const [deferReason, setDeferReason] = useState('');
     const [toast, setToast] = useState<string | null>(null);
-    const [projects, setProjects] = useState<Project[]>([]);
     const [focusSuggestion, setFocusSuggestion] = useState<FocusSuggestion | null>(null);
     const [schedulingTaskId, setSchedulingTaskId] = useState<string | null>(null);
     const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().split('T')[0]);
@@ -30,26 +33,6 @@ export function TaskDashboard() {
     const [scheduleConflicts, setScheduleConflicts] = useState<LocalConflict[]>([]);
     const [batchScheduleTime, setBatchScheduleTime] = useState('');
     const [showBatchPicker, setShowBatchPicker] = useState(false);
-
-    useEffect(() => {
-        const initData = async () => {
-            const db = await createDatabase();
-
-            db.tasks.find().$.subscribe(docs => {
-                setTasks(docs.map(d => d.toJSON() as Task));
-            });
-
-            db.categories.find().$.subscribe(docs => {
-                setCategories(docs.map(d => d.toJSON() as Category));
-            });
-
-            db.projects.find().$.subscribe(docs => {
-                setProjects(docs.map(d => d.toJSON() as Project));
-            });
-        };
-
-        initData();
-    }, []);
 
     // AI focus suggestion — runs when tasks change and AI is available
     useEffect(() => {
@@ -147,6 +130,8 @@ export function TaskDashboard() {
             checkLocalConflicts(db, startTime, duration)
         ).then(conflicts => {
             if (!cancelled) setScheduleConflicts(conflicts);
+        }).catch(err => {
+            console.error('[TaskDashboard] Failed to check schedule conflicts:', err);
         });
         return () => { cancelled = true; };
     }, [schedulingTaskId, scheduleDate, scheduleTime, isFocusBlock, focusDuration, tasks]);

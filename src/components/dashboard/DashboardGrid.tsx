@@ -5,6 +5,7 @@ import type { Layout } from 'react-grid-layout';
 import { useDashboardStore } from '../../store/dashboardStore';
 import { WIDGET_REGISTRY } from '../../config/widgetRegistry';
 import { WidgetWrapper } from './WidgetWrapper';
+import { WidgetErrorBoundary } from '../WidgetErrorBoundary';
 
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -88,7 +89,9 @@ export function DashboardGrid() {
 
                         return (
                             <WidgetWrapper key={item.i} title={config.title} widgetId={item.i}>
-                                <Component />
+                                <WidgetErrorBoundary widgetTitle={config.title}>
+                                    <Component />
+                                </WidgetErrorBoundary>
                             </WidgetWrapper>
                         );
                     })}

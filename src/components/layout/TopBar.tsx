@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useSidebarStore } from './SidebarStore';
+import { LevelBadge } from '../LevelBadge';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -28,6 +29,7 @@ export function TopBar() {
         </button>
         <h2 className="text-lg font-semibold text-white">{title}</h2>
       </div>
+      <LevelBadge />
     </header>
   );
 }

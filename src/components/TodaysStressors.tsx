@@ -1,37 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { createDatabase } from '../db';
 import type { Stressor, StressorMilestone } from '../types/schema';
 import { v4 as uuidv4 } from 'uuid';
 import { PulseBar } from './PulseBar';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 export function TodaysStressors() {
-    const [stressors, setStressors] = useState<Stressor[]>([]);
-    const [milestones, setMilestones] = useState<StressorMilestone[]>([]);
+    const [db] = useDatabase();
+    const [stressors] = useRxQuery<Stressor>(db?.stressors, { selector: { is_today: true } });
+    const [milestones] = useRxQuery<StressorMilestone>(db?.stressor_milestones);
     const [isAdding, setIsAdding] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [newDescription, setNewDescription] = useState('');
     const [newTimeEstimate, setNewTimeEstimate] = useState('30');
-
-    useEffect(() => {
-        const loadData = async () => {
-            const db = await createDatabase();
-
-            // Load today's stressors
-            db.stressors?.find({
-                selector: { is_today: true }
-            }).$.subscribe(docs => {
-                setStressors(docs.map(d => d.toJSON()));
-            });
-
-            // Load all milestones
-            db.stressor_milestones?.find().$.subscribe(docs => {
-                setMilestones(docs.map(d => d.toJSON()));
-            });
-        };
-        loadData();
-    }, []);
 
     const addStressor = async () => {
         if (!newTitle.trim()) return;

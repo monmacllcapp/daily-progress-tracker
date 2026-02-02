@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Target, Upload, X, Edit2 } from 'lucide-react';
 import { createDatabase } from '../db';
 import type { VisionBoard } from '../types/schema';
 import { v4 as uuidv4 } from 'uuid';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 const CATEGORY_COLORS = [
     '#F59E0B', '#3B82F6', '#8B5CF6', '#6366F1',
@@ -15,23 +17,14 @@ function getRandomColor(): string {
 }
 
 export function VisionBoardGallery() {
-    const [visions, setVisions] = useState<VisionBoard[]>([]);
+    const [db] = useDatabase();
+    const [visions] = useRxQuery<VisionBoard>(db?.vision_board);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newDeclaration, setNewDeclaration] = useState('');
     const [newPurpose, setNewPurpose] = useState('');
     const [newCategory, setNewCategory] = useState('');
     const [imagePreview, setImagePreview] = useState<string>('');
     const [editingCategory, setEditingCategory] = useState<{ visionId: string; name: string } | null>(null);
-
-    useEffect(() => {
-        const loadVisions = async () => {
-            const db = await createDatabase();
-            db.vision_board.find().$.subscribe(docs => {
-                setVisions(docs.map(d => d.toJSON()));
-            });
-        };
-        loadVisions();
-    }, []);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];

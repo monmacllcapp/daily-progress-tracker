@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
-import { createDatabase } from '../db';
 import type { Category, Project, SubTask } from '../types/schema';
 import { TrendingUp, AlertTriangle } from 'lucide-react';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 interface RadarDataPoint {
     category: string;
@@ -12,32 +13,10 @@ interface RadarDataPoint {
 }
 
 export function LifeRadar() {
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [subtasks, setSubtasks] = useState<SubTask[]>([]);
-
-    useEffect(() => {
-        const initData = async () => {
-            const db = await createDatabase();
-
-            // Subscribe to categories
-            db.categories.find().$.subscribe(docs => {
-                setCategories(docs.map(d => d.toJSON()));
-            });
-
-            // Subscribe to projects
-            db.projects.find({ selector: { status: 'active' } }).$.subscribe(docs => {
-                setProjects(docs.map(d => d.toJSON()));
-            });
-
-            // Subscribe to subtasks
-            db.sub_tasks.find().$.subscribe(docs => {
-                setSubtasks(docs.map(d => d.toJSON()));
-            });
-        };
-
-        initData();
-    }, []);
+    const [db] = useDatabase();
+    const [categories] = useRxQuery<Category>(db?.categories);
+    const [projects] = useRxQuery<Project>(db?.projects, { selector: { status: 'active' } });
+    const [subtasks] = useRxQuery<SubTask>(db?.sub_tasks);
 
     const radarData = useMemo((): RadarDataPoint[] => {
         // Calculate growth score for each category

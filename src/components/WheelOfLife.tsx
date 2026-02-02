@@ -1,39 +1,18 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createDatabase } from '../db';
 import { CategoryIcon } from './CategoryIcon';
 import type { Category, Project, SubTask, Task } from '../types/schema';
 import { X, TrendingUp, TrendingDown, Minus, Flame, ChevronRight } from 'lucide-react';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 export function WheelOfLife() {
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [subtasks, setSubtasks] = useState<SubTask[]>([]);
-    const [tasks, setTasks] = useState<Task[]>([]);
+    const [db] = useDatabase();
+    const [categories] = useRxQuery<Category>(db?.categories, { sort: [{ sort_order: 'asc' }] });
+    const [projects] = useRxQuery<Project>(db?.projects);
+    const [subtasks] = useRxQuery<SubTask>(db?.sub_tasks);
+    const [tasks] = useRxQuery<Task>(db?.tasks);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-    useEffect(() => {
-        const loadData = async () => {
-            const db = await createDatabase();
-
-            db.categories.find({ sort: [{ sort_order: 'asc' }] }).$.subscribe(docs => {
-                setCategories(docs.map(d => d.toJSON() as Category));
-            });
-
-            db.projects.find().$.subscribe(docs => {
-                setProjects(docs.map(d => d.toJSON() as Project));
-            });
-
-            db.sub_tasks.find().$.subscribe(docs => {
-                setSubtasks(docs.map(d => d.toJSON() as SubTask));
-            });
-
-            db.tasks.find().$.subscribe(docs => {
-                setTasks(docs.map(d => d.toJSON() as Task));
-            });
-        };
-        loadData();
-    }, []);
 
     // Calculate progress per category (subtasks + tasks)
     const categoryProgress = useMemo(() => {

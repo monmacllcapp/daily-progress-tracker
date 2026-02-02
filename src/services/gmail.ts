@@ -157,6 +157,19 @@ export async function syncGmailInbox(
 
         const status: EmailStatus = labels.includes('UNREAD') ? 'unread' : 'read';
 
+        // Extract newsletter headers
+        const listId = getHeader(msg, 'List-ID') || undefined;
+        const listUnsubscribe = getHeader(msg, 'List-Unsubscribe');
+        let unsubscribeUrl: string | undefined;
+        let unsubscribeMailto: string | undefined;
+        if (listUnsubscribe) {
+            const urlMatch = listUnsubscribe.match(/<(https?:\/\/[^>]+)>/);
+            if (urlMatch) unsubscribeUrl = urlMatch[1];
+            const mailtoMatch = listUnsubscribe.match(/<(mailto:[^>]+)>/);
+            if (mailtoMatch) unsubscribeMailto = mailtoMatch[1];
+        }
+        const isNewsletter = !!(listId || unsubscribeUrl || unsubscribeMailto);
+
         await db.emails.insert({
             id: crypto.randomUUID(),
             gmail_id: ref.id,
@@ -168,6 +181,10 @@ export async function syncGmailInbox(
             status,
             received_at: new Date(parseInt(msg.internalDate)).toISOString(),
             labels,
+            list_id: listId,
+            unsubscribe_url: unsubscribeUrl,
+            unsubscribe_mailto: unsubscribeMailto,
+            is_newsletter: isNewsletter,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         });

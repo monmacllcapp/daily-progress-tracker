@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { createDatabase } from './db'
 import type { TitanDatabase } from './db'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorBoundary, PageErrorBoundary } from './components/ErrorBoundary';
 import { WelcomeOnboarding } from './components/WelcomeOnboarding';
 import { hasCompletedOnboarding } from './utils/onboarding';
 
@@ -94,17 +94,17 @@ function App() {
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             {/* Full-screen (no shell) */}
-            <Route path="/morning" element={<MorningFlowPage />} />
+            <Route path="/morning" element={<PageErrorBoundary pageName="Morning Flow"><MorningFlowPage /></PageErrorBoundary>} />
 
             {/* Shell-wrapped routes */}
             <Route element={<AppShell />}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/tasks" element={<TasksPage />} />
-              <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/email" element={<EmailPage />} />
-              <Route path="/life" element={<LifePage />} />
-              <Route path="/journal" element={<JournalPage />} />
-              <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/" element={<PageErrorBoundary pageName="Dashboard"><DashboardPage /></PageErrorBoundary>} />
+              <Route path="/tasks" element={<PageErrorBoundary pageName="Tasks"><TasksPage /></PageErrorBoundary>} />
+              <Route path="/calendar" element={<PageErrorBoundary pageName="Calendar"><CalendarPage /></PageErrorBoundary>} />
+              <Route path="/email" element={<PageErrorBoundary pageName="Email"><EmailPage /></PageErrorBoundary>} />
+              <Route path="/life" element={<PageErrorBoundary pageName="Life"><LifePage /></PageErrorBoundary>} />
+              <Route path="/journal" element={<PageErrorBoundary pageName="Journal"><JournalPage /></PageErrorBoundary>} />
+              <Route path="/projects" element={<PageErrorBoundary pageName="Projects"><ProjectsPage /></PageErrorBoundary>} />
             </Route>
           </Routes>
         </Suspense>

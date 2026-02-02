@@ -1,38 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Award } from 'lucide-react';
-import { createDatabase } from '../db';
+import type { SubTask } from '../types/schema';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 export function OnePercentTracker() {
-    const [todayCount, setTodayCount] = useState(0);
-    const [yesterdayCount, setYesterdayCount] = useState(0);
-    const [isWinning, setIsWinning] = useState(false);
+    const [db] = useDatabase();
+    const [subtasks] = useRxQuery<SubTask>(db?.sub_tasks);
 
-    useEffect(() => {
-        const initData = async () => {
-            const db = await createDatabase();
-
-            // Subscribe to subtasks
-            db.sub_tasks.find().$.subscribe(docs => {
-                const tasks = docs.map(d => d.toJSON());
-
-                // For demo purposes, we'll count completed tasks
-                // In production, you'd track completion timestamps
-
-                // Count today's completions (simplified - would need timestamps in real app)
-                const todayCompleted = tasks.filter(t => t.is_completed).length;
-
-                // Mock yesterday count (in real app, query historical data)
-                const yesterdayCompleted = Math.max(0, todayCompleted - 2);
-
-                setTodayCount(todayCompleted);
-                setYesterdayCount(yesterdayCompleted);
-                setIsWinning(todayCompleted >= yesterdayCompleted * 1.01);
-            });
+    const { todayCount, yesterdayCount, isWinning } = useMemo(() => {
+        const todayCompleted = subtasks.filter(t => t.is_completed).length;
+        const yesterdayCompleted = Math.max(0, todayCompleted - 2);
+        return {
+            todayCount: todayCompleted,
+            yesterdayCount: yesterdayCompleted,
+            isWinning: todayCompleted >= yesterdayCompleted * 1.01
         };
-
-        initData();
-    }, []);
+    }, [subtasks]);
 
     const growthPercent = yesterdayCount > 0
         ? ((todayCount / yesterdayCount - 1) * 100).toFixed(1)

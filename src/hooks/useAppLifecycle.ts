@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createDatabase } from '../db';
 import { rolloverTasks } from '../services/task-rollover';
 import { checkStreakResets } from '../services/streak-service';
+import { checkSnoozedEmails } from '../services/email-snooze';
 import type { NudgeType } from '../components/HealthNudge';
 
 export function useAppLifecycle() {
@@ -80,9 +81,23 @@ export function useAppLifecycle() {
     const lastResetDate = localStorage.getItem('last_reset_date');
     resetWorker.postMessage({ type: 'START', lastResetDate });
 
+    // Check snoozed emails every 60 seconds
+    const snoozeInterval = setInterval(async () => {
+      try {
+        const db = await createDatabase();
+        const count = await checkSnoozedEmails(db);
+        if (count > 0) {
+          setToast(`${count} snoozed email${count > 1 ? 's' : ''} resurfaced`);
+        }
+      } catch (err) {
+        console.error('Failed to check snoozed emails:', err);
+      }
+    }, 60_000);
+
     return () => {
       healthWorker.terminate();
       resetWorker.terminate();
+      clearInterval(snoozeInterval);
     };
   }, [handleTaskRollover, clearTodaysStressors]);
 

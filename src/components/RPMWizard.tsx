@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,6 +7,8 @@ import { createTask } from '../services/task-rollover';
 import { Sparkles, Target, Zap, ArrowRight, ArrowLeft, FolderOpen, Eye } from 'lucide-react';
 import { DatePicker } from './DatePicker';
 import type { Category, VisionBoard } from '../types/schema';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 interface SubTaskInput {
     id: string;
@@ -22,6 +24,9 @@ interface RPMWizardProps {
 
 export function RPMWizard({ onClose }: RPMWizardProps) {
     const navigate = useNavigate();
+    const [db] = useDatabase();
+    const [categories] = useRxQuery<Category>(db?.categories);
+    const [visions] = useRxQuery<VisionBoard>(db?.vision_board);
     const [currentSlide, setCurrentSlide] = useState(0);
 
     // Form state
@@ -33,21 +38,6 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
     ]);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [selectedVision, setSelectedVision] = useState<string>('');
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [visions, setVisions] = useState<VisionBoard[]>([]);
-
-    useEffect(() => {
-        const loadData = async () => {
-            const db = await createDatabase();
-            db.categories.find().$.subscribe(docs => {
-                setCategories(docs.map(d => d.toJSON() as Category));
-            });
-            db.vision_board.find().$.subscribe(docs => {
-                setVisions(docs.map(d => d.toJSON() as VisionBoard));
-            });
-        };
-        loadData();
-    }, []);
 
     const canProceedFromSlide = (slide: number): boolean => {
         if (slide === 0) return result.trim().length > 0;

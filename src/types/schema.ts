@@ -132,7 +132,7 @@ export interface CalendarEvent {
 
 // -- 8. Email (Gmail integration) --
 export type EmailTier = 'urgent' | 'important' | 'promotions' | 'unsubscribe';
-export type EmailStatus = 'unread' | 'read' | 'drafted' | 'replied' | 'archived';
+export type EmailStatus = 'unread' | 'read' | 'drafted' | 'replied' | 'archived' | 'snoozed';
 
 export interface Email {
   id: UUID;
@@ -147,6 +147,13 @@ export interface Email {
   ai_draft?: string;               // AI-drafted response
   received_at: string;             // ISO 8601 datetime
   labels?: string[];               // Gmail labels
+  score?: number;                  // AI-computed priority score 0-100
+  list_id?: string;                // List-ID header (newsletter identifier)
+  unsubscribe_url?: string;        // Parsed <https://...> from List-Unsubscribe
+  unsubscribe_mailto?: string;     // Parsed <mailto:...> from List-Unsubscribe
+  is_newsletter?: boolean;         // True if List-ID or unsubscribe headers present
+  snooze_until?: string;           // ISO 8601 datetime — when to resurface
+  snoozed_at?: string;             // ISO 8601 datetime — when snoozed
   created_at?: string;
   updated_at?: string;
 }
@@ -211,4 +218,18 @@ export interface HabitCompletion {
   habit_id: UUID;
   date: string;
   completed_at: string;
+}
+
+// -- 12. User Profile (Gamification) --
+export interface UserProfile {
+  id: UUID;
+  xp: number;
+  level: number;
+  gold: number;
+  total_tasks_completed: number;
+  total_habits_checked: number;
+  total_pomodoros_completed: number;
+  longest_streak: number;
+  created_at?: string;
+  updated_at?: string;
 }

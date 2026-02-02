@@ -1,29 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, ChevronDown, ChevronRight, Heart, Target, Flame, CheckSquare } from 'lucide-react';
-import { createDatabase } from '../db';
 import type { DailyJournal } from '../types/schema';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 export function JournalHistory() {
-    const [journals, setJournals] = useState<DailyJournal[]>([]);
+    const [db] = useDatabase();
+    const [journals] = useRxQuery<DailyJournal>(db?.daily_journal, { sort: [{ date: 'desc' }] });
     const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
+    // Auto-expand the most recent entry when journals load
     useEffect(() => {
-        const loadData = async () => {
-            const db = await createDatabase();
-            db.daily_journal.find({
-                sort: [{ date: 'desc' }]
-            }).$.subscribe(docs => {
-                const entries = docs.map(d => d.toJSON() as DailyJournal);
-                setJournals(entries);
-                // Auto-expand the most recent entry
-                if (entries.length > 0) {
-                    setExpandedDates(new Set([entries[0].date]));
-                }
+        if (journals.length > 0) {
+            setExpandedDates(prev => {
+                if (prev.size === 0) return new Set([journals[0].date]);
+                return prev;
             });
-        };
-        loadData();
-    }, []);
+        }
+    }, [journals]);
 
     const toggleDate = (date: string) => {
         setExpandedDates(prev => {

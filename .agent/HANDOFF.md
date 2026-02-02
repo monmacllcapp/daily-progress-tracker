@@ -1,43 +1,52 @@
 # Agent Handoff
-**Last Updated:** 2026-02-01T09:35:00Z
+**Last Updated:** 2026-02-02T19:20:00Z
 **Model:** claude-opus-4-5-20251101
 **Branch:** sandbox
-**Commit:** 0036609 (pushed to origin/sandbox)
+**Commit:** uncommitted (3 files modified on sandbox)
 
 ## What Was Done
-Session 11 — Render deploy fix + TS error fix:
+Session 12 — Kanban widget column manager + uniform widget sizing:
 
-1. **Governance bootstrap**: Loaded all 6 policies, generated full project scorecard dashboard
-2. **Fixed TS error**: Sidebar.tsx NavItem icon type widened to accept `style?: CSSProperties`
-3. **Diagnosed Render deploy failure**: 3 root causes identified and fixed:
-   - Repo was **private** — Render couldn't access it. Made public.
-   - Render branch was **`master`** (stale) — switched to **`main`** via Render API.
-   - `main` had the TS error — merged PR #3 (with `--admin`) to get the fix onto `main`.
-4. **Deploy successful**: Triggered deploy via Render API — status: **LIVE**
-5. **Quality gate**: 247 tests passing, 0 lint errors, 0 TS errors, build clean
+1. **Store overhaul** (`dashboardStore.ts`):
+   - Added `columnCount` state (default: 2) with type `1 | 2 | 3 | 4 | 6`
+   - Added `setColumnCount(count)` — redistributes widgets round-robin, recalculates x/w/y
+   - Replaced `reorderWidgets(orderedIds)` with `applyKanbanLayout(columns: string[][])` — maps column arrays to grid positions
+   - `columnCount` persisted/restored in localStorage alongside layouts
+   - Extracted `persistState()` helper to DRY localStorage writes
+
+2. **Sidebar rewrite** (`CustomizationSidebar.tsx`):
+   - **ColumnCountSelector**: row of 5 buttons (1, 2, 3, 4, 6) in "Layout Columns" section
+   - **KanbanBoard**: multi-container @dnd-kit DnD replacing single-list reorder
+     - `deriveColumnsFromLayouts()` derives column state from grid positions
+     - `onDragOver` moves widgets between columns (visual only, local state)
+     - `onDragEnd` persists via `applyKanbanLayout()`
+     - `DragOverlay` renders ghost card while dragging
+   - Sidebar widened from `w-80` to `w-96` for multi-column layout
+
+3. **Widget sizing** (`widgetRegistry.ts`):
+   - All widgets: `w:6, h:6, minW:3, minH:4` (uniform squares)
+   - Vision Board: `w:8, h:6, minW:6, minH:4` (wider)
+
+4. **Quality gate**: 280 tests passing, 0 TS errors, clean production build
 
 ## Current State
-- **M5**: IN_PROGRESS (8/10)
-- **247 tests passing**, 0 lint errors, 0 TS errors
-- **Render**: https://daily-progress-tracker-6ya8.onrender.com — **LIVE** (service: srv-d5ookjggjchc73aitsq0)
-- **Deploy branch**: `main` (auto-deploy enabled)
-- **PR #3**: Merged to `main`
-- **Repo visibility**: Public (required for Render free-tier)
+- **Branch**: sandbox (uncommitted changes)
+- **280 tests passing**, 0 TS errors, build clean
+- **3 files modified**: dashboardStore.ts, CustomizationSidebar.tsx, widgetRegistry.ts
+- **No new dependencies** — uses existing @dnd-kit/core v6.3.1 + @dnd-kit/sortable v10.0.0
 
 ## Next Step
-Continue beta validation — test all features on deployed site (MorningFlow, BrainDump, RPM wizard, TaskDashboard, EmailDashboard, WheelOfLife). Then onboard beta users (M5-7).
+Manual QA testing of the Kanban sidebar, then commit and open PR to main.
 
 ## Blockers
-- M5-4 analytics deferred (needs privacy-respecting provider)
-- M5-7 through M5-10 require real users
+None
 
 ## Context Notes
-- GitHub default branch is `main` (not `master`). `master` is stale — don't use it.
+- `reorderWidgets` was removed from the store — only `CustomizationSidebar` used it
+- localStorage key `titan_glass_layout_v5` unchanged — existing users keep saved layouts, `columnCount` defaults to 2 on first load
+- "Reset to Default Layout" button applies the new uniform 6x6 widget sizes
+- Sidebar width increased `w-80` → `w-96` to fit multi-column Kanban
+- GitHub default branch is `main` (not `master`). Push hook blocks agent pushes to `master` — only `sandbox` allowed.
 - Render deploys from `main` with auto-deploy on commit
-- Repo must stay public for Render free-tier access
-- Render API key: rnd_sMx3mM125UxiUymB3R7Q7IU3dYPG
-- Render service ID: srv-d5ookjggjchc73aitsq0
 - RxDB indexed fields MUST be in required arrays
 - Tailwind v4: NEVER use `bg-opacity-*` — use slash syntax (`bg-white/5`)
-- Lucide icon types need `style?: CSSProperties` if passing strokeWidth
-- Push hook blocks agent pushes to `master` — only `sandbox` allowed

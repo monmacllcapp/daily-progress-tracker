@@ -8,6 +8,8 @@ import { Celebration } from '../Celebration';
 import { HealthNudge } from '../HealthNudge';
 import { FeedbackWidget } from '../FeedbackWidget';
 import { PomodoroTimer } from '../PomodoroTimer';
+import { useKeyboardShortcuts, useShortcutHelp } from '../../hooks/useKeyboardShortcuts';
+import { ShortcutHelp } from '../ShortcutHelp';
 
 const PatternInterrupt = lazy(
   () => import('../PatternInterrupt').then((m) => ({ default: m.PatternInterrupt }))
@@ -49,6 +51,8 @@ export function AppShell() {
   } = useAppLifecycle();
 
   useThemeApplicator();
+  const shortcuts = useKeyboardShortcuts();
+  const { isOpen: shortcutHelpOpen, setIsOpen: setShortcutHelpOpen } = useShortcutHelp();
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-background)]">
@@ -88,6 +92,11 @@ export function AppShell() {
       />
 
       <FeedbackWidget />
+      <ShortcutHelp
+        isOpen={shortcutHelpOpen}
+        onClose={() => setShortcutHelpOpen(false)}
+        shortcuts={shortcuts}
+      />
     </div>
   );
 }

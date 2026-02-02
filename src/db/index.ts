@@ -3,7 +3,7 @@ import type { RxDatabase, RxCollection } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { createClient } from '@supabase/supabase-js';
-import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion } from '../types/schema';
+import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile } from '../types/schema';
 
 // Add migration plugin
 addRxPlugin(RxDBMigrationSchemaPlugin);
@@ -188,7 +188,7 @@ const calendarEventSchema = {
 };
 
 const emailSchema = {
-    version: 0,
+    version: 1,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -200,10 +200,17 @@ const emailSchema = {
         snippet: { type: 'string' },
         tier: { type: 'string' },   // urgent | important | promotions | unsubscribe
         tier_override: { type: 'string' },
-        status: { type: 'string' }, // unread | read | drafted | replied | archived
+        status: { type: 'string' }, // unread | read | drafted | replied | archived | snoozed
         ai_draft: { type: 'string' },
         received_at: { type: 'string' },
         labels: { type: 'array', items: { type: 'string' } },
+        score: { type: 'number' },
+        list_id: { type: 'string' },
+        unsubscribe_url: { type: 'string' },
+        unsubscribe_mailto: { type: 'string' },
+        is_newsletter: { type: 'boolean' },
+        snooze_until: { type: 'string' },
+        snoozed_at: { type: 'string' },
         created_at: { type: 'string' },
         updated_at: { type: 'string' }
     },
@@ -264,6 +271,25 @@ const habitCompletionSchema = {
     indexes: ['habit_id', 'date']
 };
 
+const userProfileSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        xp: { type: 'integer' },
+        level: { type: 'integer' },
+        gold: { type: 'integer' },
+        total_tasks_completed: { type: 'integer' },
+        total_habits_checked: { type: 'integer' },
+        total_pomodoros_completed: { type: 'integer' },
+        longest_streak: { type: 'integer' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'xp', 'level', 'gold']
+};
+
 // -- Database Type Definition --
 
 export type TitanDatabaseCollections = {
@@ -280,6 +306,7 @@ export type TitanDatabaseCollections = {
     pomodoro_sessions: RxCollection<PomodoroSession>;
     habits: RxCollection<Habit>;
     habit_completions: RxCollection<HabitCompletion>;
+    user_profile: RxCollection<UserProfile>;
 };
 
 export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
@@ -288,7 +315,7 @@ export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
 
 async function startReplication(db: TitanDatabase, url: string, key: string) {
     const supabase = createClient(url, key);
-    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions'];
+    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile'];
 
     for (const table of tables) {
         // @ts-expect-error - dynamic access
@@ -350,6 +377,21 @@ async function startReplication(db: TitanDatabase, url: string, key: string) {
 let dbPromise: Promise<TitanDatabase> | null = null;
 
 async function initDatabase(): Promise<TitanDatabase> {
+    // ?resetdb in URL → wipe IndexedDB before creating
+    if (typeof window !== 'undefined' && window.location.search.includes('resetdb')) {
+        console.warn('[DB] resetdb flag detected — deleting IndexedDB...');
+        const dbs = await window.indexedDB.databases();
+        for (const dbInfo of dbs) {
+            if (dbInfo.name) window.indexedDB.deleteDatabase(dbInfo.name);
+        }
+        // Strip the param so it doesn't loop on reload
+        const url = new URL(window.location.href);
+        url.searchParams.delete('resetdb');
+        window.history.replaceState({}, '', url.toString());
+        // Small delay to let IDB cleanup finish
+        await new Promise(r => setTimeout(r, 500));
+    }
+
     const db = await createRxDatabase<TitanDatabaseCollections>({
         name: 'titanplannerdb',
         storage: getRxStorageDexie(),
@@ -422,7 +464,22 @@ async function initDatabase(): Promise<TitanDatabase> {
             stressors: { schema: stressorSchema },
             stressor_milestones: { schema: stressorMilestoneSchema },
             calendar_events: { schema: calendarEventSchema },
-            emails: { schema: emailSchema },
+            emails: {
+                schema: emailSchema,
+                migrationStrategies: {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                    1: function (oldDoc: any) {
+                        oldDoc.score = undefined;
+                        oldDoc.list_id = undefined;
+                        oldDoc.unsubscribe_url = undefined;
+                        oldDoc.unsubscribe_mailto = undefined;
+                        oldDoc.is_newsletter = false;
+                        oldDoc.snooze_until = undefined;
+                        oldDoc.snoozed_at = undefined;
+                        return oldDoc;
+                    }
+                }
+            },
             pomodoro_sessions: { schema: pomodoroSessionSchema },
             habits: {
                 schema: habitSchema,
@@ -432,6 +489,7 @@ async function initDatabase(): Promise<TitanDatabase> {
                 }
             },
             habit_completions: { schema: habitCompletionSchema },
+            user_profile: { schema: userProfileSchema },
         });
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;

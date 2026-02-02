@@ -1,26 +1,11 @@
-import { useState, useEffect } from 'react';
-import { createDatabase } from '../db';
 import type { Project, SubTask } from '../types/schema';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 export function ProjectsList() {
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [subtasks, setSubtasks] = useState<SubTask[]>([]);
-
-    useEffect(() => {
-        const loadData = async () => {
-            const db = await createDatabase();
-
-            db.projects.find().$.subscribe(docs => {
-                setProjects(docs.map(d => d.toJSON()));
-            });
-
-            db.sub_tasks.find().$.subscribe(docs => {
-                setSubtasks(docs.map(d => d.toJSON()));
-            });
-        };
-
-        loadData();
-    }, []);
+    const [db] = useDatabase();
+    const [projects] = useRxQuery<Project>(db?.projects);
+    const [subtasks] = useRxQuery<SubTask>(db?.sub_tasks);
 
     const getProjectSubtasks = (projectId: string) => {
         return subtasks
