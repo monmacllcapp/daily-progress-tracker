@@ -98,7 +98,7 @@ export function WheelOfLife() {
     const selectedCat = categories.find(c => c.id === selectedCategory);
 
     return (
-        <div className="h-full w-full flex flex-col items-center justify-center p-4 overflow-y-auto">
+        <div className="w-full flex flex-col items-center justify-center p-4">
             <h3 className="text-xl font-bold mb-2 text-center">Wheel of Life</h3>
 
             {/* Symmetry indicator */}

@@ -61,7 +61,7 @@ export function JournalHistory() {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-6 h-full flex flex-col"
+            className="glass-card p-6 flex flex-col"
         >
             <div className="flex items-center gap-3 mb-4">
                 <BookOpen className="w-5 h-5 text-purple-400" />
@@ -71,7 +71,7 @@ export function JournalHistory() {
                 </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2">
+            <div className="space-y-2">
                 {journals.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-slate-600">
                         <BookOpen className="w-10 h-10 mb-3 opacity-50" />

@@ -9,6 +9,7 @@ interface DashboardState {
 
     // Actions
     updateLayout: (newLayout: Layout[]) => void;
+    updateWidgetHeight: (widgetId: string, h: number) => void;
     toggleWidgetVisibility: (widgetId: string) => void;
     setSidebarOpen: (isOpen: boolean) => void;
     resetLayout: () => void;
@@ -34,6 +35,21 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         set({ layouts: newLayout });
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
             layouts: newLayout,
+            hiddenWidgets: get().hiddenWidgets
+        }));
+    },
+
+    updateWidgetHeight: (widgetId, h) => {
+        const { layouts } = get();
+        const current = layouts.find(l => l.i === widgetId);
+        if (!current || current.h >= h) return; // Only grow
+        const newLayouts = layouts.map(l =>
+            l.i === widgetId ? { ...l, h } : l
+        );
+        set({ layouts: newLayouts });
+        // Persist so the auto-sized height survives refresh
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            layouts: newLayouts,
             hiddenWidgets: get().hiddenWidgets
         }));
     },

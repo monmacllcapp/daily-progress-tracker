@@ -3,9 +3,11 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { useAppLifecycle } from '../../hooks/useAppLifecycle';
+import { useThemeApplicator } from '../../hooks/useThemeApplicator';
 import { Celebration } from '../Celebration';
 import { HealthNudge } from '../HealthNudge';
 import { FeedbackWidget } from '../FeedbackWidget';
+import { PomodoroTimer } from '../PomodoroTimer';
 
 const PatternInterrupt = lazy(
   () => import('../PatternInterrupt').then((m) => ({ default: m.PatternInterrupt }))
@@ -46,6 +48,8 @@ export function AppShell() {
     snoozeNudge,
   } = useAppLifecycle();
 
+  useThemeApplicator();
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-background)]">
       <Sidebar />
@@ -61,6 +65,7 @@ export function AppShell() {
       </div>
 
       {/* Global overlays */}
+      <PomodoroTimer />
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
       <Suspense fallback={null}>

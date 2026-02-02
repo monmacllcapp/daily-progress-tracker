@@ -6,6 +6,8 @@ import { JournalHistory } from '../components/JournalHistory';
 import { DailyAgenda } from '../components/DailyAgenda';
 import { EmailDashboard } from '../components/EmailDashboard';
 import { CategoryManager } from '../components/CategoryManager';
+import { PomodoroWidget } from '../components/PomodoroWidget';
+import { HabitTracker } from '../components/HabitTracker';
 
 export interface WidgetConfig {
     id: string;
@@ -71,5 +73,19 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
         title: 'Life Categories',
         type: 'interactive',
         defaultLayout: { x: 6, y: 15, w: 6, h: 6, minW: 4, minH: 4 }
+    },
+    {
+        id: 'pomodoro',
+        component: PomodoroWidget,
+        title: 'Pomodoro Timer',
+        type: 'interactive',
+        defaultLayout: { x: 6, y: 8, w: 6, h: 3, minW: 3, minH: 2 }
+    },
+    {
+        id: 'habit-tracker',
+        component: HabitTracker,
+        title: 'Habit Tracker',
+        type: 'interactive',
+        defaultLayout: { x: 0, y: 8, w: 6, h: 4, minW: 3, minH: 3 }
     }
 ];

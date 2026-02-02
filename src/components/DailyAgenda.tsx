@@ -189,7 +189,7 @@ export function DailyAgenda() {
     const allDayEvents = events.filter(e => e.all_day);
 
     return (
-        <div className="h-full flex flex-col text-white overflow-hidden">
+        <div className="flex flex-col text-white">
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
@@ -244,7 +244,7 @@ export function DailyAgenda() {
             )}
 
             {/* Timeline */}
-            <div className="flex-1 overflow-y-auto">
+            <div>
                 <div className="relative" style={{ height: HOURS.length * HOUR_HEIGHT }}>
                     {/* Hour grid lines */}
                     {HOURS.map(hour => (
@@ -323,7 +323,7 @@ export function DailyAgenda() {
 
             {/* Unscheduled tasks */}
             {unscheduledTasks.length > 0 && (
-                <div className="border-t border-white/10 px-3 py-2 max-h-32 overflow-y-auto">
+                <div className="border-t border-white/10 px-3 py-2">
                     <div className="flex items-center gap-1.5 mb-1">
                         <Zap className="w-3 h-3 text-yellow-400" />
                         <span className="text-[10px] uppercase tracking-wider text-slate-500">

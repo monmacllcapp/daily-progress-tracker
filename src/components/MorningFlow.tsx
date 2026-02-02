@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { createDatabase } from '../db';
 import { createTask } from '../services/task-rollover';
+import { toggleHabitCompletion, syncHabitCategoryStreak } from '../services/habit-service';
+import type { Habit } from '../types/schema';
 
 const steps = [
     { id: 'gratitude', title: 'Gratitude Stack', prompt: 'What are 3 things you are grateful for?' },
@@ -15,9 +17,12 @@ interface MorningFlowProps {
     onComplete?: () => void;
 }
 
+const DEFAULT_HABITS = ['Hydrate', 'Meditate', 'Movement', 'Deep Work Block'];
+
 export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const navigate = useNavigate();
+    const [dbHabits, setDbHabits] = useState<Habit[]>([]);
 
     const [formData, setFormData] = useState({
         gratitude: [''],
@@ -25,6 +30,23 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
         stressors: [''],
         habits: {} as Record<string, boolean>
     });
+
+    // Load dynamic habits from DB
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const db = await createDatabase();
+                const docs = await db.habits.find({
+                    selector: { is_archived: false },
+                    sort: [{ sort_order: 'asc' }],
+                }).exec();
+                setDbHabits(docs.map(d => d.toJSON() as Habit));
+            } catch {
+                // Fallback to defaults handled below
+            }
+        };
+        load();
+    }, []);
 
     const updateArrayField = (field: 'gratitude' | 'non_negotiables' | 'stressors', index: number, value: string) => {
         setFormData(prev => {
@@ -94,6 +116,18 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                     tags: ['relief'],
                 });
             }));
+
+            // 4. Persist habit completions to habit_completions collection
+            if (dbHabits.length > 0) {
+                const checkedHabitIds = Object.keys(formData.habits).filter(k => formData.habits[k]);
+                await Promise.all(checkedHabitIds.map(async (habitId) => {
+                    const completed = await toggleHabitCompletion(db, habitId, today);
+                    if (completed) {
+                        const habit = dbHabits.find(h => h.id === habitId);
+                        if (habit) await syncHabitCategoryStreak(db, habit);
+                    }
+                }));
+            }
 
             console.log('[MorningFlow] Day ignited:', {
                 gratitude: validGratitude.length,
@@ -184,17 +218,19 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                     </div>
                 );
             case 'habits': {
-                const defaultHabits = ['Hydrate', 'Meditate', 'Movement', 'Deep Work Block'];
+                const habitList = dbHabits.length > 0
+                    ? dbHabits.map(h => ({ key: h.id, label: h.name }))
+                    : DEFAULT_HABITS.map(h => ({ key: h, label: h }));
                 return (
                     <div className="grid grid-cols-2 gap-4">
-                        {defaultHabits.map((habit) => (
+                        {habitList.map((habit) => (
                             <button
-                                key={habit}
-                                onClick={() => toggleHabit(habit)}
-                                className={`p-6 rounded-xl border transition-all text-left ${formData.habits[habit] ? 'bg-blue-500/20 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10' }`}
+                                key={habit.key}
+                                onClick={() => toggleHabit(habit.key)}
+                                className={`p-6 rounded-xl border transition-all text-left ${formData.habits[habit.key] ? 'bg-blue-500/20 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10' }`}
                             >
-                                <div className="font-bold mb-1">{habit}</div>
-                                <div className="text-xs opacity-70">{formData.habits[habit] ? 'Completed' : 'Pending'}</div>
+                                <div className="font-bold mb-1">{habit.label}</div>
+                                <div className="text-xs opacity-70">{formData.habits[habit.key] ? 'Completed' : 'Pending'}</div>
                             </button>
                         ))}
                     </div>

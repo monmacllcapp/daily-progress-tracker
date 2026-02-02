@@ -330,7 +330,7 @@ export function CategoryManager() {
     };
 
     return (
-        <div className="h-full w-full flex flex-col p-4 overflow-y-auto">
+        <div className="w-full flex flex-col p-4">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold">Life Categories</h3>
                 {!showCreate && !editingId && (

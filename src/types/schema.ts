@@ -172,3 +172,43 @@ export interface StressorMilestone {
   created_at?: string;
   updated_at?: string;
 }
+
+// -- 10. Pomodoro Timer --
+export type PomodoroType = 'focus' | 'short_break' | 'long_break';
+export type PomodoroStatus = 'completed' | 'abandoned';
+
+export interface PomodoroSession {
+  id: UUID;
+  task_id?: UUID;
+  category_id?: UUID;
+  type: PomodoroType;
+  duration_minutes: number;
+  started_at: string;
+  completed_at?: string;
+  status: PomodoroStatus;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// -- 11. Habits --
+export type HabitFrequency = 'daily' | 'weekdays' | 'weekends';
+
+export interface Habit {
+  id: UUID;
+  name: string;
+  icon?: string;
+  color?: string;
+  category_id?: UUID;
+  frequency: HabitFrequency;
+  sort_order: number;
+  is_archived: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface HabitCompletion {
+  id: UUID;
+  habit_id: UUID;
+  date: string;
+  completed_at: string;
+}

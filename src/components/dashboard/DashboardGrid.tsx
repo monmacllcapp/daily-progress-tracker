@@ -87,7 +87,7 @@ export function DashboardGrid() {
                         const Component = config.component;
 
                         return (
-                            <WidgetWrapper key={item.i} title={config.title}>
+                            <WidgetWrapper key={item.i} title={config.title} widgetId={item.i}>
                                 <Component />
                             </WidgetWrapper>
                         );

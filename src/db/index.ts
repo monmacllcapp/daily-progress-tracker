@@ -3,7 +3,7 @@ import type { RxDatabase, RxCollection } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { createClient } from '@supabase/supabase-js';
-import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email } from '../types/schema';
+import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion } from '../types/schema';
 
 // Add migration plugin
 addRxPlugin(RxDBMigrationSchemaPlugin);
@@ -59,7 +59,7 @@ const projectSchema = {
 };
 
 const subTaskSchema = {
-    version: 0,
+    version: 1,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -211,6 +211,59 @@ const emailSchema = {
     indexes: ['tier', 'status', 'received_at']
 };
 
+const pomodoroSessionSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        task_id: { type: 'string' },
+        category_id: { type: 'string' },
+        type: { type: 'string' },          // focus | short_break | long_break
+        duration_minutes: { type: 'integer' },
+        started_at: { type: 'string' },
+        completed_at: { type: 'string' },
+        status: { type: 'string' },        // completed | abandoned
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'type', 'duration_minutes', 'started_at', 'status'],
+    indexes: ['started_at', 'status']
+};
+
+const habitSchema = {
+    version: 1,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        name: { type: 'string' },
+        icon: { type: 'string' },
+        color: { type: 'string' },
+        category_id: { type: 'string' },
+        frequency: { type: 'string' },     // daily | weekdays | weekends
+        sort_order: { type: 'integer' },
+        is_archived: { type: 'boolean' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'name', 'frequency'],
+};
+
+const habitCompletionSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        habit_id: { type: 'string' },
+        date: { type: 'string' },          // YYYY-MM-DD
+        completed_at: { type: 'string' }
+    },
+    required: ['id', 'habit_id', 'date', 'completed_at'],
+    indexes: ['habit_id', 'date']
+};
+
 // -- Database Type Definition --
 
 export type TitanDatabaseCollections = {
@@ -224,6 +277,9 @@ export type TitanDatabaseCollections = {
     stressor_milestones: RxCollection<StressorMilestone>;
     calendar_events: RxCollection<CalendarEvent>;
     emails: RxCollection<Email>;
+    pomodoro_sessions: RxCollection<PomodoroSession>;
+    habits: RxCollection<Habit>;
+    habit_completions: RxCollection<HabitCompletion>;
 };
 
 export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
@@ -232,7 +288,7 @@ export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
 
 async function startReplication(db: TitanDatabase, url: string, key: string) {
     const supabase = createClient(url, key);
-    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails'];
+    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions'];
 
     for (const table of tables) {
         // @ts-expect-error - dynamic access
@@ -293,13 +349,13 @@ async function startReplication(db: TitanDatabase, url: string, key: string) {
 
 let dbPromise: Promise<TitanDatabase> | null = null;
 
-export const createDatabase = async (): Promise<TitanDatabase> => {
-    if (dbPromise) return dbPromise;
-
-    dbPromise = createRxDatabase<TitanDatabaseCollections>({
+async function initDatabase(): Promise<TitanDatabase> {
+    const db = await createRxDatabase<TitanDatabaseCollections>({
         name: 'titanplannerdb',
         storage: getRxStorageDexie(),
-    }).then(async (db) => {
+    });
+
+    try {
         await db.addCollections({
             tasks: { schema: taskSchema },
             projects: {
@@ -320,7 +376,16 @@ export const createDatabase = async (): Promise<TitanDatabase> => {
                     }
                 }
             },
-            sub_tasks: { schema: subTaskSchema },
+            sub_tasks: {
+                schema: subTaskSchema,
+                migrationStrategies: {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                    1: function (oldDoc: any) {
+                        oldDoc.completed_date = oldDoc.completed_date || undefined;
+                        return oldDoc;
+                    }
+                }
+            },
             daily_journal: {
                 schema: dailyJournalSchema,
                 migrationStrategies: {
@@ -358,6 +423,15 @@ export const createDatabase = async (): Promise<TitanDatabase> => {
             stressor_milestones: { schema: stressorMilestoneSchema },
             calendar_events: { schema: calendarEventSchema },
             emails: { schema: emailSchema },
+            pomodoro_sessions: { schema: pomodoroSessionSchema },
+            habits: {
+                schema: habitSchema,
+                migrationStrategies: {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                    1: function (oldDoc: any) { return oldDoc; }
+                }
+            },
+            habit_completions: { schema: habitCompletionSchema },
         });
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -371,7 +445,22 @@ export const createDatabase = async (): Promise<TitanDatabase> => {
         }
 
         return db;
-    });
+    } catch (err) {
+        // DB6 = schema mismatch, DXE1 = Dexie index error — nuke and retry
+        const code = (err as { code?: string })?.code;
+        if (code === 'DB6' || code === 'DXE1') {
+            console.warn(`[DB] Schema conflict (${code}), clearing database and retrying...`);
+            await db.remove();
+            // Recursive retry with a fresh database
+            dbPromise = null;
+            return initDatabase();
+        }
+        throw err;
+    }
+}
 
+export const createDatabase = async (): Promise<TitanDatabase> => {
+    if (dbPromise) return dbPromise;
+    dbPromise = initDatabase();
     return dbPromise;
 };

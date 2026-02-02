@@ -1,11 +1,60 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, RotateCcw, LayoutDashboard } from 'lucide-react';
+import { X, RotateCcw, LayoutDashboard, ChevronDown, Palette } from 'lucide-react';
 import { useDashboardStore } from '../../store/dashboardStore';
+import { useThemeStore, THEME_PRESETS } from '../../store/themeStore';
 import { WIDGET_REGISTRY } from '../../config/widgetRegistry';
+import { ColorPicker } from '../ui/ColorPicker';
 import { clsx } from 'clsx';
+
+function CollapsibleSection({
+    title,
+    defaultOpen = false,
+    children,
+}: {
+    title: string;
+    defaultOpen?: boolean;
+    children: React.ReactNode;
+}) {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+
+    return (
+        <div>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center justify-between w-full mb-3"
+            >
+                <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">
+                    {title}
+                </h3>
+                <ChevronDown
+                    className={clsx(
+                        'w-4 h-4 text-white/30 transition-transform',
+                        isOpen && 'rotate-180'
+                    )}
+                />
+            </button>
+            {isOpen && children}
+        </div>
+    );
+}
 
 export function CustomizationSidebar() {
     const { isSidebarOpen, setSidebarOpen, hiddenWidgets, toggleWidgetVisibility, resetLayout } = useDashboardStore();
+    const {
+        backgroundColor,
+        accentColor,
+        activePresetId,
+        widgetColors,
+        glassOpacity,
+        setBackgroundColor,
+        setAccentColor,
+        setWidgetColor,
+        clearWidgetColor,
+        applyPreset,
+        setGlassOpacity,
+        resetTheme,
+    } = useThemeStore();
 
     return (
         <AnimatePresence>
@@ -42,13 +91,105 @@ export function CustomizationSidebar() {
                             </button>
                         </div>
 
-                        {/* Widget List */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        {/* Scrollable Content */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
 
-                            <div>
-                                <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-4">
-                                    Available Key Widgets
-                                </h3>
+                            {/* Theme Presets */}
+                            <CollapsibleSection title="Theme Presets" defaultOpen>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {THEME_PRESETS.map((preset) => (
+                                        <button
+                                            key={preset.id}
+                                            onClick={() => applyPreset(preset.id)}
+                                            className={clsx(
+                                                'flex items-center gap-2 p-2.5 rounded-lg border text-left transition-all text-xs',
+                                                activePresetId === preset.id
+                                                    ? 'border-white/30 bg-white/10'
+                                                    : 'border-white/5 bg-slate-800/50 hover:bg-slate-800'
+                                            )}
+                                        >
+                                            <div className="flex -space-x-1">
+                                                <div
+                                                    className="w-4 h-4 rounded-full border border-white/20"
+                                                    style={{ backgroundColor: preset.backgroundColor }}
+                                                />
+                                                <div
+                                                    className="w-4 h-4 rounded-full border border-white/20"
+                                                    style={{ backgroundColor: preset.accentColor }}
+                                                />
+                                            </div>
+                                            <span className="text-slate-300 truncate">{preset.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </CollapsibleSection>
+
+                            {/* Global Colors */}
+                            <CollapsibleSection title="Colors" defaultOpen>
+                                <div className="space-y-4">
+                                    <ColorPicker
+                                        label="Background"
+                                        value={backgroundColor}
+                                        onChange={setBackgroundColor}
+                                    />
+                                    <ColorPicker
+                                        label="Accent"
+                                        value={accentColor}
+                                        onChange={setAccentColor}
+                                    />
+                                </div>
+                            </CollapsibleSection>
+
+                            {/* Glass Opacity */}
+                            <CollapsibleSection title="Glass Effect" defaultOpen>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs text-slate-400">Opacity</span>
+                                        <span className="text-[10px] font-mono text-slate-500">
+                                            {Math.round(glassOpacity * 100)}%
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        value={Math.round(glassOpacity * 100)}
+                                        onChange={(e) => setGlassOpacity(Number(e.target.value) / 100)}
+                                        className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-slate-700 accent-blue-500"
+                                    />
+                                    <div className="flex justify-between text-[10px] text-slate-600">
+                                        <span>Clear</span>
+                                        <span>Solid</span>
+                                    </div>
+                                </div>
+                            </CollapsibleSection>
+
+                            {/* Per-Widget Colors */}
+                            <CollapsibleSection title="Widget Colors">
+                                <div className="space-y-4">
+                                    {WIDGET_REGISTRY.map((widget) => {
+                                        const isHidden = hiddenWidgets.includes(widget.id);
+                                        if (isHidden) return null;
+
+                                        return (
+                                            <ColorPicker
+                                                key={widget.id}
+                                                label={widget.title}
+                                                value={widgetColors[widget.id] || accentColor}
+                                                onChange={(hex) => setWidgetColor(widget.id, hex)}
+                                                onClear={
+                                                    widgetColors[widget.id]
+                                                        ? () => clearWidgetColor(widget.id)
+                                                        : undefined
+                                                }
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </CollapsibleSection>
+
+                            {/* Widget Visibility */}
+                            <CollapsibleSection title="Available Key Widgets" defaultOpen>
                                 <div className="space-y-2">
                                     {WIDGET_REGISTRY.map(widget => {
                                         const isHidden = hiddenWidgets.includes(widget.id);
@@ -81,11 +222,22 @@ export function CustomizationSidebar() {
                                         );
                                     })}
                                 </div>
-                            </div>
+                            </CollapsibleSection>
                         </div>
 
                         {/* Footer Actions */}
-                        <div className="p-6 border-t border-white/10 bg-white/5 relative">
+                        <div className="p-6 border-t border-white/10 bg-white/5 relative space-y-2">
+                            <button
+                                onClick={() => {
+                                    if (confirm('Reset all colors to default?')) {
+                                        resetTheme();
+                                    }
+                                }}
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg border border-white/10 hover:bg-white/5 text-slate-400 hover:text-white transition-all text-sm font-medium"
+                            >
+                                <Palette className="w-4 h-4" />
+                                Reset Colors
+                            </button>
                             <button
                                 onClick={() => {
                                     if (confirm('Are you sure you want to reset the layout to default?')) {
@@ -100,8 +252,7 @@ export function CustomizationSidebar() {
                         </div>
                     </motion.div>
                 </>
-            )
-            }
-        </AnimatePresence >
+            )}
+        </AnimatePresence>
     );
 }
