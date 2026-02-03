@@ -72,10 +72,10 @@ describe('Gmail Service', () => {
     // listMessages
     // ========================================================
     describe('listMessages', () => {
-        it('should return an empty array when not connected', async () => {
+        it('should return empty messages when not connected', async () => {
             mockIsGoogleConnected.mockReturnValue(false);
             const result = await listMessages();
-            expect(result).toEqual([]);
+            expect(result).toEqual({ messages: [] });
             expect(mockGoogleFetch).not.toHaveBeenCalled();
         });
 
@@ -95,10 +95,10 @@ describe('Gmail Service', () => {
             expect(mockGoogleFetch).toHaveBeenCalledTimes(1);
             const calledUrl = mockGoogleFetch.mock.calls[0][0] as string;
             expect(calledUrl).toContain('/messages?');
-            expect(calledUrl).toContain('maxResults=20');
+            expect(calledUrl).toContain('maxResults=100');
             expect(calledUrl).toContain('q=in%3Ainbox');
-            expect(result).toHaveLength(2);
-            expect(result[0].id).toBe('msg-1');
+            expect(result.messages).toHaveLength(2);
+            expect(result.messages[0].id).toBe('msg-1');
         });
 
         it('should pass custom maxResults and query', async () => {
@@ -113,13 +113,13 @@ describe('Gmail Service', () => {
             expect(calledUrl).toContain('q=is%3Astarred');
         });
 
-        it('should return empty array when API returns no messages', async () => {
+        it('should return empty messages when API returns no messages', async () => {
             mockGoogleFetch.mockResolvedValue(
                 mockResponse({ resultSizeEstimate: 0 })
             );
 
             const result = await listMessages();
-            expect(result).toEqual([]);
+            expect(result).toEqual({ messages: [], nextPageToken: undefined });
         });
 
         it('should throw on non-ok response', async () => {
@@ -401,9 +401,9 @@ describe('Gmail Service', () => {
             let uuidCounter = 0;
             crypto.randomUUID = vi.fn(() => `uuid-${++uuidCounter}`) as typeof crypto.randomUUID;
 
-            const count = await syncGmailInbox(db as never, classifyFn, 10);
+            const result = await syncGmailInbox(db as never, classifyFn, 10);
 
-            expect(count).toBe(2);
+            expect(result.newCount).toBe(2);
             expect(db.emails.insert).toHaveBeenCalledTimes(2);
             expect(classifyFn).toHaveBeenCalledTimes(2);
 
@@ -438,9 +438,9 @@ describe('Gmail Service', () => {
             );
 
             const classifyFn = vi.fn();
-            const count = await syncGmailInbox(db as never, classifyFn, 10);
+            const result = await syncGmailInbox(db as never, classifyFn, 10);
 
-            expect(count).toBe(0);
+            expect(result.newCount).toBe(0);
             expect(db.emails.insert).not.toHaveBeenCalled();
             expect(classifyFn).not.toHaveBeenCalled();
         });
@@ -453,9 +453,9 @@ describe('Gmail Service', () => {
             );
 
             const classifyFn = vi.fn();
-            const count = await syncGmailInbox(db as never, classifyFn);
+            const result = await syncGmailInbox(db as never, classifyFn);
 
-            expect(count).toBe(0);
+            expect(result.newCount).toBe(0);
             expect(db.emails.insert).not.toHaveBeenCalled();
         });
 

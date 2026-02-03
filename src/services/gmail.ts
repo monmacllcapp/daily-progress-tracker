@@ -44,21 +44,23 @@ function getHeader(msg: GmailMessage, name: string): string {
  * Fetch a list of recent message IDs from Gmail.
  */
 export async function listMessages(
-    maxResults: number = 20,
-    query: string = 'in:inbox'
-): Promise<Array<{ id: string; threadId: string }>> {
-    if (!isGoogleConnected()) return [];
+    maxResults: number = 100,
+    query: string = 'in:inbox',
+    pageToken?: string
+): Promise<{ messages: Array<{ id: string; threadId: string }>; nextPageToken?: string }> {
+    if (!isGoogleConnected()) return { messages: [] };
 
     const params = new URLSearchParams({
         maxResults: String(maxResults),
         q: query,
     });
+    if (pageToken) params.set('pageToken', pageToken);
 
     const resp = await googleFetch(`${GMAIL_BASE}/messages?${params}`);
     if (!resp.ok) throw new Error(`Gmail list failed: ${resp.status}`);
 
     const data: GmailListResponse = await resp.json();
-    return data.messages || [];
+    return { messages: data.messages || [], nextPageToken: data.nextPageToken };
 }
 
 /**
@@ -135,9 +137,10 @@ export function extractUnsubscribeLink(msg: GmailMessage): string | null {
 export async function syncGmailInbox(
     db: TitanDatabase,
     classifyFn: (from: string, subject: string, snippet: string, labels: string[]) => Promise<EmailTier>,
-    maxResults: number = 20
-): Promise<number> {
-    const messageRefs = await listMessages(maxResults);
+    maxResults: number = 100,
+    pageToken?: string
+): Promise<{ newCount: number; nextPageToken?: string }> {
+    const { messages: messageRefs, nextPageToken } = await listMessages(maxResults, 'in:inbox', pageToken);
     let newCount = 0;
 
     for (const ref of messageRefs) {
@@ -193,5 +196,5 @@ export async function syncGmailInbox(
     }
 
     console.log(`[Gmail] Synced ${newCount} new emails from inbox`);
-    return newCount;
+    return { newCount, nextPageToken };
 }

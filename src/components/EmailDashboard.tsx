@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Mail, AlertCircle, MessageSquare, Tag, Trash2,
     RefreshCw, Send, Edit3, Archive, ChevronDown, ChevronRight, Trophy,
-    Clock, Bell, ExternalLink, Newspaper
+    Clock, Bell, ExternalLink, Newspaper, Sparkles
 } from 'lucide-react';
 import { createDatabase } from '../db';
 import { isGoogleConnected, requestGoogleAuth, isGoogleAuthAvailable } from '../services/google-auth';
@@ -17,6 +17,7 @@ import type { SnoozePreset } from '../services/email-snooze';
 import type { Email, EmailTier } from '../types/schema';
 import { useDatabase } from '../hooks/useDatabase';
 import { useRxQuery } from '../hooks/useRxQuery';
+import { UnsubscribeSweep } from './UnsubscribeSweep';
 
 const TIER_CONFIG: Record<EmailTier, { label: string; icon: typeof AlertCircle; color: string; bgColor: string; bgLight: string; bgMedium: string }> = {
     urgent: { label: 'Urgent', icon: AlertCircle, color: 'text-red-400', bgColor: 'bg-red-500', bgLight: 'bg-red-500/20', bgMedium: 'bg-red-500/30' },
@@ -40,6 +41,9 @@ export function EmailDashboard() {
     const [showNewsletters, setShowNewsletters] = useState(false);
     const [showSnoozed, setShowSnoozed] = useState(false);
     const [snoozeDropdownId, setSnoozeDropdownId] = useState<string | null>(null);
+    const [nextPageToken, setNextPageToken] = useState<string | undefined>(undefined);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [showSweep, setShowSweep] = useState(false);
 
     // Load newsletter senders when db is ready
     useEffect(() => {
@@ -66,17 +70,37 @@ export function EmailDashboard() {
         setIsSyncing(true);
         try {
             const db = await createDatabase();
-            const count = await syncGmailInbox(db, classifyEmail);
+            const { newCount, nextPageToken: token } = await syncGmailInbox(db, classifyEmail);
+            setNextPageToken(token);
             // Post-sync: score emails and detect newsletters
             await scoreAllEmails(db);
             await detectNewsletters(db);
             setNewsletterSenders(await getNewsletterSenders(db));
-            showToast(count > 0 ? `Synced ${count} new emails` : 'Inbox up to date');
+            showToast(newCount > 0 ? `Synced ${newCount} new emails` : 'Inbox up to date');
         } catch (err) {
             console.error('[EmailDashboard] Sync failed:', err);
             showToast('Sync failed');
         } finally {
             setIsSyncing(false);
+        }
+    };
+
+    const handleLoadMore = async () => {
+        if (!nextPageToken || isLoadingMore) return;
+        setIsLoadingMore(true);
+        try {
+            const db = await createDatabase();
+            const { newCount, nextPageToken: token } = await syncGmailInbox(db, classifyEmail, 100, nextPageToken);
+            setNextPageToken(token);
+            await scoreAllEmails(db);
+            await detectNewsletters(db);
+            setNewsletterSenders(await getNewsletterSenders(db));
+            showToast(newCount > 0 ? `Loaded ${newCount} more emails` : 'No new emails');
+        } catch (err) {
+            console.error('[EmailDashboard] Load more failed:', err);
+            showToast('Load more failed');
+        } finally {
+            setIsLoadingMore(false);
         }
     };
 
@@ -212,16 +236,27 @@ export function EmailDashboard() {
                         </span>
                     )}
                 </div>
-                {isGoogleAuthAvailable() && (
-                    <button
-                        onClick={handleSync}
-                        disabled={isSyncing}
-                        className="flex items-center gap-1 px-2 py-1 hover:bg-white/10 rounded transition-colors text-xs"
-                    >
-                        <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''} ${isGoogleConnected() ? 'text-green-400' : 'text-slate-500'}`} />
-                        <span className="text-slate-400">{isGoogleConnected() ? 'Sync' : 'Connect'}</span>
-                    </button>
-                )}
+                <div className="flex items-center gap-1">
+                    {newsletterSenders.length > 0 && (
+                        <button
+                            onClick={() => setShowSweep(true)}
+                            className="flex items-center gap-1 px-2 py-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded transition-colors text-xs text-purple-400"
+                        >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Cleanup</span>
+                        </button>
+                    )}
+                    {isGoogleAuthAvailable() && (
+                        <button
+                            onClick={handleSync}
+                            disabled={isSyncing}
+                            className="flex items-center gap-1 px-2 py-1 hover:bg-white/10 rounded transition-colors text-xs"
+                        >
+                            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''} ${isGoogleConnected() ? 'text-green-400' : 'text-slate-500'}`} />
+                            <span className="text-slate-400">{isGoogleConnected() ? 'Sync' : 'Connect'}</span>
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Inbox Zero Progress */}
@@ -270,6 +305,20 @@ export function EmailDashboard() {
                                                         </span>
                                                     </div>
                                                     <p className={`text-xs truncate mt-0.5 ${email.status === 'unread' ? 'text-slate-300' : 'text-slate-500'}`}> {email.subject} </p> <p className="text-[10px] text-slate-600 truncate">{email.snippet}</p> </div> {/* Quick Actions */} <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"> <button onClick={e => { e.stopPropagation(); handleArchive(email); }} className="p-1 hover:bg-white/10 rounded" title="Archive" > <Archive className="w-3 h-3 text-slate-400" /> </button> </div> </div> </motion.div> ))} </AnimatePresence> </div> ); }) )} </div>
+
+            {/* Load More */}
+            {nextPageToken && (
+                <div className="px-3 py-2 border-b border-white/5">
+                    <button
+                        onClick={handleLoadMore}
+                        disabled={isLoadingMore}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-xs text-slate-400"
+                    >
+                        <RefreshCw className={`w-3 h-3 ${isLoadingMore ? 'animate-spin' : ''}`} />
+                        {isLoadingMore ? 'Loading...' : 'Load More'}
+                    </button>
+                </div>
+            )}
 
             {/* Newsletter Senders Section */}
             {newsletterSenders.length > 0 && (
@@ -449,6 +498,22 @@ export function EmailDashboard() {
                             </div>
                         </motion.div>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Unsubscribe Sweep Overlay */}
+            <AnimatePresence>
+                {showSweep && db && (
+                    <UnsubscribeSweep
+                        db={db}
+                        senders={newsletterSenders}
+                        onClose={() => {
+                            setShowSweep(false);
+                            getNewsletterSenders(db).then(setNewsletterSenders).catch(err => {
+                                console.error('[EmailDashboard] Failed to refresh newsletter senders:', err);
+                            });
+                        }}
+                    />
                 )}
             </AnimatePresence>
 
