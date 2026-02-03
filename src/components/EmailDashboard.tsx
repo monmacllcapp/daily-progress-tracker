@@ -119,12 +119,24 @@ export function EmailDashboard() {
     };
 
     const handleReclassify = async (email: Email, newTier: EmailTier) => {
-        const db = await createDatabase();
-        const doc = await db.emails.findOne(email.id).exec();
-        if (doc) {
-            await doc.patch({ tier_override: newTier, updated_at: new Date().toISOString() });
-            setSelectedEmail({ ...email, tier_override: newTier });
-            showToast(`Moved to ${TIER_CONFIG[newTier].label}`);
+        try {
+            const database = db || await createDatabase();
+            // Try primary key lookup first, fall back to selector query
+            let doc = await database.emails.findOne(email.id).exec();
+            if (!doc) {
+                doc = await database.emails.findOne({ selector: { gmail_id: email.gmail_id } }).exec();
+            }
+            if (doc) {
+                await doc.patch({ tier_override: newTier, updated_at: new Date().toISOString() });
+                setSelectedEmail({ ...email, tier_override: newTier });
+                showToast(`Moved to ${TIER_CONFIG[newTier].label}`);
+            } else {
+                console.error('[EmailDashboard] Reclassify: email not found in DB', email.id);
+                showToast('Failed to reclassify');
+            }
+        } catch (err) {
+            console.error('[EmailDashboard] Reclassify failed:', err);
+            showToast('Failed to reclassify');
         }
     };
 
@@ -431,7 +443,67 @@ export function EmailDashboard() {
                 </div>
             )}
 
-            {/* Email Detail / Reply Modal */} <AnimatePresence> {selectedEmail && ( <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setSelectedEmail(null)} > <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} onClick={e => e.stopPropagation()} className="glass-card p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto" > {/* Header */} <div className="flex items-start justify-between mb-3"> <div className="min-w-0 flex-1"> <h3 className="text-sm font-bold text-white truncate">{selectedEmail.subject}</h3> <p className="text-xs text-slate-500 mt-0.5">{selectedEmail.from}</p> <p className="text-[10px] text-slate-600"> {new Date(selectedEmail.received_at).toLocaleString()} </p> </div> {/* Tier Reclassify */} <div className="flex gap-1 ml-2 flex-shrink-0"> {TIER_ORDER.map(t => { const cfg = TIER_CONFIG[t]; const TierIcon = cfg.icon; const effectiveTier = selectedEmail.tier_override || selectedEmail.tier; return ( <button key={t} onClick={() => handleReclassify(selectedEmail, t)} className={`p-1 rounded transition-colors ${effectiveTier === t ? `${cfg.bgMedium}` : 'hover:bg-white/10'}`} title={cfg.label} > <TierIcon className={`w-3 h-3 ${cfg.color}`} /> </button> ); })} </div> </div> {/* Snippet */} <div className="text-xs text-slate-400 bg-white/5 rounded-lg p-3 mb-3"> {selectedEmail.snippet} </div> {/* AI Draft / Reply */} <div className="space-y-2"> {isClassifierAvailable() && !draftText && ( <button onClick={() => handleDraftAI(selectedEmail)} disabled={isDrafting} className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg text-xs text-indigo-400 transition-colors w-full" > <Edit3 className={`w-3.5 h-3.5 ${isDrafting ? 'animate-pulse' : ''}`} />
+            {/* Email Detail / Reply Modal */}
+            <AnimatePresence>
+                {selectedEmail && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+                        onClick={() => setSelectedEmail(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            onClick={e => e.stopPropagation()}
+                            className="glass-card p-5 w-full max-w-lg max-h-[80vh] overflow-y-auto"
+                        >
+                            {/* Header */}
+                            <div className="flex items-start justify-between mb-3">
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="text-sm font-bold text-white truncate">{selectedEmail.subject}</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">{selectedEmail.from}</p>
+                                    <p className="text-[10px] text-slate-600">
+                                        {new Date(selectedEmail.received_at).toLocaleString()}
+                                    </p>
+                                </div>
+                                {/* Tier Reclassify */}
+                                <div className="flex gap-1 ml-2 flex-shrink-0">
+                                    {TIER_ORDER.map(t => {
+                                        const cfg = TIER_CONFIG[t];
+                                        const TierIcon = cfg.icon;
+                                        const effectiveTier = selectedEmail.tier_override || selectedEmail.tier;
+                                        return (
+                                            <button
+                                                key={t}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleReclassify(selectedEmail, t);
+                                                }}
+                                                className={`p-1.5 rounded transition-colors ${effectiveTier === t ? `${cfg.bgMedium}` : 'hover:bg-white/10'}`}
+                                                title={cfg.label}
+                                            >
+                                                <TierIcon className={`w-3.5 h-3.5 ${cfg.color}`} />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            {/* Snippet */}
+                            <div className="text-xs text-slate-400 bg-white/5 rounded-lg p-3 mb-3">
+                                {selectedEmail.snippet}
+                            </div>
+                            {/* AI Draft / Reply */}
+                            <div className="space-y-2">
+                                {isClassifierAvailable() && !draftText && (
+                                    <button
+                                        onClick={() => handleDraftAI(selectedEmail)}
+                                        disabled={isDrafting}
+                                        className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg text-xs text-indigo-400 transition-colors w-full"
+                                    >
+                                        <Edit3 className={`w-3.5 h-3.5 ${isDrafting ? 'animate-pulse' : ''}`} />
                                         {isDrafting ? 'Drafting...' : 'AI Draft Response'}
                                     </button>
                                 )}
