@@ -121,7 +121,11 @@ export function EmailDashboard() {
     const handleReclassify = async (email: Email, newTier: EmailTier) => {
         const db = await createDatabase();
         const doc = await db.emails.findOne(email.id).exec();
-        if (doc) await doc.patch({ tier_override: newTier, updated_at: new Date().toISOString() });
+        if (doc) {
+            await doc.patch({ tier_override: newTier, updated_at: new Date().toISOString() });
+            setSelectedEmail({ ...email, tier_override: newTier });
+            showToast(`Moved to ${TIER_CONFIG[newTier].label}`);
+        }
     };
 
     const handleDraftAI = async (email: Email) => {
