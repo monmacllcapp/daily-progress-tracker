@@ -188,7 +188,7 @@ const calendarEventSchema = {
 };
 
 const emailSchema = {
-    version: 1,
+    version: 2,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -208,6 +208,7 @@ const emailSchema = {
         list_id: { type: 'string' },
         unsubscribe_url: { type: 'string' },
         unsubscribe_mailto: { type: 'string' },
+        unsubscribe_one_click: { type: 'boolean' },
         is_newsletter: { type: 'boolean' },
         snooze_until: { type: 'string' },
         snoozed_at: { type: 'string' },
@@ -476,6 +477,11 @@ async function initDatabase(): Promise<TitanDatabase> {
                         oldDoc.is_newsletter = false;
                         oldDoc.snooze_until = undefined;
                         oldDoc.snoozed_at = undefined;
+                        return oldDoc;
+                    },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                    2: function (oldDoc: any) {
+                        oldDoc.unsubscribe_one_click = false;
                         return oldDoc;
                     }
                 }

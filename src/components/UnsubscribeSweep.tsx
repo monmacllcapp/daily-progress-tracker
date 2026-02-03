@@ -1,7 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Archive, Shield, Trash2 } from 'lucide-react';
-import { bulkArchiveBySender, buildUnsubscribeAction } from '../services/newsletter-detector';
+import { X, ExternalLink, Archive, Shield, Trash2, Globe } from 'lucide-react';
+import {
+  bulkArchiveBySender,
+  buildUnsubscribeAction,
+  performUnsubscribe,
+  extractDomain,
+  isProtected,
+  isServiceNotification,
+  protectSender,
+  protectDomain,
+} from '../services/newsletter-detector';
 import { UnsubscribeSweepSummary } from './UnsubscribeSweepSummary';
 import type { SweepStats } from './UnsubscribeSweepSummary';
 import type { NewsletterSender } from '../services/newsletter-detector';
@@ -12,6 +21,9 @@ interface Props {
   senders: NewsletterSender[];
   onClose: () => void;
 }
+
+/** Number of Keep actions on the same domain before prompting domain protection. */
+const DOMAIN_KEEP_THRESHOLD = 2;
 
 const cardVariants = {
   enter: (direction: number) => ({
@@ -38,35 +50,57 @@ const cardTransition = {
 };
 
 export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [senders] = useState(() =>
-    [...rawSenders].sort((a, b) => b.emailCount - a.emailCount)
+  // Filter out service notifications and already-protected senders upfront
+  const sweepSenders = useMemo(() =>
+    [...rawSenders]
+      .filter(s => !isServiceNotification(s.address) && !isProtected(s.address))
+      .sort((a, b) => b.emailCount - a.emailCount),
+    [rawSenders]
   );
+
+  const notificationCount = useMemo(() =>
+    rawSenders.filter(s => isServiceNotification(s.address)).length,
+    [rawSenders]
+  );
+
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [sampleSubjects, setSampleSubjects] = useState<Map<string, string[]>>(new Map());
   const [stats, setStats] = useState<SweepStats>({
     unsubscribed: 0,
     archived: 0,
     kept: 0,
     totalEmailsArchived: 0,
+    domainsProtected: 0,
+    sendersSkipped: 0,
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [direction, setDirection] = useState(1);
 
-  // Immediately show summary if no senders
+  // Track how many times user clicked Keep per domain during this sweep
+  const [domainKeepCounts, setDomainKeepCounts] = useState<Map<string, number>>(new Map());
+  // When set, shows the "Protect entire domain?" prompt instead of a sender card
+  const [domainPrompt, setDomainPrompt] = useState<{
+    domain: string;
+    remaining: number;
+  } | null>(null);
+  // Domains protected during this sweep session (to skip remaining senders)
+  const [protectedDomains, setProtectedDomains] = useState<Set<string>>(new Set());
+
+  // Immediately show summary if no senders after filtering
   useEffect(() => {
-    if (senders.length === 0) {
+    if (sweepSenders.length === 0) {
       setIsComplete(true);
     }
-  }, [senders.length]);
+  }, [sweepSenders.length]);
 
-  // Load sample subjects for all senders on mount
+  // Load sample subjects on mount
   useEffect(() => {
-    if (!db || senders.length === 0) return;
+    if (!db || sweepSenders.length === 0) return;
 
     const load = async () => {
       const map = new Map<string, string[]>();
-      for (const sender of senders) {
+      for (const sender of sweepSenders) {
         try {
           const escapedAddr = sender.address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const docs = await db.emails.find({
@@ -83,19 +117,88 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
     };
 
     load();
-  }, [db, senders]);
+  }, [db, sweepSenders]);
 
+  /** Find the next non-skipped sender index starting from `from`. Returns -1 if none. */
+  const findNextIndex = useCallback((from: number): number => {
+    for (let i = from; i < sweepSenders.length; i++) {
+      const domain = extractDomain(sweepSenders[i].address);
+      if (!protectedDomains.has(domain)) return i;
+    }
+    return -1;
+  }, [sweepSenders, protectedDomains]);
+
+  /** Advance to the next non-skipped sender, or complete. */
   const advance = useCallback(() => {
-    if (currentIndex >= senders.length - 1) {
+    const next = findNextIndex(currentIndex + 1);
+    if (next === -1) {
       setIsComplete(true);
     } else {
       setDirection(1);
-      setCurrentIndex(i => i + 1);
+      setCurrentIndex(next);
     }
-  }, [currentIndex, senders.length]);
+  }, [currentIndex, findNextIndex]);
+
+  /** Count remaining senders from a domain after the current index. */
+  const countRemainingFromDomain = useCallback((domain: string): number => {
+    let count = 0;
+    for (let i = currentIndex + 1; i < sweepSenders.length; i++) {
+      if (extractDomain(sweepSenders[i].address) === domain && !protectedDomains.has(domain)) {
+        count++;
+      }
+    }
+    return count;
+  }, [currentIndex, sweepSenders, protectedDomains]);
 
   const handleKeep = useCallback(() => {
+    const sender = sweepSenders[currentIndex];
+    const domain = extractDomain(sender.address);
+
+    // Persist this sender as protected
+    protectSender(sender.address);
     setStats(s => ({ ...s, kept: s.kept + 1 }));
+
+    // Track domain keep count
+    const newCounts = new Map(domainKeepCounts);
+    const newCount = (newCounts.get(domain) || 0) + 1;
+    newCounts.set(domain, newCount);
+    setDomainKeepCounts(newCounts);
+
+    // Check if we should prompt for domain protection
+    const remaining = countRemainingFromDomain(domain);
+    if (newCount >= DOMAIN_KEEP_THRESHOLD && remaining > 0) {
+      setDomainPrompt({ domain, remaining });
+    } else {
+      advance();
+    }
+  }, [sweepSenders, currentIndex, domainKeepCounts, countRemainingFromDomain, advance]);
+
+  const handleProtectDomain = useCallback(() => {
+    if (!domainPrompt) return;
+    const { domain, remaining } = domainPrompt;
+
+    protectDomain(domain);
+    setProtectedDomains(prev => new Set(prev).add(domain));
+    setStats(s => ({
+      ...s,
+      domainsProtected: s.domainsProtected + 1,
+      sendersSkipped: s.sendersSkipped + remaining,
+      kept: s.kept + remaining,
+    }));
+    setDomainPrompt(null);
+
+    // Advance past all senders from this now-protected domain
+    const next = findNextIndex(currentIndex + 1);
+    if (next === -1) {
+      setIsComplete(true);
+    } else {
+      setDirection(1);
+      setCurrentIndex(next);
+    }
+  }, [domainPrompt, currentIndex, findNextIndex]);
+
+  const handleReviewIndividually = useCallback(() => {
+    setDomainPrompt(null);
     advance();
   }, [advance]);
 
@@ -103,7 +206,7 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
     if (isProcessing) return;
     setIsProcessing(true);
     try {
-      const sender = senders[currentIndex];
+      const sender = sweepSenders[currentIndex];
       const count = await bulkArchiveBySender(db, sender.address);
       setStats(s => ({
         ...s,
@@ -116,22 +219,18 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, senders, currentIndex, db, advance]);
+  }, [isProcessing, sweepSenders, currentIndex, db, advance]);
 
   const handleUnsubAndArchive = useCallback(async () => {
     if (isProcessing) return;
-    const sender = senders[currentIndex];
+    const sender = sweepSenders[currentIndex];
     const action = buildUnsubscribeAction(sender);
     if (!action) return;
 
     setIsProcessing(true);
     try {
-      // Open unsubscribe link
-      if (action.type === 'url') {
-        window.open(action.target, '_blank', 'noopener,noreferrer');
-      } else {
-        window.open(action.target, '_blank');
-      }
+      const result = await performUnsubscribe(sender);
+      console.log(`[UnsubscribeSweep] ${sender.address}: ${result.method} — ${result.message}`);
 
       const count = await bulkArchiveBySender(db, sender.address);
       setStats(s => ({
@@ -145,12 +244,28 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, senders, currentIndex, db, advance]);
+  }, [isProcessing, sweepSenders, currentIndex, db, advance]);
 
-  const currentSender = senders[currentIndex];
+  // Count non-skipped senders for progress display
+  const activeSenderCount = useMemo(() =>
+    sweepSenders.filter(s => !protectedDomains.has(extractDomain(s.address))).length,
+    [sweepSenders, protectedDomains]
+  );
+  // How many non-skipped senders have been reviewed (are before currentIndex)
+  const reviewedCount = useMemo(() => {
+    let count = 0;
+    for (let i = 0; i < currentIndex; i++) {
+      if (!protectedDomains.has(extractDomain(sweepSenders[i].address))) count++;
+    }
+    return count;
+  }, [currentIndex, sweepSenders, protectedDomains]);
+
+  const currentSender = sweepSenders[currentIndex];
   const currentAction = currentSender ? buildUnsubscribeAction(currentSender) : null;
   const subjects = currentSender ? (sampleSubjects.get(currentSender.address) || []) : [];
-  const progress = senders.length > 0 ? ((currentIndex + (isComplete ? 1 : 0)) / senders.length) * 100 : 100;
+  const progress = activeSenderCount > 0
+    ? ((reviewedCount + (isComplete ? 1 : 0)) / activeSenderCount) * 100
+    : 100;
 
   return (
     <motion.div
@@ -171,9 +286,14 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
             <h2 className="text-sm font-bold text-white">Unsubscribe Sweep</h2>
-            {!isComplete && senders.length > 0 && (
+            {!isComplete && activeSenderCount > 0 && (
               <p className="text-[10px] text-slate-500 mt-0.5">
-                {currentIndex + 1} / {senders.length}
+                {reviewedCount + 1} / {activeSenderCount}
+                {notificationCount > 0 && (
+                  <span className="text-slate-600 ml-1">
+                    ({notificationCount} service notifications auto-skipped)
+                  </span>
+                )}
               </p>
             )}
           </div>
@@ -186,7 +306,7 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
         </div>
 
         {/* Progress Bar */}
-        {!isComplete && senders.length > 0 && (
+        {!isComplete && activeSenderCount > 0 && (
           <div className="px-5 pb-3">
             <div className="h-1 bg-white/5 rounded-full overflow-hidden">
               <motion.div
@@ -203,9 +323,48 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
           {isComplete ? (
             <UnsubscribeSweepSummary
               stats={stats}
-              totalSenders={senders.length}
+              totalSenders={activeSenderCount + stats.sendersSkipped}
               onClose={onClose}
             />
+          ) : domainPrompt ? (
+            /* Domain Protection Prompt */
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`domain-${domainPrompt.domain}`}
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={cardTransition}
+                className="flex flex-col items-center text-center py-4"
+              >
+                <Globe className="w-8 h-8 text-purple-400 mb-3" />
+                <h3 className="text-sm font-bold text-white mb-1">
+                  Protect all from {domainPrompt.domain}?
+                </h3>
+                <p className="text-xs text-slate-400 mb-1">
+                  You've kept {domainKeepCounts.get(domainPrompt.domain) || 0} senders from this domain.
+                </p>
+                <p className="text-xs text-slate-500 mb-5">
+                  {domainPrompt.remaining} more {domainPrompt.remaining === 1 ? 'sender' : 'senders'} from <span className="text-slate-400">{domainPrompt.domain}</span> still in queue.
+                </p>
+
+                <div className="flex gap-3 w-full max-w-xs">
+                  <button
+                    onClick={handleReviewIndividually}
+                    className="flex-1 px-3 py-2.5 border border-white/10 hover:bg-white/5 rounded-lg text-xs text-slate-400 transition-colors"
+                  >
+                    Review each
+                  </button>
+                  <button
+                    onClick={handleProtectDomain}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/20 rounded-lg text-xs text-purple-300 font-medium transition-colors"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    Protect all
+                  </button>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           ) : currentSender ? (
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
@@ -233,8 +392,14 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
                       Last: {new Date(currentSender.lastReceived).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
                     {currentAction && (
-                      <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full font-bold">
-                        Unsub available
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                        currentSender.hasOneClickUnsubscribe || currentSender.hasUnsubscribeMailto
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : 'bg-amber-500/20 text-amber-400'
+                      }`}>
+                        {currentSender.hasOneClickUnsubscribe ? 'Auto-unsub'
+                          : currentSender.hasUnsubscribeMailto ? 'Email unsub'
+                          : 'Manual unsub'}
                       </span>
                     )}
                   </div>

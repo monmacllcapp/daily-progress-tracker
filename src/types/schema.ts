@@ -151,6 +151,7 @@ export interface Email {
   list_id?: string;                // List-ID header (newsletter identifier)
   unsubscribe_url?: string;        // Parsed <https://...> from List-Unsubscribe
   unsubscribe_mailto?: string;     // Parsed <mailto:...> from List-Unsubscribe
+  unsubscribe_one_click?: boolean; // True if List-Unsubscribe-Post header present (RFC 8058)
   is_newsletter?: boolean;         // True if List-ID or unsubscribe headers present
   snooze_until?: string;           // ISO 8601 datetime — when to resurface
   snoozed_at?: string;             // ISO 8601 datetime — when snoozed

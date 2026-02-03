@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
-import { CheckCircle, Trash2, Archive, Shield } from 'lucide-react';
+import { CheckCircle, Trash2, Archive, Shield, Globe } from 'lucide-react';
 
 export interface SweepStats {
   unsubscribed: number;
   archived: number;
   kept: number;
   totalEmailsArchived: number;
+  domainsProtected: number;
+  sendersSkipped: number;
 }
 
 interface Props {
@@ -71,10 +73,19 @@ export function UnsubscribeSweepSummary({ stats, totalSenders, onClose }: Props)
         </motion.div>
       </div>
 
-      {stats.totalEmailsArchived > 0 && (
-        <p className="text-xs text-slate-400 mb-6">
-          {stats.totalEmailsArchived} total {stats.totalEmailsArchived === 1 ? 'email' : 'emails'} archived
-        </p>
+      {(stats.totalEmailsArchived > 0 || stats.domainsProtected > 0) && (
+        <div className="text-xs text-slate-400 mb-6 space-y-1">
+          {stats.totalEmailsArchived > 0 && (
+            <p>{stats.totalEmailsArchived} total {stats.totalEmailsArchived === 1 ? 'email' : 'emails'} archived</p>
+          )}
+          {stats.domainsProtected > 0 && (
+            <p className="flex items-center justify-center gap-1 text-purple-400">
+              <Globe className="w-3 h-3" />
+              {stats.domainsProtected} {stats.domainsProtected === 1 ? 'domain' : 'domains'} protected
+              {stats.sendersSkipped > 0 && ` (${stats.sendersSkipped} senders auto-skipped)`}
+            </p>
+          )}
+        </div>
       )}
 
       <button

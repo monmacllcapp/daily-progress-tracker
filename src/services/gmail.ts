@@ -130,6 +130,40 @@ export function extractUnsubscribeLink(msg: GmailMessage): string | null {
 }
 
 /**
+ * Send a standalone email (not a reply). Used for mailto-based unsubscribes.
+ * Parses mailto: URIs to extract recipient, subject, and body.
+ */
+export async function sendUnsubscribeEmail(mailto: string): Promise<void> {
+    if (!isGoogleConnected()) throw new Error('Gmail not connected');
+
+    // Parse mailto URI: mailto:addr?subject=X&body=Y
+    const cleaned = mailto.replace(/^mailto:/i, '');
+    const [address, queryString] = cleaned.split('?');
+    const params = new URLSearchParams(queryString || '');
+    const subject = params.get('subject') || 'Unsubscribe';
+    const body = params.get('body') || '';
+
+    const headers = [
+        `To: ${address}`,
+        `Subject: ${subject}`,
+        `Content-Type: text/plain; charset=utf-8`,
+    ];
+
+    const raw = headers.join('\r\n') + '\r\n\r\n' + body;
+    const encoded = btoa(unescape(encodeURIComponent(raw)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+    const resp = await googleFetch(`${GMAIL_BASE}/messages/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw: encoded }),
+    });
+    if (!resp.ok) throw new Error(`Gmail unsubscribe email failed: ${resp.status}`);
+}
+
+/**
  * Sync Gmail inbox to local RxDB.
  * Fetches recent messages and upserts into the emails collection.
  * Returns count of new emails added.
@@ -163,6 +197,7 @@ export async function syncGmailInbox(
         // Extract newsletter headers
         const listId = getHeader(msg, 'List-ID') || undefined;
         const listUnsubscribe = getHeader(msg, 'List-Unsubscribe');
+        const listUnsubscribePost = getHeader(msg, 'List-Unsubscribe-Post');
         let unsubscribeUrl: string | undefined;
         let unsubscribeMailto: string | undefined;
         if (listUnsubscribe) {
@@ -171,6 +206,7 @@ export async function syncGmailInbox(
             const mailtoMatch = listUnsubscribe.match(/<(mailto:[^>]+)>/);
             if (mailtoMatch) unsubscribeMailto = mailtoMatch[1];
         }
+        const unsubscribeOneClick = !!listUnsubscribePost;
         const isNewsletter = !!(listId || unsubscribeUrl || unsubscribeMailto);
 
         await db.emails.insert({
@@ -187,6 +223,7 @@ export async function syncGmailInbox(
             list_id: listId,
             unsubscribe_url: unsubscribeUrl,
             unsubscribe_mailto: unsubscribeMailto,
+            unsubscribe_one_click: unsubscribeOneClick,
             is_newsletter: isNewsletter,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
