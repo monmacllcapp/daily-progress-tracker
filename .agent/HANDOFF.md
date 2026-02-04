@@ -1,52 +1,39 @@
 # Agent Handoff
-**Last Updated:** 2026-02-02T19:20:00Z
+**Last Updated:** 2026-02-04T10:35:00Z
 **Model:** claude-opus-4-5-20251101
 **Branch:** sandbox
-**Commit:** uncommitted (3 files modified on sandbox)
 
 ## What Was Done
-Session 12 — Kanban widget column manager + uniform widget sizing:
+Session 13 — Governance bootstrap + complete all deferred M4/M5 items:
 
-1. **Store overhaul** (`dashboardStore.ts`):
-   - Added `columnCount` state (default: 2) with type `1 | 2 | 3 | 4 | 6`
-   - Added `setColumnCount(count)` — redistributes widgets round-robin, recalculates x/w/y
-   - Replaced `reorderWidgets(orderedIds)` with `applyKanbanLayout(columns: string[][])` — maps column arrays to grid positions
-   - `columnCount` persisted/restored in localStorage alongside layouts
-   - Extracted `persistState()` helper to DRY localStorage writes
-
-2. **Sidebar rewrite** (`CustomizationSidebar.tsx`):
-   - **ColumnCountSelector**: row of 5 buttons (1, 2, 3, 4, 6) in "Layout Columns" section
-   - **KanbanBoard**: multi-container @dnd-kit DnD replacing single-list reorder
-     - `deriveColumnsFromLayouts()` derives column state from grid positions
-     - `onDragOver` moves widgets between columns (visual only, local state)
-     - `onDragEnd` persists via `applyKanbanLayout()`
-     - `DragOverlay` renders ghost card while dragging
-   - Sidebar widened from `w-80` to `w-96` for multi-column layout
-
-3. **Widget sizing** (`widgetRegistry.ts`):
-   - All widgets: `w:6, h:6, minW:3, minH:4` (uniform squares)
-   - Vision Board: `w:8, h:6, minW:6, minH:4` (wider)
-
-4. **Quality gate**: 280 tests passing, 0 TS errors, clean production build
+1. **Governance bootstrap**: Loaded all policies, created agent topology (Opus orchestrator + Sonnet dev team), codebase verification (88 features, 18 discrepancies)
+2. **Committed 10 email intelligence files** from sessions 9-12 (action logger, pattern analyzer, rules engine, etc.)
+3. **Fixed 14 failing tests** across 4 files (localStorage mock, env stubbing for API tests)
+4. **Wired OnePercentTracker** to dashboard widget registry (11 widgets total)
+5. **Integrated gamification XP triggers** into task completion, habit checking, pomodoro completion, morning flow
+6. **Performance audit (M4-5)**: 51% dashboard bundle reduction (203KB → 98KB), lazy widget loading, vendor-grid chunk
+7. **Offline mode tests (M4-4)**: 17 new tests verifying RxDB offline contract
+8. **Analytics telemetry (M5-4)**: Privacy-first local analytics — trackEvent, getUsageStats, exportData
 
 ## Current State
-- **Branch**: sandbox (uncommitted changes)
-- **280 tests passing**, 0 TS errors, build clean
-- **3 files modified**: dashboardStore.ts, CustomizationSidebar.tsx, widgetRegistry.ts
-- **No new dependencies** — uses existing @dnd-kit/core v6.3.1 + @dnd-kit/sortable v10.0.0
+- **Branch**: sandbox (pushed, clean working tree)
+- **312 tests passing** across 22 test files, 0 TS errors
+- **All M4 items now complete** (10/10 — previously 7/10, 3 deferred)
+- **M5 build items complete** (M5-1 through M5-6 + M5-4 analytics)
+- **M5 beta validation** still pending (M5-7 through M5-10 — requires human action)
 
 ## Next Step
-Manual QA testing of the Kanban sidebar, then commit and open PR to main.
+Update docs/PROJECT_SCORECARD.md with all 15 undocumented features, sessions 9-13 history, and corrected M4/M5 status. Then open PR sandbox→main.
 
 ## Blockers
-None
+- M5-7 through M5-10 require human action (onboard users, collect feedback, bug fixes, release)
 
 ## Context Notes
-- `reorderWidgets` was removed from the store — only `CustomizationSidebar` used it
-- localStorage key `titan_glass_layout_v5` unchanged — existing users keep saved layouts, `columnCount` defaults to 2 on first load
-- "Reset to Default Layout" button applies the new uniform 6x6 widget sizes
-- Sidebar width increased `w-80` → `w-96` to fit multi-column Kanban
-- GitHub default branch is `main` (not `master`). Push hook blocks agent pushes to `master` — only `sandbox` allowed.
-- Render deploys from `main` with auto-deploy on commit
-- RxDB indexed fields MUST be in required arrays
+- Agent topology: Opus 4.5 orchestrator + Sonnet dev team (see .agent/AGENT_TOPOLOGY.md)
+- 15 undocumented features found in codebase verification (see .agent/verification-report.md)
+- Gamification XP triggers now live: 10 XP/task, 5 XP/habit, 8 XP/pomodoro, 15 XP/morning flow
+- Analytics tracks: app_open, morning_flow_complete, task_complete, pomodoro_complete, habit_check
+- All data stays local — no external services for analytics
+- GitHub repo moved to monmacllcapp/daily-progress-tracker (remote push still works)
 - Tailwind v4: NEVER use `bg-opacity-*` — use slash syntax (`bg-white/5`)
+- RxDB indexed fields MUST be in required arrays
