@@ -8,6 +8,7 @@ import { EmailDashboard } from '../components/EmailDashboard';
 import { CategoryManager } from '../components/CategoryManager';
 import { PomodoroWidget } from '../components/PomodoroWidget';
 import { HabitTracker } from '../components/HabitTracker';
+import { OnePercentTracker } from '../components/OnePercentTracker';
 
 export interface WidgetConfig {
     id: string;
@@ -87,5 +88,12 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
         title: 'Habit Tracker',
         type: 'interactive',
         defaultLayout: { x: 0, y: 30, w: 6, h: 6, minW: 3, minH: 4 }
+    },
+    {
+        id: 'one-percent-tracker',
+        component: OnePercentTracker,
+        title: '1% Better',
+        type: 'metric',
+        defaultLayout: { x: 6, y: 30, w: 6, h: 6, minW: 3, minH: 4 }
     }
 ];
