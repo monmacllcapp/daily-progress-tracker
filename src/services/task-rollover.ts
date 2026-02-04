@@ -1,6 +1,7 @@
 import type { TitanDatabase } from '../db';
 import type { Task } from '../types/schema';
 import { updateCategoryStreak, updateCategoryProgress } from './streak-service';
+import { onTaskComplete } from './gamification';
 
 /**
  * TaskRolloverService
@@ -89,12 +90,26 @@ export async function completeTask(db: TitanDatabase, taskId: string): Promise<{
         updated_at: new Date().toISOString()
     });
 
+    let streakCount = 0;
+
     // Update category streak and progress if task has a category
     if (taskData.category_id) {
         const streakResult = await updateCategoryStreak(db, taskData.category_id);
         await updateCategoryProgress(db, taskData.category_id);
+        streakCount = streakResult.streak;
+
+        // Award XP for task completion
+        onTaskComplete(db, streakCount).catch(err =>
+            console.warn('[Gamification] Failed to award XP for task completion:', err)
+        );
+
         return { streak: streakResult.streak, isNewStreak: streakResult.isNew };
     }
+
+    // Award XP even if no category
+    onTaskComplete(db, streakCount).catch(err =>
+        console.warn('[Gamification] Failed to award XP for task completion:', err)
+    );
 
     return {};
 }

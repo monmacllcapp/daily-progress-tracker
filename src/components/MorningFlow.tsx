@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { createDatabase } from '../db';
 import { createTask } from '../services/task-rollover';
 import { toggleHabitCompletion, syncHabitCategoryStreak } from '../services/habit-service';
+import { onMorningFlowComplete } from '../services/gamification';
 import type { Habit } from '../types/schema';
 
 const steps = [
@@ -135,6 +136,11 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                 stressors: validStressors.length,
                 habits: Object.keys(formData.habits).filter(k => formData.habits[k]).length,
             });
+
+            // Award XP for completing morning flow
+            onMorningFlowComplete(db).catch(err =>
+                console.warn('[Gamification] Failed to award XP for morning flow:', err)
+            );
 
             if (onComplete) {
                 onComplete();

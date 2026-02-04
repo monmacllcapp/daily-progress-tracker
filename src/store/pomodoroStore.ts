@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { PomodoroType } from '../types/schema';
+import { createDatabase } from '../db';
+import { onPomodoroComplete } from '../services/gamification';
 
 interface PomodoroState {
     isRunning: boolean;
@@ -114,8 +116,41 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
     },
 
     complete: () => {
+        const state = get();
+        const sessionType = state.sessionType;
+        const totalSeconds = state.totalSeconds;
+        const startedAt = state.sessionStartedAt;
+
         terminateWorker();
         // Keep state briefly for the overlay to show completion
         set({ isRunning: false, isPaused: false, remainingSeconds: 0 });
+
+        // Save completed session to DB
+        if (sessionType && startedAt) {
+            (async () => {
+                try {
+                    const db = await createDatabase();
+                    await db.pomodoro_sessions.insert({
+                        id: crypto.randomUUID(),
+                        type: sessionType,
+                        duration_minutes: Math.round(totalSeconds / 60),
+                        started_at: startedAt,
+                        completed_at: new Date().toISOString(),
+                        status: 'completed',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    });
+
+                    // Award XP only for focus sessions
+                    if (sessionType === 'focus') {
+                        onPomodoroComplete(db).catch(err =>
+                            console.warn('[Gamification] Failed to award XP for pomodoro:', err)
+                        );
+                    }
+                } catch (err) {
+                    console.error('[PomodoroStore] Failed to save completed session:', err);
+                }
+            })();
+        }
     },
 }));
