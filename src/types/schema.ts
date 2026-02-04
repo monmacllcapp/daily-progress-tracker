@@ -131,8 +131,8 @@ export interface CalendarEvent {
 }
 
 // -- 8. Email (Gmail integration) --
-export type EmailTier = 'urgent' | 'important' | 'promotions' | 'unsubscribe';
-export type EmailStatus = 'unread' | 'read' | 'drafted' | 'replied' | 'archived' | 'snoozed';
+export type EmailTier = 'reply_urgent' | 'reply_needed' | 'to_review' | 'important_not_urgent' | 'unsure' | 'unsubscribe' | 'social';
+export type EmailStatus = 'unread' | 'read' | 'drafted' | 'replied' | 'waiting' | 'reviewed' | 'archived' | 'snoozed';
 
 export interface Email {
   id: UUID;
@@ -154,6 +154,9 @@ export interface Email {
   is_newsletter?: boolean;         // True if List-ID or unsubscribe headers present
   snooze_until?: string;           // ISO 8601 datetime — when to resurface
   snoozed_at?: string;             // ISO 8601 datetime — when snoozed
+  reply_checked_at?: string;          // Last time we checked if this was replied to
+  unsubscribe_status?: 'pending' | 'attempted' | 'confirmed' | 'failed';
+  unsubscribe_attempted_at?: string;  // When unsubscribe was last attempted
   created_at?: string;
   updated_at?: string;
 }

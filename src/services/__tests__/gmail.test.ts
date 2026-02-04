@@ -6,6 +6,18 @@ vi.mock('../google-auth', () => ({
     isGoogleConnected: vi.fn(),
 }));
 
+// Mock the gmail-labels module (used by syncGmailInbox)
+vi.mock('../gmail-labels', () => ({
+    fetchLabelMap: vi.fn().mockResolvedValue(new Map()),
+    readTitanLabelsFromMessage: vi.fn().mockReturnValue(null),
+    applyTitanLabel: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock the email-classifier draftResponse (used by syncGmailInbox for auto-draft)
+vi.mock('../email-classifier', () => ({
+    draftResponse: vi.fn().mockResolvedValue(null),
+}));
+
 import {
     listMessages,
     getMessage,
@@ -394,7 +406,7 @@ describe('Gmail Service', () => {
                     )
                 );
 
-            const classifyFn = vi.fn().mockResolvedValue('important');
+            const classifyFn = vi.fn().mockResolvedValue('to_review');
 
             // Mock crypto.randomUUID
             const originalRandomUUID = crypto.randomUUID;
@@ -412,7 +424,7 @@ describe('Gmail Service', () => {
             expect(firstInsert.gmail_id).toBe('msg-1');
             expect(firstInsert.from).toBe('alice@example.com');
             expect(firstInsert.subject).toBe('Test Subject');
-            expect(firstInsert.tier).toBe('important');
+            expect(firstInsert.tier).toBe('to_review');
             expect(firstInsert.status).toBe('unread');
 
             // Second insert should have status 'read' (no UNREAD label)

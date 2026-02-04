@@ -188,7 +188,7 @@ const calendarEventSchema = {
 };
 
 const emailSchema = {
-    version: 1,
+    version: 2,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -211,6 +211,9 @@ const emailSchema = {
         is_newsletter: { type: 'boolean' },
         snooze_until: { type: 'string' },
         snoozed_at: { type: 'string' },
+        reply_checked_at: { type: 'string' },
+        unsubscribe_status: { type: 'string' },
+        unsubscribe_attempted_at: { type: 'string' },
         created_at: { type: 'string' },
         updated_at: { type: 'string' }
     },
@@ -476,6 +479,24 @@ async function initDatabase(): Promise<TitanDatabase> {
                         oldDoc.is_newsletter = false;
                         oldDoc.snooze_until = undefined;
                         oldDoc.snoozed_at = undefined;
+                        return oldDoc;
+                    },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                    2: function (oldDoc: any) {
+                        // Map old 4-tier system to new 7-tier pipeline
+                        const tierMap: Record<string, string> = {
+                            urgent: 'reply_urgent',
+                            important: 'to_review',
+                            promotions: 'social',
+                            unsubscribe: 'unsubscribe',
+                        };
+                        oldDoc.tier = tierMap[oldDoc.tier] || oldDoc.tier;
+                        if (oldDoc.tier_override) {
+                            oldDoc.tier_override = tierMap[oldDoc.tier_override] || oldDoc.tier_override;
+                        }
+                        oldDoc.reply_checked_at = undefined;
+                        oldDoc.unsubscribe_status = undefined;
+                        oldDoc.unsubscribe_attempted_at = undefined;
                         return oldDoc;
                     }
                 }

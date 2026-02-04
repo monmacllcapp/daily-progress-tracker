@@ -94,10 +94,25 @@ export function useAppLifecycle() {
       }
     }, 60_000);
 
+    // Check for unreplied urgent emails every 4 hours
+    const unrepliedInterval = setInterval(async () => {
+      try {
+        const db = await createDatabase();
+        const { scanForUnrepliedEmails } = await import('../services/email-reply-checker');
+        const result = await scanForUnrepliedEmails(db, 7);
+        if (result.unreplied.length > 0) {
+          setToast(`${result.unreplied.length} urgent email${result.unreplied.length > 1 ? 's' : ''} need a response`);
+        }
+      } catch (err) {
+        console.error('Failed to check unreplied:', err);
+      }
+    }, 14_400_000);
+
     return () => {
       healthWorker.terminate();
       resetWorker.terminate();
       clearInterval(snoozeInterval);
+      clearInterval(unrepliedInterval);
     };
   }, [handleTaskRollover, clearTodaysStressors]);
 

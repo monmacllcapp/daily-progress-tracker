@@ -48,7 +48,7 @@ export async function computeSenderStats(
  *   - Sender reputation (30 pts): reply ratio from stats
  *   - Content signals (25 pts): urgency keywords, question marks, re: depth
  *   - Thread participation (20 pts): bonus if email is in a replied thread
- *   - Category boost (25 pts): urgent=25, important=18, promotions=5, unsubscribe=0
+ *   - Category boost (30 pts): reply_urgent=30, reply_needed=22, to_review=15, important_not_urgent=10, unsure=8, social=3, unsubscribe=0
  */
 export function calculateEmailScore(
   email: Email,
@@ -99,12 +99,22 @@ export function calculateEmailScore(
   // --- Category boost (0-25) ---
   const effectiveTier: EmailTier = email.tier_override || email.tier;
   const tierScores: Record<EmailTier, number> = {
-    urgent: 25,
-    important: 18,
-    promotions: 5,
+    reply_urgent: 30,
+    reply_needed: 22,
+    to_review: 15,
+    important_not_urgent: 10,
+    unsure: 8,
+    social: 3,
     unsubscribe: 0,
   };
   score += tierScores[effectiveTier] ?? 0;
+
+  // --- Unreplied boost ---
+  // Emails that have been checked but not yet replied to get priority bumped
+  if (email.reply_checked_at && email.status !== 'replied' && email.status !== 'waiting') {
+    if (effectiveTier === 'reply_urgent') score += 15;
+    else if (effectiveTier === 'reply_needed') score += 10;
+  }
 
   // Clamp 0-100
   return Math.max(0, Math.min(100, score));
