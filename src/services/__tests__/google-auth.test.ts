@@ -142,9 +142,16 @@ describe('Google Auth Service', () => {
     // ========================================================
     describe('isGoogleAuthAvailable', () => {
         it('should return false when VITE_GOOGLE_CLIENT_ID is not set', async () => {
+            // Mock import.meta.env to have no VITE_GOOGLE_CLIENT_ID
+            vi.stubEnv('VITE_GOOGLE_CLIENT_ID', '');
+
+            // Force module reload with new env
+            vi.resetModules();
             const { isGoogleAuthAvailable } = await import('../google-auth');
-            // In test environment, no VITE_GOOGLE_CLIENT_ID is set
+
             expect(isGoogleAuthAvailable()).toBe(false);
+
+            vi.unstubAllEnvs();
         });
     });
 
@@ -354,10 +361,18 @@ describe('Google Auth Service', () => {
     // ========================================================
     describe('requestGoogleAuth', () => {
         it('should throw when Google Client ID is not configured', async () => {
+            // Mock import.meta.env to have no VITE_GOOGLE_CLIENT_ID
+            vi.stubEnv('VITE_GOOGLE_CLIENT_ID', '');
+
+            // Force module reload with new env
+            vi.resetModules();
             const { requestGoogleAuth } = await import('../google-auth');
+
             await expect(requestGoogleAuth()).rejects.toThrow(
                 'Google Client ID not configured'
             );
+
+            vi.unstubAllEnvs();
         });
     });
 });

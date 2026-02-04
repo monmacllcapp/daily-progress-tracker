@@ -3,6 +3,8 @@ import { useThemeStore, THEME_PRESETS } from '../themeStore';
 
 describe('themeStore', () => {
   beforeEach(() => {
+    // Clear persisted storage to prevent rehydration of stale data
+    useThemeStore.persist.clearStorage();
     // Reset store to defaults before each test
     useThemeStore.getState().resetTheme();
   });
