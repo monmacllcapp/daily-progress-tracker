@@ -1,77 +1,64 @@
 {
-  "checkpoint_id": "2026-02-02T192000_kanban",
-  "timestamp": "2026-02-02T19:20:00Z",
+  "checkpoint_id": "2026-02-04T103000_commit-fixes",
+  "timestamp": "2026-02-04T10:30:00Z",
   "agent": {
     "model": "claude-opus-4-5-20251101",
     "provider": "anthropic",
-    "session_id": "e5b83aaf-8ae4-4c60-9baf-2037c68c6585"
+    "session_id": "governance-bootstrap-session-13"
   },
   "session": {
     "project": "Titan Life OS",
-    "goal": "Implement Kanban-style widget column manager and uniform widget sizing",
+    "goal": "Governance bootstrap, codebase verification, commit uncommitted work, fix failing tests",
     "branch": "sandbox",
-    "working_directory": "/workspace"
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
   },
   "changes": {
-    "summary": "Implemented multi-column Kanban board in customization sidebar replacing single-list drag-reorder. Users can choose 1-6 columns (divisors of 12) and drag widgets between/within columns. Unified all widget defaults to 6x6 squares (minW:3, minH:4) except Vision Board at 8x6 (minW:6, minH:4).",
+    "summary": "Governance bootstrap complete. Codebase verification found 88 features with 18 discrepancies (15 undocumented features, 2 status mismatches, 1 orphaned component). Committed 10 email intelligence files from sessions 9-12. Fixed 14 failing tests across 4 test files (localStorage mock, env stubbing). All 280 tests passing. Pushed to sandbox.",
     "files_modified": [
-      {
-        "path": "src/store/dashboardStore.ts",
-        "action": "modified",
-        "description": "Added columnCount state (default 2), setColumnCount action with round-robin redistribution, replaced reorderWidgets with applyKanbanLayout(columns: string[][]) that maps column arrays to grid x/y/w positions, persist columnCount in localStorage, extracted persistState helper"
-      },
-      {
-        "path": "src/components/dashboard/CustomizationSidebar.tsx",
-        "action": "modified",
-        "description": "Complete rewrite of visible widgets section: added ColumnCountSelector (buttons for 1,2,3,4,6), KanbanBoard with multi-container @dnd-kit DnD (DragOverlay, cross-column onDragOver, within-column onDragEnd), KanbanColumn components with SortableContext, SortableWidgetCard with compact layout, deriveColumnsFromLayouts helper. Sidebar widened from w-80 to w-96."
-      },
-      {
-        "path": "src/config/widgetRegistry.ts",
-        "action": "modified",
-        "description": "Unified all widget defaults to w:6 h:6 minW:3 minH:4 (square). Vision Board set to w:8 h:6 minW:6 minH:4. Adjusted y-positions for non-overlapping default layout."
-      }
+      {"path": "src/components/EmailDashboard.tsx", "action": "modified", "description": "Major rewrite: scoring, inline suggestions, undo, newsletter detection, snooze, session review"},
+      {"path": "src/components/PendingActionsBar.tsx", "action": "created", "description": "Email rule-based action queue display"},
+      {"path": "src/components/SessionReviewModal.tsx", "action": "created", "description": "Email session pattern review with suggestion acceptance"},
+      {"path": "src/hooks/useInactivityTimer.ts", "action": "created", "description": "Idle timeout detection for email sessions"},
+      {"path": "src/services/email-action-logger.ts", "action": "created", "description": "Session-based email action logging"},
+      {"path": "src/services/email-pattern-analyzer.ts", "action": "created", "description": "Pattern detection from logged email actions"},
+      {"path": "src/services/email-rules-engine.ts", "action": "created", "description": "Rule creation from patterns, pending action generation"},
+      {"path": "src/services/gmail.ts", "action": "modified", "description": "Added unarchive, enhanced sync"},
+      {"path": "src/services/email-classifier.ts", "action": "modified", "description": "Testing mode flag for proper test isolation"},
+      {"path": "src/pages/EmailPage.tsx", "action": "modified", "description": "Minor update for email intelligence integration"},
+      {"path": "src/services/__tests__/ai-advisor.test.ts", "action": "modified", "description": "Env stubbing for graceful degradation tests"},
+      {"path": "src/services/__tests__/google-auth.test.ts", "action": "modified", "description": "Env stubbing, fixed requestGoogleAuth timeout"},
+      {"path": "src/store/__tests__/themeStore.test.ts", "action": "modified", "description": "Clear persist storage in beforeEach"},
+      {"path": "src/test/setup.ts", "action": "modified", "description": "Added localStorage mock for zustand persist"},
+      {"path": ".agent/AGENT_TOPOLOGY.md", "action": "created", "description": "Opus orchestrator + Sonnet dev team architecture"},
+      {"path": ".agent/verification-report.md", "action": "created", "description": "88 features, 18 discrepancies"},
+      {"path": ".claude/settings.local.json", "action": "modified", "description": "Added deny list + safety hooks (gitignored)"}
     ],
     "decisions_made": [
       {
-        "decision": "Use @dnd-kit multi-container pattern with useSortable for columns as droppable zones",
-        "rationale": "Leverages existing @dnd-kit/core v6.3.1 and @dnd-kit/sortable v10.0.0 already installed; avoids adding new dependencies",
-        "alternatives_considered": ["useDroppable for columns", "react-beautiful-dnd"]
-      },
-      {
-        "decision": "Column count limited to divisors of 12: [1, 2, 3, 4, 6]",
-        "rationale": "Ensures clean grid alignment since react-grid-layout uses a 12-column grid",
-        "alternatives_considered": ["Allow 5 columns"]
-      },
-      {
-        "decision": "Round-robin redistribution when column count changes",
-        "rationale": "Preserves relative widget order while distributing evenly",
-        "alternatives_considered": ["Pack from left", "Keep widgets in closest column"]
-      },
-      {
-        "decision": "All widgets default to 6x6 grid units, Vision Board 8x6",
-        "rationale": "User requested uniform square widgets; Vision Board wider per explicit instruction",
-        "alternatives_considered": ["w:6 h:5 for pixel-matched visual square"]
+        "decision": "Use Opus 4.5 as orchestrator with Sonnet dev team for all code implementation",
+        "rationale": "User requested this architecture for efficiency and quality",
+        "alternatives_considered": ["Single-agent mode", "All-Opus"]
       }
     ]
   },
   "continuation": {
     "status": "in_progress",
     "next_immediate_step": {
-      "action": "Manual QA testing of Kanban sidebar",
-      "details": "Open the app in browser, open sidebar, test: changing column count, dragging between columns, dragging within columns, hiding/showing widgets, reset to default. Verify grid updates match sidebar state."
+      "action": "Wire orphaned OnePercentTracker to dashboard",
+      "details": "Add OnePercentTracker to widgetRegistry.ts so it renders on the dashboard. Component exists at src/components/OnePercentTracker.tsx but is not imported anywhere."
     },
     "next_three_steps": [
-      {"step_number": 2, "action": "Test edge cases", "details": "Test with 1 column and 6 columns, drag to empty column, hide all widgets in a column, show a hidden widget"},
-      {"step_number": 3, "action": "Commit changes to sandbox", "details": "Stage the 3 modified files and create a descriptive commit for the Kanban feature and widget sizing changes"},
-      {"step_number": 4, "action": "Open PR to main", "details": "Create PR from sandbox to main with summary of Kanban + sizing changes"}
+      {"step_number": 2, "action": "Integrate gamification XP triggers", "details": "Wire XP gains into task completion, email triage, morning flow, streak milestones"},
+      {"step_number": 3, "action": "Run performance audit (M4-5)", "details": "Check bundle sizes, lazy-loading gaps, initial render time"},
+      {"step_number": 4, "action": "Test offline mode (M4-4)", "details": "Verify RxDB works without network"}
     ],
     "blockers": [],
-    "context_notes": "No new dependencies added. All 280 tests pass. Build clean. localStorage key (titan_glass_layout_v5) unchanged — existing users keep saved layouts, columnCount defaults to 2. Reset to Default applies new uniform sizes. reorderWidgets was removed from store; only CustomizationSidebar used it. Sidebar width increased w-80 to w-96 for Kanban columns."
+    "context_notes": "280 tests passing. 3 commits pushed to sandbox (fefa965). Scorecard still needs updating with 15 undocumented features and sessions 9-13 history. OnePercentTracker at src/components/OnePercentTracker.tsx is orphaned — needs widgetRegistry entry."
   },
   "metadata": {
     "schema_version": "1.0.0",
-    "checkpoint_sequence": 13,
-    "parent_checkpoint": "2026-02-01T093500_deploylive",
-    "tags": ["kanban-sidebar", "widget-sizing", "dashboard-customization"]
+    "checkpoint_sequence": 14,
+    "parent_checkpoint": "2026-02-02T192000_kanban",
+    "tags": ["governance-bootstrap", "test-fixes", "email-intelligence-commit"]
   }
 }
