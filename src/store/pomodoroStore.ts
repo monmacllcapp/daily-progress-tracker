@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { PomodoroType } from '../types/schema';
 import { createDatabase } from '../db';
 import { onPomodoroComplete } from '../services/gamification';
+import { trackEvent } from '../services/analytics';
 
 interface PomodoroState {
     isRunning: boolean;
@@ -145,6 +146,14 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
                     if (sessionType === 'focus') {
                         onPomodoroComplete(db).catch(err =>
                             console.warn('[Gamification] Failed to award XP for pomodoro:', err)
+                        );
+
+                        // Track pomodoro completion (analytics)
+                        trackEvent(db, 'pomodoro_complete', {
+                            duration_minutes: Math.round(totalSeconds / 60),
+                            has_linked_task: !!state.linkedTaskId,
+                        }).catch(err =>
+                            console.warn('[Analytics] Failed to track pomodoro completion:', err)
                         );
                     }
                 } catch (err) {

@@ -234,3 +234,20 @@ export interface UserProfile {
   created_at?: string;
   updated_at?: string;
 }
+
+// -- 13. Analytics Events (Privacy-First Local Telemetry) --
+export type EventType =
+  | 'app_open'
+  | 'morning_flow_complete'
+  | 'task_complete'
+  | 'email_triage'
+  | 'pomodoro_complete'
+  | 'habit_check'
+  | 'calendar_schedule';
+
+export interface AnalyticsEvent {
+  id: UUID;
+  event_type: EventType;
+  metadata: Record<string, string | number | boolean>;
+  timestamp: string; // ISO 8601 datetime
+}

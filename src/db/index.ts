@@ -3,7 +3,7 @@ import type { RxDatabase, RxCollection } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { createClient } from '@supabase/supabase-js';
-import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile } from '../types/schema';
+import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile, AnalyticsEvent } from '../types/schema';
 
 // Add migration plugin
 addRxPlugin(RxDBMigrationSchemaPlugin);
@@ -291,6 +291,20 @@ const userProfileSchema = {
     required: ['id', 'xp', 'level', 'gold']
 };
 
+const analyticsEventSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        event_type: { type: 'string' },
+        metadata: { type: 'object' },
+        timestamp: { type: 'string' }
+    },
+    required: ['id', 'event_type', 'timestamp'],
+    indexes: ['timestamp', 'event_type']
+};
+
 // -- Database Type Definition --
 
 export type TitanDatabaseCollections = {
@@ -308,6 +322,7 @@ export type TitanDatabaseCollections = {
     habits: RxCollection<Habit>;
     habit_completions: RxCollection<HabitCompletion>;
     user_profile: RxCollection<UserProfile>;
+    analytics_events: RxCollection<AnalyticsEvent>;
 };
 
 export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
@@ -316,7 +331,7 @@ export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
 
 async function startReplication(db: TitanDatabase, url: string, key: string) {
     const supabase = createClient(url, key);
-    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile'];
+    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'analytics_events'];
 
     for (const table of tables) {
         // @ts-expect-error - dynamic access
@@ -496,6 +511,7 @@ async function initDatabase(): Promise<TitanDatabase> {
             },
             habit_completions: { schema: habitCompletionSchema },
             user_profile: { schema: userProfileSchema },
+            analytics_events: { schema: analyticsEventSchema },
         });
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
