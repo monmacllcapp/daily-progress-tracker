@@ -52,6 +52,7 @@ export default defineConfig({
           'vendor-ui': ['framer-motion', 'lucide-react', 'recharts'],
           'vendor-data': ['rxdb', 'rxjs', 'zustand'],
           'vendor-google': ['@google/generative-ai'],
+          'vendor-grid': ['react-grid-layout', 'react-resizable'],
         },
       },
     },
