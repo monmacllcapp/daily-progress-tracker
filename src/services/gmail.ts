@@ -85,6 +85,18 @@ export async function archiveMessage(messageId: string): Promise<void> {
 }
 
 /**
+ * Unarchive a message (re-add INBOX label).
+ */
+export async function unarchiveMessage(messageId: string): Promise<void> {
+    const resp = await googleFetch(`${GMAIL_BASE}/messages/${messageId}/modify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addLabelIds: ['INBOX'] }),
+    });
+    if (!resp.ok) throw new Error(`Gmail unarchive failed: ${resp.status}`);
+}
+
+/**
  * Send an email reply.
  */
 export async function sendReply(
