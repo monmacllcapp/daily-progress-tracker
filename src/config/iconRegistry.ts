@@ -10,6 +10,7 @@ import {
   Sun,
   Users,
   Briefcase,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -25,6 +26,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Sun,
   Users,
   Briefcase,
+  Wallet,
 };
 
 export function getIconComponent(iconName: string): LucideIcon {

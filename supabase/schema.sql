@@ -277,3 +277,104 @@ ALTER PUBLICATION supabase_realtime ADD TABLE staff_members;
 ALTER PUBLICATION supabase_realtime ADD TABLE staff_pay_periods;
 ALTER PUBLICATION supabase_realtime ADD TABLE staff_expenses;
 ALTER PUBLICATION supabase_realtime ADD TABLE staff_kpi_summaries;
+
+-- ============================================================
+-- Financial Dashboard Tables (RxDB-synced, no RLS — admin app)
+-- ============================================================
+
+-- Financial Accounts
+CREATE TABLE financial_accounts (
+  id TEXT PRIMARY KEY,
+  plaid_account_id TEXT,
+  plaid_item_id TEXT,
+  institution_name TEXT NOT NULL,
+  account_name TEXT NOT NULL,
+  account_type TEXT NOT NULL,
+  account_scope TEXT NOT NULL,
+  mask TEXT,
+  current_balance NUMERIC NOT NULL DEFAULT 0,
+  available_balance NUMERIC,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  last_synced_at TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Financial Transactions
+CREATE TABLE financial_transactions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  plaid_transaction_id TEXT,
+  date TEXT NOT NULL,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  name TEXT NOT NULL,
+  merchant_name TEXT,
+  category TEXT NOT NULL DEFAULT 'other',
+  plaid_category TEXT,
+  scope TEXT NOT NULL DEFAULT 'personal',
+  is_recurring BOOLEAN NOT NULL DEFAULT false,
+  is_subscription BOOLEAN NOT NULL DEFAULT false,
+  pending BOOLEAN NOT NULL DEFAULT false,
+  month TEXT NOT NULL,
+  notes TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Financial Subscriptions
+CREATE TABLE financial_subscriptions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT,
+  merchant_name TEXT NOT NULL,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  frequency TEXT NOT NULL DEFAULT 'monthly',
+  category TEXT NOT NULL DEFAULT 'subscription',
+  scope TEXT NOT NULL DEFAULT 'personal',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  last_charge_date TEXT,
+  last_used_date TEXT,
+  next_expected_date TEXT,
+  flagged_unused BOOLEAN NOT NULL DEFAULT false,
+  notes TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Financial Monthly Summaries
+CREATE TABLE financial_monthly_summaries (
+  id TEXT PRIMARY KEY,
+  month TEXT NOT NULL,
+  total_income NUMERIC NOT NULL DEFAULT 0,
+  total_expenses NUMERIC NOT NULL DEFAULT 0,
+  net_cash_flow NUMERIC NOT NULL DEFAULT 0,
+  business_income NUMERIC NOT NULL DEFAULT 0,
+  business_expenses NUMERIC NOT NULL DEFAULT 0,
+  personal_income NUMERIC NOT NULL DEFAULT 0,
+  personal_expenses NUMERIC NOT NULL DEFAULT 0,
+  subscription_burn NUMERIC NOT NULL DEFAULT 0,
+  top_categories TEXT,
+  ai_insights TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Plaid Items (access tokens — RLS enabled, zero policies, only Edge Functions with service_role can access)
+CREATE TABLE plaid_items (
+  id TEXT PRIMARY KEY,
+  access_token TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  institution_name TEXT,
+  cursor TEXT,
+  error_code TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+ALTER TABLE plaid_items ENABLE ROW LEVEL SECURITY;
+
+-- Enable realtime for financial tables (RxDB replication)
+ALTER PUBLICATION supabase_realtime ADD TABLE financial_accounts;
+ALTER PUBLICATION supabase_realtime ADD TABLE financial_transactions;
+ALTER PUBLICATION supabase_realtime ADD TABLE financial_subscriptions;
+ALTER PUBLICATION supabase_realtime ADD TABLE financial_monthly_summaries;

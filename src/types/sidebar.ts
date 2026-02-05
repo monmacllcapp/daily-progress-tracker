@@ -19,7 +19,7 @@ export interface SidebarConfig {
 }
 
 export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
-  version: 1,
+  version: 2,
   sections: [
     {
       id: 'section-main',
@@ -43,7 +43,7 @@ export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
       id: 'section-business',
       title: 'Business',
       isCollapsed: false,
-      itemIds: ['nav-staffing'],
+      itemIds: ['nav-staffing', 'nav-finances'],
     },
   ],
   items: [
@@ -57,5 +57,6 @@ export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
     { id: 'nav-categories', label: 'Life Categories', iconName: 'Target', path: '/categories' },
     { id: 'nav-morning', label: 'Morning Flow', iconName: 'Sun', path: '/morning' },
     { id: 'nav-staffing', label: 'Staffing KPIs', iconName: 'Users', path: '/staffing' },
+    { id: 'nav-finances', label: 'Finances', iconName: 'Wallet', path: '/finances' },
   ],
 };

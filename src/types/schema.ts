@@ -326,3 +326,87 @@ export interface StaffKpiSummary {
   created_at?: string;
   updated_at?: string;
 }
+
+// -- 14. Financial Dashboard --
+export type AccountType = 'checking' | 'savings' | 'credit' | 'investment' | 'loan' | 'other';
+export type AccountScope = 'business' | 'personal';
+export type TransactionScope = 'business' | 'personal';
+export type TransactionCategory =
+  | 'income' | 'subscription' | 'utilities' | 'rent_mortgage' | 'payroll'
+  | 'software' | 'marketing' | 'food' | 'entertainment' | 'travel'
+  | 'insurance' | 'taxes' | 'office' | 'supplies' | 'professional_services'
+  | 'healthcare' | 'education' | 'transfer' | 'other';
+export type SubscriptionFrequency = 'weekly' | 'monthly' | 'quarterly' | 'annual';
+
+export interface FinancialAccount {
+  id: UUID;
+  plaid_account_id?: string;
+  plaid_item_id?: string;
+  institution_name: string;
+  account_name: string;
+  account_type: AccountType;
+  account_scope: AccountScope;
+  mask?: string;
+  current_balance: number;
+  available_balance?: number;
+  currency: string;
+  is_active: boolean;
+  last_synced_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface FinancialTransaction {
+  id: UUID;
+  account_id: string;
+  plaid_transaction_id?: string;
+  date: string;
+  amount: number;
+  name: string;
+  merchant_name?: string;
+  category: TransactionCategory;
+  plaid_category?: string;
+  scope: TransactionScope;
+  is_recurring: boolean;
+  is_subscription: boolean;
+  pending: boolean;
+  month: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface FinancialSubscription {
+  id: UUID;
+  account_id?: string;
+  merchant_name: string;
+  amount: number;
+  frequency: SubscriptionFrequency;
+  category: TransactionCategory;
+  scope: TransactionScope;
+  is_active: boolean;
+  last_charge_date?: string;
+  last_used_date?: string;
+  next_expected_date?: string;
+  flagged_unused: boolean;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface FinancialMonthlySummary {
+  id: UUID;
+  month: string;
+  total_income: number;
+  total_expenses: number;
+  net_cash_flow: number;
+  business_income: number;
+  business_expenses: number;
+  personal_income: number;
+  personal_expenses: number;
+  subscription_burn: number;
+  top_categories: string;
+  ai_insights: string;
+  created_at?: string;
+  updated_at?: string;
+}

@@ -3,7 +3,7 @@ import type { RxDatabase, RxCollection } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { createClient } from '@supabase/supabase-js';
-import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile, StaffMember, StaffPayPeriod, StaffExpense, StaffKpiSummary } from '../types/schema';
+import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile, StaffMember, StaffPayPeriod, StaffExpense, StaffKpiSummary, FinancialAccount, FinancialTransaction, FinancialSubscription, FinancialMonthlySummary } from '../types/schema';
 
 // Add migration plugin
 addRxPlugin(RxDBMigrationSchemaPlugin);
@@ -401,6 +401,106 @@ const staffKpiSummarySchema = {
     required: ['id', 'month']
 };
 
+const financialAccountSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        plaid_account_id: { type: 'string' },
+        plaid_item_id: { type: 'string' },
+        institution_name: { type: 'string' },
+        account_name: { type: 'string' },
+        account_type: { type: 'string' },
+        account_scope: { type: 'string' },
+        mask: { type: 'string' },
+        current_balance: { type: 'number' },
+        available_balance: { type: 'number' },
+        currency: { type: 'string' },
+        is_active: { type: 'boolean' },
+        last_synced_at: { type: 'string' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'institution_name', 'account_name', 'account_type', 'account_scope', 'current_balance', 'currency', 'is_active'],
+    indexes: ['account_scope']
+};
+
+const financialTransactionSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        account_id: { type: 'string' },
+        plaid_transaction_id: { type: 'string' },
+        date: { type: 'string' },
+        amount: { type: 'number' },
+        name: { type: 'string' },
+        merchant_name: { type: 'string' },
+        category: { type: 'string' },
+        plaid_category: { type: 'string' },
+        scope: { type: 'string' },
+        is_recurring: { type: 'boolean' },
+        is_subscription: { type: 'boolean' },
+        pending: { type: 'boolean' },
+        month: { type: 'string' },
+        notes: { type: 'string' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'account_id', 'date', 'amount', 'name', 'category', 'scope', 'is_recurring', 'is_subscription', 'pending', 'month'],
+    indexes: ['date', 'account_id', 'category', 'month', 'scope']
+};
+
+const financialSubscriptionSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        account_id: { type: 'string' },
+        merchant_name: { type: 'string' },
+        amount: { type: 'number' },
+        frequency: { type: 'string' },
+        category: { type: 'string' },
+        scope: { type: 'string' },
+        is_active: { type: 'boolean' },
+        last_charge_date: { type: 'string' },
+        last_used_date: { type: 'string' },
+        next_expected_date: { type: 'string' },
+        flagged_unused: { type: 'boolean' },
+        notes: { type: 'string' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'merchant_name', 'amount', 'frequency', 'category', 'scope', 'is_active', 'flagged_unused'],
+    indexes: ['scope', 'is_active']
+};
+
+const financialMonthlySummarySchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        month: { type: 'string' },
+        total_income: { type: 'number' },
+        total_expenses: { type: 'number' },
+        net_cash_flow: { type: 'number' },
+        business_income: { type: 'number' },
+        business_expenses: { type: 'number' },
+        personal_income: { type: 'number' },
+        personal_expenses: { type: 'number' },
+        subscription_burn: { type: 'number' },
+        top_categories: { type: 'string' },
+        ai_insights: { type: 'string' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'month']
+};
+
 // -- Database Type Definition --
 
 export type TitanDatabaseCollections = {
@@ -422,6 +522,10 @@ export type TitanDatabaseCollections = {
     staff_pay_periods: RxCollection<StaffPayPeriod>;
     staff_expenses: RxCollection<StaffExpense>;
     staff_kpi_summaries: RxCollection<StaffKpiSummary>;
+    financial_accounts: RxCollection<FinancialAccount>;
+    financial_transactions: RxCollection<FinancialTransaction>;
+    financial_subscriptions: RxCollection<FinancialSubscription>;
+    financial_monthly_summaries: RxCollection<FinancialMonthlySummary>;
 };
 
 export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
@@ -430,7 +534,7 @@ export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
 
 async function startReplication(db: TitanDatabase, url: string, key: string) {
     const supabase = createClient(url, key);
-    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'staff_members', 'staff_pay_periods', 'staff_expenses', 'staff_kpi_summaries'];
+    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'staff_members', 'staff_pay_periods', 'staff_expenses', 'staff_kpi_summaries', 'financial_accounts', 'financial_transactions', 'financial_subscriptions', 'financial_monthly_summaries'];
 
     for (const table of tables) {
         // @ts-expect-error - dynamic access
@@ -492,19 +596,24 @@ async function startReplication(db: TitanDatabase, url: string, key: string) {
 let dbPromise: Promise<TitanDatabase> | null = null;
 
 async function initDatabase(): Promise<TitanDatabase> {
-    // ?resetdb in URL → wipe IndexedDB before creating
+    // ?resetdb in URL → wipe IndexedDB then hard reload
     if (typeof window !== 'undefined' && window.location.search.includes('resetdb')) {
         console.warn('[DB] resetdb flag detected — deleting IndexedDB...');
         const dbs = await window.indexedDB.databases();
         for (const dbInfo of dbs) {
-            if (dbInfo.name) window.indexedDB.deleteDatabase(dbInfo.name);
+            if (dbInfo.name) {
+                await new Promise<void>((resolve) => {
+                    const req = window.indexedDB.deleteDatabase(dbInfo.name!);
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => resolve();
+                    req.onblocked = () => resolve();
+                });
+            }
         }
-        // Strip the param so it doesn't loop on reload
-        const url = new URL(window.location.href);
-        url.searchParams.delete('resetdb');
-        window.history.replaceState({}, '', url.toString());
-        // Small delay to let IDB cleanup finish
-        await new Promise(r => setTimeout(r, 500));
+        // Hard reload without ?resetdb to start completely fresh
+        window.location.replace(window.location.pathname);
+        // Return a never-resolving promise — page is reloading
+        return new Promise(() => {});
     }
 
     const db = await createRxDatabase<TitanDatabaseCollections>({
@@ -638,6 +747,10 @@ async function initDatabase(): Promise<TitanDatabase> {
             staff_pay_periods: { schema: staffPayPeriodSchema },
             staff_expenses: { schema: staffExpenseSchema },
             staff_kpi_summaries: { schema: staffKpiSummarySchema },
+            financial_accounts: { schema: financialAccountSchema },
+            financial_transactions: { schema: financialTransactionSchema },
+            financial_subscriptions: { schema: financialSubscriptionSchema },
+            financial_monthly_summaries: { schema: financialMonthlySummarySchema },
         });
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -661,7 +774,6 @@ async function initDatabase(): Promise<TitanDatabase> {
         if (code === 'DB6' || code === 'DXE1') {
             console.warn(`[DB] Schema conflict (${code}), clearing database and retrying...`);
             await db.remove();
-            // Recursive retry with a fresh database
             dbPromise = null;
             return initDatabase();
         }

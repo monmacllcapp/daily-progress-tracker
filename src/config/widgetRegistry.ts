@@ -9,6 +9,7 @@ import { CategoryManager } from '../components/CategoryManager';
 import { PomodoroWidget } from '../components/PomodoroWidget';
 import { HabitTracker } from '../components/HabitTracker';
 import { StaffingDashboard } from '../components/StaffingDashboard';
+import { FinancialDashboard } from '../components/FinancialDashboard';
 
 export interface WidgetConfig {
     id: string;
@@ -95,5 +96,12 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
         title: 'Staffing KPIs',
         type: 'interactive',
         defaultLayout: { x: 9, y: 8, w: 3, h: 4, minW: 3, minH: 3 }
+    },
+    {
+        id: 'financial-dashboard',
+        component: FinancialDashboard,
+        title: 'Finances',
+        type: 'interactive',
+        defaultLayout: { x: 0, y: 12, w: 3, h: 4, minW: 2, minH: 3 }
     }
 ];
