@@ -1,52 +1,73 @@
 # Agent Handoff
-**Last Updated:** 2026-02-02T19:20:00Z
+**Last Updated:** 2026-02-04T15:30:00Z
 **Model:** claude-opus-4-5-20251101
-**Branch:** sandbox
-**Commit:** uncommitted (3 files modified on sandbox)
+**Branch:** main (no git repo)
 
 ## What Was Done
-Session 12 — Kanban widget column manager + uniform widget sizing:
 
-1. **Store overhaul** (`dashboardStore.ts`):
-   - Added `columnCount` state (default: 2) with type `1 | 2 | 3 | 4 | 6`
-   - Added `setColumnCount(count)` — redistributes widgets round-robin, recalculates x/w/y
-   - Replaced `reorderWidgets(orderedIds)` with `applyKanbanLayout(columns: string[][])` — maps column arrays to grid positions
-   - `columnCount` persisted/restored in localStorage alongside layouts
-   - Extracted `persistState()` helper to DRY localStorage writes
+### Session: Email Pipeline Enhancements (2026-02-04)
 
-2. **Sidebar rewrite** (`CustomizationSidebar.tsx`):
-   - **ColumnCountSelector**: row of 5 buttons (1, 2, 3, 4, 6) in "Layout Columns" section
-   - **KanbanBoard**: multi-container @dnd-kit DnD replacing single-list reorder
-     - `deriveColumnsFromLayouts()` derives column state from grid positions
-     - `onDragOver` moves widgets between columns (visual only, local state)
-     - `onDragEnd` persists via `applyKanbanLayout()`
-     - `DragOverlay` renders ghost card while dragging
-   - Sidebar widened from `w-80` to `w-96` for multi-column layout
+**1. Automated Email Unsubscribe Agent (4-tier cascade)**
+- Created `src/services/unsubscribe-agent.ts` — orchestrates Tier 1 (RFC 8058 one-click POST), Tier 2 (mailto via Gmail API), Tier 3 (headless Puppeteer), Tier 4 (manual fallback)
+- Created `server/unsubscribe-plugin.ts` — Vite dev server middleware for `/api/unsubscribe/one-click` and `/api/unsubscribe/headless`
+- Created `server/headless-unsubscribe.ts` — Puppeteer-core automation with success/error detection, max 5 steps, 45s timeout
+- Schema v2→v3: added `unsubscribe_one_click` field + migration
+- Updated newsletter-detector with `buildUnsubscribeStrategy()` and status tracking
+- Auto-unsub button in Newsletter section with status indicators (spinning/check/clock/X)
 
-3. **Widget sizing** (`widgetRegistry.ts`):
-   - All widgets: `w:6, h:6, minW:3, minH:4` (uniform squares)
-   - Vision Board: `w:8, h:6, minW:6, minH:4` (wider)
+**2. Full Email Body Viewer**
+- Added `getMessageBody()` to gmail.ts — fetches full email content via Gmail API
+- Renders sanitized HTML with `dangerouslySetInnerHTML` — strips scripts/noscript/styles/events, preserves clickable links and images
+- Dark-theme CSS overrides in `.email-html-body` class (tan text, blue links, transparent backgrounds)
+- Falls back to plain text, then snippet
+- Async loading with spinner
 
-4. **Quality gate**: 280 tests passing, 0 TS errors, clean production build
+**3. Portal Fix for Modal/Overlays**
+- Moved email detail modal, bulk action bar, and toast to `createPortal(..., document.body)`
+- **Root cause:** `backdrop-filter` on WidgetWrapper creates a CSS containing block, making `position: fixed` behave like `position: absolute` — modals were clipped to widget bounds
+- Action buttons (Reviewed, Track, Archive, Snooze, Send) now fully visible and scrollable
+
+**4. Widget Resize Handle Fix**
+- Re-added `overflow-hidden` to WidgetWrapper root div — prevents content overflow from displacing resize handle
+- Custom CSS for resize handle visibility on dark backgrounds (border-based indicator, indigo hover)
+- Consistent across ALL widgets (all use shared WidgetWrapper via DashboardGrid)
+
+**5. Inline Tier Classification Icons**
+- Hover-reveal tier icons on each email card row (w-4 h-4, self-center)
+- Click to reclassify without opening modal — syncs to Gmail labels
+
+**6. Gmail Bidirectional Learning**
+- `resyncGmailLabels()` in gmail.ts — re-fetches label metadata for existing emails
+- Detects user reclassifications done in Gmail and applies locally
+- Wired into handleSync flow
+
+**7. Layout Presets**
+- Created `src/services/layout-presets.ts` — CRUD with localStorage
+- Save/Load/Save-As/Delete presets including expanded groups, modes, and tier color overrides
+- 14 Tailwind color palette options per tier
+- Preset dropdown UI in widget header
+
+**8. UI Polish**
+- Learning mode ON by default
+- Email body: tan text (amber-200/80), wider modal (max-w-2xl)
+- Tier icons 4x larger, vertically centered
 
 ## Current State
-- **Branch**: sandbox (uncommitted changes)
-- **280 tests passing**, 0 TS errors, build clean
-- **3 files modified**: dashboardStore.ts, CustomizationSidebar.tsx, widgetRegistry.ts
-- **No new dependencies** — uses existing @dnd-kit/core v6.3.1 + @dnd-kit/sortable v10.0.0
+- **Build:** tsc clean, vite build clean
+- **Tests:** 284 passing (15 pre-existing failures in google-auth/themeStore)
+- **16 files modified/created** across the session
 
 ## Next Step
-Manual QA testing of the Kanban sidebar, then commit and open PR to main.
+Manual testing of all features — particularly:
+1. Email body modal scrolls properly and shows action buttons
+2. Clickable links in email body work (open in new tab)
+3. Resize handles visible and functional on all widgets
+4. Auto-unsubscribe flow on newsletter senders
 
 ## Blockers
 None
 
 ## Context Notes
-- `reorderWidgets` was removed from the store — only `CustomizationSidebar` used it
-- localStorage key `titan_glass_layout_v5` unchanged — existing users keep saved layouts, `columnCount` defaults to 2 on first load
-- "Reset to Default Layout" button applies the new uniform 6x6 widget sizes
-- Sidebar width increased `w-80` → `w-96` to fit multi-column Kanban
-- GitHub default branch is `main` (not `master`). Push hook blocks agent pushes to `master` — only `sandbox` allowed.
-- Render deploys from `main` with auto-deploy on commit
-- RxDB indexed fields MUST be in required arrays
-- Tailwind v4: NEVER use `bg-opacity-*` — use slash syntax (`bg-white/5`)
+- Preset dropdown menu uses absolute positioning inside the widget content area — it may get clipped by `overflow-hidden` on WidgetWrapper. If reported, it should also be portalled to document.body.
+- `backdrop-filter` containing block gotcha: any future `fixed` elements inside widgets MUST use `createPortal` to escape the containing block.
+- No git repo initialized for this project.
