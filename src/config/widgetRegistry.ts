@@ -8,6 +8,7 @@ import { EmailDashboard } from '../components/EmailDashboard';
 import { CategoryManager } from '../components/CategoryManager';
 import { PomodoroWidget } from '../components/PomodoroWidget';
 import { HabitTracker } from '../components/HabitTracker';
+import { StaffingDashboard } from '../components/StaffingDashboard';
 
 export interface WidgetConfig {
     id: string;
@@ -87,5 +88,12 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
         title: 'Habit Tracker',
         type: 'interactive',
         defaultLayout: { x: 6, y: 8, w: 3, h: 4, minW: 2, minH: 3 }
+    },
+    {
+        id: 'staffing-kpi',
+        component: StaffingDashboard,
+        title: 'Staffing KPIs',
+        type: 'interactive',
+        defaultLayout: { x: 9, y: 8, w: 3, h: 4, minW: 3, minH: 3 }
     }
 ];

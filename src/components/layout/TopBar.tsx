@@ -11,6 +11,10 @@ const PAGE_TITLES: Record<string, string> = {
   '/life': 'Wheel of Life',
   '/journal': 'Journal',
   '/projects': 'Projects',
+  '/morning': 'Morning Flow',
+  '/staffing': 'Staffing KPIs',
+  '/categories': 'Life Categories',
+  '/vision': 'Vision Board',
 };
 
 export function TopBar() {

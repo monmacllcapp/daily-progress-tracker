@@ -3,7 +3,7 @@ import type { RxDatabase, RxCollection } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { createClient } from '@supabase/supabase-js';
-import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile } from '../types/schema';
+import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile, StaffMember, StaffPayPeriod, StaffExpense, StaffKpiSummary } from '../types/schema';
 
 // Add migration plugin
 addRxPlugin(RxDBMigrationSchemaPlugin);
@@ -296,6 +296,111 @@ const userProfileSchema = {
     required: ['id', 'xp', 'level', 'gold']
 };
 
+const staffMemberSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        name: { type: 'string' },
+        role: { type: 'string' },
+        pay_type: { type: 'string' },
+        base_rate: { type: 'number' },
+        payment_method: { type: 'string' },
+        hubstaff_user_id: { type: 'string' },
+        is_active: { type: 'boolean' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'name', 'role', 'pay_type', 'base_rate', 'is_active']
+};
+
+const staffPayPeriodSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        staff_id: { type: 'string' },
+        period_start: { type: 'string' },
+        period_end: { type: 'string' },
+        base_pay: { type: 'number' },
+        total_pay: { type: 'number' },
+        is_paid: { type: 'boolean' },
+        notes: { type: 'string' },
+        hours_worked: { type: 'number' },
+        activity_pct: { type: 'number' },
+        bonus: { type: 'number' },
+        holiday_pay: { type: 'number' },
+        num_leads: { type: 'integer' },
+        num_passes: { type: 'integer' },
+        cost_per_lead: { type: 'number' },
+        lists_added: { type: 'integer' },
+        num_recs_added: { type: 'integer' },
+        dials: { type: 'integer' },
+        convos: { type: 'integer' },
+        quality_convos: { type: 'integer' },
+        lead_to_acq: { type: 'number' },
+        calls_processed: { type: 'integer' },
+        underwrote: { type: 'integer' },
+        apt_set: { type: 'integer' },
+        apt_met: { type: 'integer' },
+        offers_made: { type: 'integer' },
+        offers_accepted: { type: 'integer' },
+        offers_rejected: { type: 'integer' },
+        deals_closed: { type: 'integer' },
+        deals_fellthrough: { type: 'integer' },
+        commission: { type: 'number' },
+        hubstaff_synced_at: { type: 'string' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'staff_id', 'period_start', 'period_end', 'base_pay', 'total_pay', 'is_paid'],
+    indexes: [['staff_id', 'period_start']]
+};
+
+const staffExpenseSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        date: { type: 'string' },
+        category: { type: 'string' },
+        vendor: { type: 'string' },
+        amount: { type: 'number' },
+        channel: { type: 'string' },
+        leads_generated: { type: 'integer' },
+        cost_per_lead: { type: 'number' },
+        month: { type: 'string' },
+        notes: { type: 'string' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'date', 'category', 'vendor', 'amount', 'month'],
+    indexes: [['category', 'month']]
+};
+
+const staffKpiSummarySchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        month: { type: 'string' },
+        total_staff_cost: { type: 'number' },
+        total_platform_cost: { type: 'number' },
+        total_marketing_spend: { type: 'number' },
+        total_burn: { type: 'number' },
+        total_leads: { type: 'integer' },
+        avg_cost_per_lead: { type: 'number' },
+        staff_breakdown: { type: 'string' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' }
+    },
+    required: ['id', 'month']
+};
+
 // -- Database Type Definition --
 
 export type TitanDatabaseCollections = {
@@ -313,6 +418,10 @@ export type TitanDatabaseCollections = {
     habits: RxCollection<Habit>;
     habit_completions: RxCollection<HabitCompletion>;
     user_profile: RxCollection<UserProfile>;
+    staff_members: RxCollection<StaffMember>;
+    staff_pay_periods: RxCollection<StaffPayPeriod>;
+    staff_expenses: RxCollection<StaffExpense>;
+    staff_kpi_summaries: RxCollection<StaffKpiSummary>;
 };
 
 export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
@@ -321,7 +430,7 @@ export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
 
 async function startReplication(db: TitanDatabase, url: string, key: string) {
     const supabase = createClient(url, key);
-    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile'];
+    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'staff_members', 'staff_pay_periods', 'staff_expenses', 'staff_kpi_summaries'];
 
     for (const table of tables) {
         // @ts-expect-error - dynamic access
@@ -525,6 +634,10 @@ async function initDatabase(): Promise<TitanDatabase> {
             },
             habit_completions: { schema: habitCompletionSchema },
             user_profile: { schema: userProfileSchema },
+            staff_members: { schema: staffMemberSchema },
+            staff_pay_periods: { schema: staffPayPeriodSchema },
+            staff_expenses: { schema: staffExpenseSchema },
+            staff_kpi_summaries: { schema: staffKpiSummarySchema },
         });
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -539,8 +652,12 @@ async function initDatabase(): Promise<TitanDatabase> {
 
         return db;
     } catch (err) {
-        // DB6 = schema mismatch, DXE1 = Dexie index error — nuke and retry
         const code = (err as { code?: string })?.code;
+        // COL23 = collection already exists (Vite HMR re-init) — db is usable as-is
+        if (code === 'COL23') {
+            return db;
+        }
+        // DB6 = schema mismatch, DXE1 = Dexie index error — nuke and retry
         if (code === 'DB6' || code === 'DXE1') {
             console.warn(`[DB] Schema conflict (${code}), clearing database and retrying...`);
             await db.remove();

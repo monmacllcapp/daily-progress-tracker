@@ -1,73 +1,64 @@
 # Agent Handoff
-**Last Updated:** 2026-02-04T15:30:00Z
+**Last Updated:** 2026-02-05 18:00 UTC
 **Model:** claude-opus-4-5-20251101
-**Branch:** main (no git repo)
+**Branch:** N/A (multi-project infrastructure work)
 
 ## What Was Done
+Massive infrastructure session — built the entire skill and MCP server foundation for the Titan Atlas autonomous business factory:
 
-### Session: Email Pipeline Enhancements (2026-02-04)
+### Skills Created (5)
+- `/pr` — PR creation from sandbox branches
+- `/checkpoint` — Session checkpoint + handoff files
+- `/sprint-status` — Project status report generation
+- `/bootstrap-project` — Automated interview → PRD → scaffold → GitHub repo
+- `/build-mvp` — PRD → plan → Sonnet agents → code → tests → sandbox
+- Gold standard skill template at `~/governance-ref/templates/SKILL_TEMPLATE.md`
 
-**1. Automated Email Unsubscribe Agent (4-tier cascade)**
-- Created `src/services/unsubscribe-agent.ts` — orchestrates Tier 1 (RFC 8058 one-click POST), Tier 2 (mailto via Gmail API), Tier 3 (headless Puppeteer), Tier 4 (manual fallback)
-- Created `server/unsubscribe-plugin.ts` — Vite dev server middleware for `/api/unsubscribe/one-click` and `/api/unsubscribe/headless`
-- Created `server/headless-unsubscribe.ts` — Puppeteer-core automation with success/error detection, max 5 steps, 45s timeout
-- Schema v2→v3: added `unsubscribe_one_click` field + migration
-- Updated newsletter-detector with `buildUnsubscribeStrategy()` and status tracking
-- Auto-unsub button in Newsletter section with status indicators (spinning/check/clock/X)
+### MCP Servers Configured (9)
+- **GitHub** — official binary v0.30.3 at `~/.local/bin/github-mcp-server` (replaced deprecated npm)
+- **Playwright** — Microsoft official, browser automation
+- **Supabase** — needs access token
+- **Stripe** — needs secret key
+- **Sentry** — needs access token
+- **PostgreSQL** — needs connection string
+- **Resend** — needs API key
+- **ElevenLabs** — needs API key
+- **Render** — needs API key
 
-**2. Full Email Body Viewer**
-- Added `getMessageBody()` to gmail.ts — fetches full email content via Gmail API
-- Renders sanitized HTML with `dangerouslySetInnerHTML` — strips scripts/noscript/styles/events, preserves clickable links and images
-- Dark-theme CSS overrides in `.email-html-body` class (tan text, blue links, transparent backgrounds)
-- Falls back to plain text, then snippet
-- Async loading with spinner
+### Titan Atlas PRD Created
+- `~/titan-atlas/NORTHSTAR.md` — Vision, 5 spokes + hub + Security Sentinel (above hub)
+- `~/titan-atlas/MVP.md` — 45 acceptance criteria across all spokes
+- `~/titan-atlas/MILESTONES.md` — M0-M7 build order
+- `~/titan-atlas/docs/TOOLING_MAP.md` — Complete tool mapping + hub skills for M4
+- 6 spoke/hub placeholder directories with READMEs
+- Claude Code spoke at `~/.claude/projects/-Users-mac-titan-atlas/`
 
-**3. Portal Fix for Modal/Overlays**
-- Moved email detail modal, bulk action bar, and toast to `createPortal(..., document.body)`
-- **Root cause:** `backdrop-filter` on WidgetWrapper creates a CSS containing block, making `position: fixed` behave like `position: absolute` — modals were clipped to widget bounds
-- Action buttons (Reviewed, Track, Archive, Snooze, Send) now fully visible and scrollable
+### Tech Stack Audit
+- 62 unique technologies across 5 projects
+- 24 have MCP servers available (61% coverage)
+- Only Hubstaff needs a custom MCP build
 
-**4. Widget Resize Handle Fix**
-- Re-added `overflow-hidden` to WidgetWrapper root div — prevents content overflow from displacing resize handle
-- Custom CSS for resize handle visibility on dark backgrounds (border-based indicator, indigo hover)
-- Consistent across ALL widgets (all use shared WidgetWrapper via DashboardGrid)
-
-**5. Inline Tier Classification Icons**
-- Hover-reveal tier icons on each email card row (w-4 h-4, self-center)
-- Click to reclassify without opening modal — syncs to Gmail labels
-
-**6. Gmail Bidirectional Learning**
-- `resyncGmailLabels()` in gmail.ts — re-fetches label metadata for existing emails
-- Detects user reclassifications done in Gmail and applies locally
-- Wired into handleSync flow
-
-**7. Layout Presets**
-- Created `src/services/layout-presets.ts` — CRUD with localStorage
-- Save/Load/Save-As/Delete presets including expanded groups, modes, and tier color overrides
-- 14 Tailwind color palette options per tier
-- Preset dropdown UI in widget header
-
-**8. UI Polish**
-- Learning mode ON by default
-- Email body: tan text (amber-200/80), wider modal (max-w-2xl)
-- Tier icons 4x larger, vertically centered
+### Architecture Decisions
+- Security Sentinel = independent layer ABOVE hub (not inside it)
+- Build order: Spoke 2 → 3 → 4 → Hub → 5 → Security → 1
+- Hub needs 6 dedicated skills (documented for M4)
 
 ## Current State
-- **Build:** tsc clean, vite build clean
-- **Tests:** 284 passing (15 pre-existing failures in google-auth/themeStore)
-- **16 files modified/created** across the session
+- **Spoke 2 (Dev Engine):** 90% complete — all skills built, 9 MCP servers configured
+- **Remaining:** Fill in 7 MCP tokens, restart Claude Code, smoke test
+- **Spoke 3 (Marketing):** Skills identified but not yet built (5 skills needed)
+- **All other spokes:** Placeholders created, build order locked
 
 ## Next Step
-Manual testing of all features — particularly:
-1. Email body modal scrolls properly and shows action buttons
-2. Clickable links in email body work (open in new tab)
-3. Resize handles visible and functional on all widgets
-4. Auto-unsubscribe flow on newsletter senders
+Map out Spoke 3 (Marketing & Distribution) skills in detail — define /market-strategy, /content-create, /distribute, /engage, /ab-analyze with full process steps, tool requirements, and guard rails.
 
 ## Blockers
-None
+- 7 MCP server tokens needed from user
+- Claude Code restart required to activate MCP servers
 
 ## Context Notes
-- Preset dropdown menu uses absolute positioning inside the widget content area — it may get clipped by `overflow-hidden` on WidgetWrapper. If reported, it should also be portalled to document.body.
-- `backdrop-filter` containing block gotcha: any future `fixed` elements inside widgets MUST use `createPortal` to escape the containing block.
-- No git repo initialized for this project.
+- GitHub `gho_` token from `gh auth` is used for GitHub MCP — may expire, user should monitor
+- Substack has NO official API — use Resend + landing pages for newsletters
+- Canva API requires Enterprise tier — not viable for bootstrapped ops
+- Instagram/TikTok restrict automated posting — start with Twitter/X + email
+- MCP ecosystem still maturing (Linux Foundation) — pin versions

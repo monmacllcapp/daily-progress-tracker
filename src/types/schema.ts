@@ -237,3 +237,92 @@ export interface UserProfile {
   created_at?: string;
   updated_at?: string;
 }
+
+// -- 13. Staffing KPIs --
+export type StaffRole = 'cold_caller' | 'admin_caller' | 'closer' | 'lead_manager';
+export type PayType = 'hourly' | 'weekly_flat';
+export type ExpenseCategory = 'platform' | 'marketing' | 'other_opex';
+
+export interface StaffMember {
+  id: UUID;
+  name: string;
+  role: StaffRole;
+  pay_type: PayType;
+  base_rate: number;              // $/hr for hourly, $/week for flat
+  payment_method?: string;        // e.g. 'Wise', 'PayPal'
+  hubstaff_user_id?: string;      // Linked Hubstaff user ID
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StaffPayPeriod {
+  id: UUID;
+  staff_id: string;               // FK to StaffMember
+  period_start: string;           // ISO date (Monday)
+  period_end: string;             // ISO date (Sunday)
+  // -- Common --
+  base_pay: number;
+  total_pay: number;
+  is_paid: boolean;
+  notes?: string;
+  // -- Hourly workers --
+  hours_worked?: number;
+  activity_pct?: number;          // Hubstaff activity %
+  bonus?: number;
+  holiday_pay?: number;
+  // -- Caller KPIs --
+  num_leads?: number;
+  num_passes?: number;
+  cost_per_lead?: number;
+  lists_added?: number;
+  num_recs_added?: number;
+  // -- Closer / Lead Manager KPIs --
+  dials?: number;
+  convos?: number;
+  quality_convos?: number;
+  lead_to_acq?: number;
+  calls_processed?: number;
+  underwrote?: number;
+  apt_set?: number;
+  apt_met?: number;
+  offers_made?: number;
+  offers_accepted?: number;
+  offers_rejected?: number;
+  deals_closed?: number;
+  deals_fellthrough?: number;
+  commission?: number;
+  // -- Sync metadata --
+  hubstaff_synced_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StaffExpense {
+  id: UUID;
+  date: string;                   // ISO date
+  category: ExpenseCategory;
+  vendor: string;
+  amount: number;
+  channel?: string;               // e.g. 'Google Ads', 'Facebook'
+  leads_generated?: number;
+  cost_per_lead?: number;
+  month: string;                  // YYYY-MM for grouping
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StaffKpiSummary {
+  id: UUID;                       // = month string (YYYY-MM)
+  month: string;
+  total_staff_cost: number;
+  total_platform_cost: number;
+  total_marketing_spend: number;
+  total_burn: number;
+  total_leads: number;
+  avg_cost_per_lead: number;
+  staff_breakdown: string;        // JSON string of per-staff summaries
+  created_at?: string;
+  updated_at?: string;
+}

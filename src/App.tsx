@@ -30,6 +30,9 @@ const LifePage = lazy(() => import('./pages/LifePage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 const MorningFlowPage = lazy(() => import('./pages/MorningFlowPage'));
+const StaffingPage = lazy(() => import('./pages/StaffingPage'));
+const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
+const VisionPage = lazy(() => import('./pages/VisionPage'));
 
 function LoadingSpinner() {
   return (
@@ -105,6 +108,9 @@ function App() {
               <Route path="/life" element={<PageErrorBoundary pageName="Life"><LifePage /></PageErrorBoundary>} />
               <Route path="/journal" element={<PageErrorBoundary pageName="Journal"><JournalPage /></PageErrorBoundary>} />
               <Route path="/projects" element={<PageErrorBoundary pageName="Projects"><ProjectsPage /></PageErrorBoundary>} />
+              <Route path="/staffing" element={<PageErrorBoundary pageName="Staffing"><StaffingPage /></PageErrorBoundary>} />
+              <Route path="/categories" element={<PageErrorBoundary pageName="Categories"><CategoriesPage /></PageErrorBoundary>} />
+              <Route path="/vision" element={<PageErrorBoundary pageName="Vision"><VisionPage /></PageErrorBoundary>} />
             </Route>
           </Routes>
         </Suspense>
