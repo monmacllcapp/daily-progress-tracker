@@ -151,6 +151,7 @@ export interface Email {
   list_id?: string;                // List-ID header (newsletter identifier)
   unsubscribe_url?: string;        // Parsed <https://...> from List-Unsubscribe
   unsubscribe_mailto?: string;     // Parsed <mailto:...> from List-Unsubscribe
+  unsubscribe_one_click?: boolean; // True if List-Unsubscribe-Post header present (RFC 8058)
   is_newsletter?: boolean;         // True if List-ID or unsubscribe headers present
   snooze_until?: string;           // ISO 8601 datetime — when to resurface
   snoozed_at?: string;             // ISO 8601 datetime — when snoozed
@@ -238,7 +239,24 @@ export interface UserProfile {
   updated_at?: string;
 }
 
-// -- 13. Staffing KPIs --
+// -- 13. Analytics Events (Privacy-First Local Telemetry) --
+export type EventType =
+  | 'app_open'
+  | 'morning_flow_complete'
+  | 'task_complete'
+  | 'email_triage'
+  | 'pomodoro_complete'
+  | 'habit_check'
+  | 'calendar_schedule';
+
+export interface AnalyticsEvent {
+  id: UUID;
+  event_type: EventType;
+  metadata: Record<string, string | number | boolean>;
+  timestamp: string; // ISO 8601 datetime
+}
+
+// -- 14. Staffing KPIs --
 export type StaffRole = 'cold_caller' | 'admin_caller' | 'closer' | 'lead_manager';
 export type PayType = 'hourly' | 'weekly_flat';
 export type ExpenseCategory = 'platform' | 'marketing' | 'other_opex';
@@ -327,7 +345,7 @@ export interface StaffKpiSummary {
   updated_at?: string;
 }
 
-// -- 14. Financial Dashboard --
+// -- 15. Financial Dashboard --
 export type AccountType = 'checking' | 'savings' | 'credit' | 'investment' | 'loan' | 'other';
 export type AccountScope = 'business' | 'personal';
 export type TransactionScope = 'business' | 'personal';

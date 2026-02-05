@@ -6,7 +6,7 @@
  */
 
 import type { TitanDatabase } from '../db';
-import { archiveMessage } from './gmail';
+import { archiveMessage, sendUnsubscribeEmail } from './gmail';
 import { isGoogleConnected } from './google-auth';
 import type { Email } from '../types/schema';
 
@@ -19,8 +19,7 @@ export interface NewsletterSender {
   unsubscribeUrl?: string;
   hasUnsubscribeMailto: boolean;
   unsubscribeMailto?: string;
-  hasOneClick: boolean;
-  unsubscribeStatus?: 'pending' | 'attempted' | 'confirmed' | 'failed';
+  hasOneClickUnsubscribe: boolean;
 }
 
 /**
@@ -66,10 +65,6 @@ export async function getNewsletterSenders(db: TitanDatabase): Promise<Newslette
       existing.emailCount++;
       if (email.received_at > existing.lastReceived) {
         existing.lastReceived = email.received_at;
-        // Use latest unsubscribe status
-        if (email.unsubscribe_status) {
-          existing.unsubscribeStatus = email.unsubscribe_status;
-        }
       }
       if (email.unsubscribe_url && !existing.hasUnsubscribeUrl) {
         existing.hasUnsubscribeUrl = true;
@@ -79,8 +74,8 @@ export async function getNewsletterSenders(db: TitanDatabase): Promise<Newslette
         existing.hasUnsubscribeMailto = true;
         existing.unsubscribeMailto = email.unsubscribe_mailto;
       }
-      if (email.unsubscribe_one_click && !existing.hasOneClick) {
-        existing.hasOneClick = true;
+      if (email.unsubscribe_one_click && !existing.hasOneClickUnsubscribe) {
+        existing.hasOneClickUnsubscribe = true;
       }
     } else {
       senderMap.set(address, {
@@ -92,8 +87,7 @@ export async function getNewsletterSenders(db: TitanDatabase): Promise<Newslette
         unsubscribeUrl: email.unsubscribe_url,
         hasUnsubscribeMailto: !!email.unsubscribe_mailto,
         unsubscribeMailto: email.unsubscribe_mailto,
-        hasOneClick: !!email.unsubscribe_one_click,
-        unsubscribeStatus: email.unsubscribe_status,
+        hasOneClickUnsubscribe: !!email.unsubscribe_one_click,
       });
     }
   }
@@ -147,42 +141,204 @@ export function buildUnsubscribeAction(
   return null;
 }
 
-export type UnsubscribeMethod = 'one_click' | 'mailto' | 'headless' | 'manual';
+export type UnsubscribeMethod = 'one-click' | 'mailto' | 'url-opened' | 'none';
 
-export interface UnsubscribeStrategy {
+export interface UnsubscribeResult {
   method: UnsubscribeMethod;
-  target: string;
+  success: boolean;
+  message: string;
 }
 
 /**
- * Build a priority-ordered list of unsubscribe strategies for a sender.
- * Tier 1: RFC 8058 one-click POST (highest reliability)
- * Tier 2: Mailto via Gmail API
- * Tier 3: Headless browser (interactive pages)
- * Tier 4: Manual fallback (open in new tab)
+ * Attempt to unsubscribe from a newsletter sender using the best available method.
+ *
+ * Priority:
+ *   1. One-click POST (RFC 8058) — fires a no-cors POST; fully automated.
+ *   2. Mailto — sends an unsubscribe email via Gmail API; fully automated.
+ *   3. URL fallback — opens the unsubscribe link in a new tab for user interaction.
+ *
+ * For methods 1 & 2, we also open the URL as a backup (some senders require both).
  */
-export function buildUnsubscribeStrategy(sender: NewsletterSender): UnsubscribeStrategy[] {
-  const strategies: UnsubscribeStrategy[] = [];
-
-  // Tier 1: One-click POST (RFC 8058)
-  if (sender.hasOneClick && sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
-    strategies.push({ method: 'one_click', target: sender.unsubscribeUrl });
+export async function performUnsubscribe(sender: NewsletterSender): Promise<UnsubscribeResult> {
+  // 1. Try one-click POST (RFC 8058)
+  if (sender.hasOneClickUnsubscribe && sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
+    try {
+      await fetch(sender.unsubscribeUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'List-Unsubscribe=One-Click',
+      });
+      // Also open the URL so user can verify / handle CAPTCHAs if needed
+      window.open(sender.unsubscribeUrl, '_blank', 'noopener,noreferrer');
+      return { method: 'one-click', success: true, message: 'One-click unsubscribe sent' };
+    } catch (err) {
+      console.warn('[Unsubscribe] One-click POST failed, falling through:', err);
+    }
   }
 
-  // Tier 2: Mailto via Gmail API
-  if (sender.hasUnsubscribeMailto && sender.unsubscribeMailto) {
-    strategies.push({ method: 'mailto', target: sender.unsubscribeMailto });
+  // 2. Try mailto via Gmail API
+  if (sender.hasUnsubscribeMailto && sender.unsubscribeMailto && isGoogleConnected()) {
+    try {
+      await sendUnsubscribeEmail(sender.unsubscribeMailto);
+      // Also open URL if available, as some senders require confirmation
+      if (sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
+        window.open(sender.unsubscribeUrl, '_blank', 'noopener,noreferrer');
+      }
+      return { method: 'mailto', success: true, message: 'Unsubscribe email sent' };
+    } catch (err) {
+      console.warn('[Unsubscribe] Mailto send failed, falling through:', err);
+    }
   }
 
-  // Tier 3: Headless browser (only available in dev mode)
+  // 3. Fallback: open URL in new tab
   if (sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
-    strategies.push({ method: 'headless', target: sender.unsubscribeUrl });
+    window.open(sender.unsubscribeUrl, '_blank', 'noopener,noreferrer');
+    return { method: 'url-opened', success: true, message: 'Opened unsubscribe page' };
   }
 
-  // Tier 4: Manual fallback (always available if URL exists)
-  if (sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
-    strategies.push({ method: 'manual', target: sender.unsubscribeUrl });
+  return { method: 'none', success: false, message: 'No unsubscribe method available' };
+}
+
+// ============================================================
+// Sender Protection (localStorage-persisted safelist)
+// ============================================================
+
+const PROTECTED_KEY = 'titan_protected_senders_v1';
+
+interface ProtectionStore {
+  senders: string[];
+  domains: string[];
+}
+
+function getProtectionStore(): ProtectionStore {
+  try {
+    const raw = localStorage.getItem(PROTECTED_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* corrupted — start fresh */ }
+  return { senders: [], domains: [] };
+}
+
+function saveProtectionStore(store: ProtectionStore): void {
+  localStorage.setItem(PROTECTED_KEY, JSON.stringify(store));
+}
+
+export function protectSender(address: string): void {
+  const store = getProtectionStore();
+  const lower = address.toLowerCase();
+  if (!store.senders.includes(lower)) {
+    store.senders.push(lower);
+    saveProtectionStore(store);
+  }
+}
+
+export function protectDomain(domain: string): void {
+  const store = getProtectionStore();
+  const lower = domain.toLowerCase();
+  if (!store.domains.includes(lower)) {
+    store.domains.push(lower);
+    saveProtectionStore(store);
+  }
+}
+
+export function isProtected(address: string): boolean {
+  const store = getProtectionStore();
+  const lower = address.toLowerCase();
+  if (store.senders.includes(lower)) return true;
+  const domain = extractDomain(lower);
+  return domain ? store.domains.includes(domain) : false;
+}
+
+export function getProtectedDomains(): string[] {
+  return getProtectionStore().domains;
+}
+
+export function unprotectSender(address: string): void {
+  const store = getProtectionStore();
+  store.senders = store.senders.filter(s => s !== address.toLowerCase());
+  saveProtectionStore(store);
+}
+
+export function unprotectDomain(domain: string): void {
+  const store = getProtectionStore();
+  store.domains = store.domains.filter(d => d !== domain.toLowerCase());
+  saveProtectionStore(store);
+}
+
+// ============================================================
+// Service Notification Detection
+// ============================================================
+
+/** Domains whose emails are operational notifications, not marketing. */
+const NOTIFICATION_DOMAINS = [
+  'github.com',
+  'gitlab.com',
+  'bitbucket.org',
+  'vercel.com',
+  'render.com',
+  'netlify.com',
+  'heroku.com',
+  'sentry.io',
+  'linear.app',
+  'circleci.com',
+  'travis-ci.com',
+  'railway.app',
+  'fly.io',
+  'supabase.com',
+  'planetscale.com',
+  'datadog.com',
+  'pagerduty.com',
+  'opsgenie.com',
+  'atlassian.net',
+  'jira.com',
+  'slack.com',
+  'notion.so',
+  'figma.com',
+];
+
+/** Local-part prefixes that indicate automated service emails. */
+const NOTIFICATION_PREFIXES = [
+  'noreply',
+  'no-reply',
+  'notifications',
+  'notification',
+  'notify',
+  'alerts',
+  'alert',
+  'builds',
+  'ci',
+  'deploy',
+  'security',
+  'monitoring',
+  'system',
+  'automated',
+  'mailer',
+  'postmaster',
+];
+
+export function extractDomain(address: string): string {
+  const at = address.lastIndexOf('@');
+  return at >= 0 ? address.slice(at + 1).toLowerCase() : '';
+}
+
+/**
+ * Returns true if the sender address looks like a service/ops notification
+ * rather than a marketing newsletter.
+ */
+export function isServiceNotification(address: string): boolean {
+  const lower = address.toLowerCase();
+  const domain = extractDomain(lower);
+  const localPart = lower.split('@')[0];
+
+  // Match known service domains (including subdomains like mail.github.com)
+  if (domain && NOTIFICATION_DOMAINS.some(d => domain === d || domain.endsWith('.' + d))) {
+    return true;
   }
 
-  return strategies;
+  // Match common automated-sender prefixes
+  if (NOTIFICATION_PREFIXES.some(p => localPart === p || localPart.startsWith(p + '+') || localPart.startsWith(p + '-'))) {
+    return true;
+  }
+
+  return false;
 }

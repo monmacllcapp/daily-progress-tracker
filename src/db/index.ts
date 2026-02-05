@@ -3,7 +3,7 @@ import type { RxDatabase, RxCollection } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { createClient } from '@supabase/supabase-js';
-import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile, StaffMember, StaffPayPeriod, StaffExpense, StaffKpiSummary, FinancialAccount, FinancialTransaction, FinancialSubscription, FinancialMonthlySummary } from '../types/schema';
+import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile, AnalyticsEvent, StaffMember, StaffPayPeriod, StaffExpense, StaffKpiSummary, FinancialAccount, FinancialTransaction, FinancialSubscription, FinancialMonthlySummary } from '../types/schema';
 
 // Add migration plugin
 addRxPlugin(RxDBMigrationSchemaPlugin);
@@ -210,6 +210,7 @@ const emailSchema = {
         list_id: { type: 'string' },
         unsubscribe_url: { type: 'string' },
         unsubscribe_mailto: { type: 'string' },
+        unsubscribe_one_click: { type: 'boolean' },
         is_newsletter: { type: 'boolean' },
         snooze_until: { type: 'string' },
         snoozed_at: { type: 'string' },
@@ -294,6 +295,20 @@ const userProfileSchema = {
         updated_at: { type: 'string' }
     },
     required: ['id', 'xp', 'level', 'gold']
+};
+
+const analyticsEventSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        event_type: { type: 'string' },
+        metadata: { type: 'object' },
+        timestamp: { type: 'string' }
+    },
+    required: ['id', 'event_type', 'timestamp'],
+    indexes: ['timestamp', 'event_type']
 };
 
 const staffMemberSchema = {
@@ -518,6 +533,7 @@ export type TitanDatabaseCollections = {
     habits: RxCollection<Habit>;
     habit_completions: RxCollection<HabitCompletion>;
     user_profile: RxCollection<UserProfile>;
+    analytics_events: RxCollection<AnalyticsEvent>;
     staff_members: RxCollection<StaffMember>;
     staff_pay_periods: RxCollection<StaffPayPeriod>;
     staff_expenses: RxCollection<StaffExpense>;
@@ -534,7 +550,7 @@ export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
 
 async function startReplication(db: TitanDatabase, url: string, key: string) {
     const supabase = createClient(url, key);
-    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'staff_members', 'staff_pay_periods', 'staff_expenses', 'staff_kpi_summaries', 'financial_accounts', 'financial_transactions', 'financial_subscriptions', 'financial_monthly_summaries'];
+    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'analytics_events', 'staff_members', 'staff_pay_periods', 'staff_expenses', 'staff_kpi_summaries', 'financial_accounts', 'financial_transactions', 'financial_subscriptions', 'financial_monthly_summaries'];
 
     for (const table of tables) {
         // @ts-expect-error - dynamic access
@@ -710,6 +726,11 @@ async function initDatabase(): Promise<TitanDatabase> {
                     },
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
                     2: function (oldDoc: any) {
+                        oldDoc.unsubscribe_one_click = false;
+                        return oldDoc;
+                    },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                    3: function (oldDoc: any) {
                         // Map old 4-tier system to new 7-tier pipeline
                         const tierMap: Record<string, string> = {
                             urgent: 'reply_urgent',
@@ -725,11 +746,6 @@ async function initDatabase(): Promise<TitanDatabase> {
                         oldDoc.unsubscribe_status = undefined;
                         oldDoc.unsubscribe_attempted_at = undefined;
                         return oldDoc;
-                    },
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    3: function (oldDoc: any) {
-                        oldDoc.unsubscribe_one_click = false;
-                        return oldDoc;
                     }
                 }
             },
@@ -743,6 +759,7 @@ async function initDatabase(): Promise<TitanDatabase> {
             },
             habit_completions: { schema: habitCompletionSchema },
             user_profile: { schema: userProfileSchema },
+            analytics_events: { schema: analyticsEventSchema },
             staff_members: { schema: staffMemberSchema },
             staff_pay_periods: { schema: staffPayPeriodSchema },
             staff_expenses: { schema: staffExpenseSchema },

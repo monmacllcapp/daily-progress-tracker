@@ -1,6 +1,8 @@
 import type { TitanDatabase } from '../db';
 import type { Task } from '../types/schema';
 import { updateCategoryStreak, updateCategoryProgress } from './streak-service';
+import { onTaskComplete } from './gamification';
+import { trackEvent } from './analytics';
 
 /**
  * TaskRolloverService
@@ -89,12 +91,46 @@ export async function completeTask(db: TitanDatabase, taskId: string): Promise<{
         updated_at: new Date().toISOString()
     });
 
+    let streakCount = 0;
+
     // Update category streak and progress if task has a category
     if (taskData.category_id) {
         const streakResult = await updateCategoryStreak(db, taskData.category_id);
         await updateCategoryProgress(db, taskData.category_id);
+        streakCount = streakResult.streak;
+
+        // Award XP for task completion
+        onTaskComplete(db, streakCount).catch(err =>
+            console.warn('[Gamification] Failed to award XP for task completion:', err)
+        );
+
+        // Track task completion (analytics)
+        trackEvent(db, 'task_complete', {
+            priority: taskData.priority,
+            source: taskData.source,
+            has_category: true,
+            time_estimate: taskData.time_estimate_minutes || 0,
+        }).catch(err =>
+            console.warn('[Analytics] Failed to track task completion:', err)
+        );
+
         return { streak: streakResult.streak, isNewStreak: streakResult.isNew };
     }
+
+    // Award XP even if no category
+    onTaskComplete(db, streakCount).catch(err =>
+        console.warn('[Gamification] Failed to award XP for task completion:', err)
+    );
+
+    // Track task completion (analytics)
+    trackEvent(db, 'task_complete', {
+        priority: taskData.priority,
+        source: taskData.source,
+        has_category: false,
+        time_estimate: taskData.time_estimate_minutes || 0,
+    }).catch(err =>
+        console.warn('[Analytics] Failed to track task completion:', err)
+    );
 
     return {};
 }

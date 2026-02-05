@@ -1,15 +1,45 @@
-import { VisionBoardGallery } from '../components/VisionBoardGallery';
-import { WheelOfLife } from '../components/WheelOfLife';
-import { ProjectsList } from '../components/ProjectsList';
-import { TaskDashboard } from '../components/TaskDashboard';
-import { JournalHistory } from '../components/JournalHistory';
-import { DailyAgenda } from '../components/DailyAgenda';
-import { EmailDashboard } from '../components/EmailDashboard';
-import { CategoryManager } from '../components/CategoryManager';
-import { PomodoroWidget } from '../components/PomodoroWidget';
-import { HabitTracker } from '../components/HabitTracker';
-import { StaffingDashboard } from '../components/StaffingDashboard';
-import { FinancialDashboard } from '../components/FinancialDashboard';
+import { lazy } from 'react';
+
+// Lazy-load all dashboard widgets to reduce initial bundle size
+const VisionBoardGallery = lazy(() =>
+    import('../components/VisionBoardGallery').then((m) => ({ default: m.VisionBoardGallery }))
+);
+const WheelOfLife = lazy(() =>
+    import('../components/WheelOfLife').then((m) => ({ default: m.WheelOfLife }))
+);
+const ProjectsList = lazy(() =>
+    import('../components/ProjectsList').then((m) => ({ default: m.ProjectsList }))
+);
+const TaskDashboard = lazy(() =>
+    import('../components/TaskDashboard').then((m) => ({ default: m.TaskDashboard }))
+);
+const JournalHistory = lazy(() =>
+    import('../components/JournalHistory').then((m) => ({ default: m.JournalHistory }))
+);
+const DailyAgenda = lazy(() =>
+    import('../components/DailyAgenda').then((m) => ({ default: m.DailyAgenda }))
+);
+const EmailDashboard = lazy(() =>
+    import('../components/EmailDashboard').then((m) => ({ default: m.EmailDashboard }))
+);
+const CategoryManager = lazy(() =>
+    import('../components/CategoryManager').then((m) => ({ default: m.CategoryManager }))
+);
+const PomodoroWidget = lazy(() =>
+    import('../components/PomodoroWidget').then((m) => ({ default: m.PomodoroWidget }))
+);
+const HabitTracker = lazy(() =>
+    import('../components/HabitTracker').then((m) => ({ default: m.HabitTracker }))
+);
+const OnePercentTracker = lazy(() =>
+    import('../components/OnePercentTracker').then((m) => ({ default: m.OnePercentTracker }))
+);
+const StaffingDashboard = lazy(() =>
+    import('../components/StaffingDashboard').then((m) => ({ default: m.StaffingDashboard }))
+);
+const FinancialDashboard = lazy(() =>
+    import('../components/FinancialDashboard').then((m) => ({ default: m.FinancialDashboard }))
+);
 
 export interface WidgetConfig {
     id: string;
@@ -88,7 +118,14 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
         component: HabitTracker,
         title: 'Habit Tracker',
         type: 'interactive',
-        defaultLayout: { x: 6, y: 8, w: 3, h: 4, minW: 2, minH: 3 }
+        defaultLayout: { x: 0, y: 30, w: 6, h: 6, minW: 3, minH: 4 }
+    },
+    {
+        id: 'one-percent-tracker',
+        component: OnePercentTracker,
+        title: '1% Better',
+        type: 'metric',
+        defaultLayout: { x: 6, y: 30, w: 6, h: 6, minW: 3, minH: 4 }
     },
     {
         id: 'staffing-kpi',

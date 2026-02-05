@@ -1,6 +1,8 @@
 import type { TitanDatabase } from '../db';
 import type { Habit } from '../types/schema';
 import { updateCategoryStreak } from './streak-service';
+import { onHabitCheck } from './gamification';
+import { trackEvent } from './analytics';
 
 /**
  * Calculate streak from sorted completions (most recent first not required,
@@ -132,6 +134,30 @@ export async function toggleHabitCompletion(
         date,
         completed_at: new Date().toISOString(),
     });
+
+    // Award XP for habit completion
+    // Calculate current streak for this habit
+    const allCompletions = await db.habit_completions.find({
+        selector: { habit_id: habitId }
+    }).exec();
+    const completionData = allCompletions.map(c => c.toJSON());
+    const { current: streakCount } = getHabitStreak(completionData);
+
+    onHabitCheck(db, streakCount).catch(err =>
+        console.warn('[Gamification] Failed to award XP for habit check:', err)
+    );
+
+    // Track habit check (analytics)
+    const habit = await db.habits.findOne(habitId).exec();
+    const habitData = habit?.toJSON() as Habit | undefined;
+
+    trackEvent(db, 'habit_check', {
+        frequency: habitData?.frequency || 'unknown',
+        streak_count: streakCount,
+        has_category: !!habitData?.category_id,
+    }).catch(err =>
+        console.warn('[Analytics] Failed to track habit check:', err)
+    );
 
     return true;
 }

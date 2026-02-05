@@ -23,16 +23,18 @@ const GEMINI_KEY = typeof import.meta !== 'undefined'
 
 let genAI: GoogleGenerativeAI | null = null;
 let keyOverride: string | undefined;
+let testingModeActive = false;
 
 function getGenAI(): GoogleGenerativeAI | null {
-    const key = keyOverride ?? GEMINI_KEY;
+    const key = testingModeActive ? keyOverride : (keyOverride ?? GEMINI_KEY);
     if (!key) return null;
     if (!genAI) genAI = new GoogleGenerativeAI(key);
     return genAI;
 }
 
 export function isClassifierAvailable(): boolean {
-    return !!(keyOverride ?? GEMINI_KEY);
+    const key = testingModeActive ? keyOverride : (keyOverride ?? GEMINI_KEY);
+    return !!key;
 }
 
 /**
@@ -179,6 +181,7 @@ function classifyWithRules(
 export function _resetForTesting(key?: string): void {
     genAI = null;
     keyOverride = key;
+    testingModeActive = true;
 }
 
 /**

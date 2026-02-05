@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { createDatabase } from '../db';
 import { createTask } from '../services/task-rollover';
 import { toggleHabitCompletion, syncHabitCategoryStreak } from '../services/habit-service';
+import { onMorningFlowComplete } from '../services/gamification';
+import { trackEvent } from '../services/analytics';
 import type { Habit } from '../types/schema';
 import type { CalendarEvent } from '../types/schema';
 import type { MeetingLoadStats, EventConflict } from '../services/calendar-monitor';
@@ -217,6 +219,21 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                 stressors: validStressors.length,
                 habits: Object.keys(formData.habits).filter(k => formData.habits[k]).length,
             });
+
+            // Award XP for completing morning flow
+            onMorningFlowComplete(db).catch(err =>
+                console.warn('[Gamification] Failed to award XP for morning flow:', err)
+            );
+
+            // Track morning flow completion (analytics)
+            trackEvent(db, 'morning_flow_complete', {
+                gratitude_count: validGratitude.length,
+                non_negotiables_count: validNonNegotiables.length,
+                stressors_count: validStressors.length,
+                habits_checked: Object.keys(formData.habits).filter(k => formData.habits[k]).length,
+            }).catch(err =>
+                console.warn('[Analytics] Failed to track morning flow completion:', err)
+            );
 
             if (onComplete) {
                 onComplete();

@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ErrorBoundary, PageErrorBoundary } from './components/ErrorBoundary';
 import { WelcomeOnboarding } from './components/WelcomeOnboarding';
 import { hasCompletedOnboarding } from './utils/onboarding';
+import { trackEvent } from './services/analytics';
 
 // Log active integrations at startup
 if (typeof window !== 'undefined') {
@@ -53,7 +54,13 @@ function App() {
 
   useEffect(() => {
     createDatabase()
-      .then(database => setDb(database))
+      .then(database => {
+        setDb(database);
+        // Track app open event (analytics)
+        trackEvent(database, 'app_open').catch(err =>
+          console.warn('[Analytics] Failed to track app open:', err)
+        );
+      })
       .catch(err => {
         console.error('Failed to initialize database:', err);
         setError(err.message);
