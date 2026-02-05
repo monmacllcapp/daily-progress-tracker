@@ -13,7 +13,6 @@ interface DashboardState {
 
     // Actions
     updateLayout: (newLayout: Layout[]) => void;
-    updateWidgetHeight: (widgetId: string, h: number) => void;
     toggleWidgetVisibility: (widgetId: string) => void;
     applyKanbanLayout: (columns: string[][]) => void;
     setColumnCount: (count: ColumnCount) => void;
@@ -22,7 +21,7 @@ interface DashboardState {
     loadLayout: () => void;
 }
 
-const STORAGE_KEY = 'titan_glass_layout_v5';
+const STORAGE_KEY = 'titan_glass_layout_v6';
 
 function getDefaultLayouts(): Layout[] {
     return WIDGET_REGISTRY.map(w => ({
@@ -49,17 +48,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     updateLayout: (newLayout) => {
         set({ layouts: newLayout });
         persistState(newLayout, get().hiddenWidgets, get().columnCount);
-    },
-
-    updateWidgetHeight: (widgetId, h) => {
-        const { layouts } = get();
-        const current = layouts.find(l => l.i === widgetId);
-        if (!current || current.h >= h) return; // Only grow
-        const newLayouts = layouts.map(l =>
-            l.i === widgetId ? { ...l, h } : l
-        );
-        set({ layouts: newLayouts });
-        persistState(newLayouts, get().hiddenWidgets, get().columnCount);
     },
 
     toggleWidgetVisibility: (widgetId) => {

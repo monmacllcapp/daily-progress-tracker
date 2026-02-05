@@ -19,6 +19,8 @@ export interface NewsletterSender {
   unsubscribeUrl?: string;
   hasUnsubscribeMailto: boolean;
   unsubscribeMailto?: string;
+  hasOneClick: boolean;
+  unsubscribeStatus?: 'pending' | 'attempted' | 'confirmed' | 'failed';
 }
 
 /**
@@ -64,6 +66,10 @@ export async function getNewsletterSenders(db: TitanDatabase): Promise<Newslette
       existing.emailCount++;
       if (email.received_at > existing.lastReceived) {
         existing.lastReceived = email.received_at;
+        // Use latest unsubscribe status
+        if (email.unsubscribe_status) {
+          existing.unsubscribeStatus = email.unsubscribe_status;
+        }
       }
       if (email.unsubscribe_url && !existing.hasUnsubscribeUrl) {
         existing.hasUnsubscribeUrl = true;
@@ -72,6 +78,9 @@ export async function getNewsletterSenders(db: TitanDatabase): Promise<Newslette
       if (email.unsubscribe_mailto && !existing.hasUnsubscribeMailto) {
         existing.hasUnsubscribeMailto = true;
         existing.unsubscribeMailto = email.unsubscribe_mailto;
+      }
+      if (email.unsubscribe_one_click && !existing.hasOneClick) {
+        existing.hasOneClick = true;
       }
     } else {
       senderMap.set(address, {
@@ -83,6 +92,8 @@ export async function getNewsletterSenders(db: TitanDatabase): Promise<Newslette
         unsubscribeUrl: email.unsubscribe_url,
         hasUnsubscribeMailto: !!email.unsubscribe_mailto,
         unsubscribeMailto: email.unsubscribe_mailto,
+        hasOneClick: !!email.unsubscribe_one_click,
+        unsubscribeStatus: email.unsubscribe_status,
       });
     }
   }
@@ -134,4 +145,44 @@ export function buildUnsubscribeAction(
     return { type: 'mailto', target: sender.unsubscribeMailto };
   }
   return null;
+}
+
+export type UnsubscribeMethod = 'one_click' | 'mailto' | 'headless' | 'manual';
+
+export interface UnsubscribeStrategy {
+  method: UnsubscribeMethod;
+  target: string;
+}
+
+/**
+ * Build a priority-ordered list of unsubscribe strategies for a sender.
+ * Tier 1: RFC 8058 one-click POST (highest reliability)
+ * Tier 2: Mailto via Gmail API
+ * Tier 3: Headless browser (interactive pages)
+ * Tier 4: Manual fallback (open in new tab)
+ */
+export function buildUnsubscribeStrategy(sender: NewsletterSender): UnsubscribeStrategy[] {
+  const strategies: UnsubscribeStrategy[] = [];
+
+  // Tier 1: One-click POST (RFC 8058)
+  if (sender.hasOneClick && sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
+    strategies.push({ method: 'one_click', target: sender.unsubscribeUrl });
+  }
+
+  // Tier 2: Mailto via Gmail API
+  if (sender.hasUnsubscribeMailto && sender.unsubscribeMailto) {
+    strategies.push({ method: 'mailto', target: sender.unsubscribeMailto });
+  }
+
+  // Tier 3: Headless browser (only available in dev mode)
+  if (sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
+    strategies.push({ method: 'headless', target: sender.unsubscribeUrl });
+  }
+
+  // Tier 4: Manual fallback (always available if URL exists)
+  if (sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
+    strategies.push({ method: 'manual', target: sender.unsubscribeUrl });
+  }
+
+  return strategies;
 }

@@ -4,6 +4,8 @@ import { DashboardGrid } from '../components/dashboard/DashboardGrid';
 import { DailyProgressHeader } from '../components/DailyProgressHeader';
 import { CustomizationSidebar } from '../components/dashboard/CustomizationSidebar';
 import { useDashboardStore } from '../store/dashboardStore';
+import { JarvisIcon } from '../components/JarvisIcon';
+import { useJarvisStore } from '../store/jarvisStore';
 
 const RPMWizard = lazy(() =>
   import('../components/RPMWizard').then((m) => ({ default: m.RPMWizard }))
@@ -12,11 +14,17 @@ const RPMWizard = lazy(() =>
 export default function DashboardPage() {
   const [showRPM, setShowRPM] = useState(false);
   const { setSidebarOpen } = useDashboardStore();
+  const { isOpen: jarvisOpen, toggleOpen: jarvisToggle, latestNudge } = useJarvisStore();
 
   return (
     <div className="animate-fade-up">
+      {/* ANDIE AI — top of dashboard, AI-first */}
+      <div className="flex justify-center mb-3">
+        <JarvisIcon onClick={jarvisToggle} nudge={latestNudge} isActive={jarvisOpen} />
+      </div>
+
       {/* Header row */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div />
         <div className="flex items-center gap-3">
           <button

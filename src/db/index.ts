@@ -94,7 +94,7 @@ const dailyJournalSchema = {
 };
 
 const visionBoardSchema = {
-    version: 0,
+    version: 1,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -105,6 +105,8 @@ const visionBoardSchema = {
         pain_payload: { type: 'string' },
         pleasure_payload: { type: 'string' },
         visual_anchor: { type: 'string' },
+        category_name: { type: 'string' },
+        category_id: { type: 'string' },
         created_at: { type: 'string' },
         updated_at: { type: 'string' }
     },
@@ -188,7 +190,7 @@ const calendarEventSchema = {
 };
 
 const emailSchema = {
-    version: 2,
+    version: 3,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -212,6 +214,7 @@ const emailSchema = {
         snooze_until: { type: 'string' },
         snoozed_at: { type: 'string' },
         reply_checked_at: { type: 'string' },
+        unsubscribe_one_click: { type: 'boolean' },
         unsubscribe_status: { type: 'string' },
         unsubscribe_attempted_at: { type: 'string' },
         created_at: { type: 'string' },
@@ -442,7 +445,13 @@ async function initDatabase(): Promise<TitanDatabase> {
                     }
                 }
             },
-            vision_board: { schema: visionBoardSchema },
+            vision_board: {
+                schema: visionBoardSchema,
+                migrationStrategies: {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                    1: function (oldDoc: any) { return oldDoc; }
+                }
+            },
             categories: {
                 schema: categoriesSchema,
                 migrationStrategies: {
@@ -497,6 +506,11 @@ async function initDatabase(): Promise<TitanDatabase> {
                         oldDoc.reply_checked_at = undefined;
                         oldDoc.unsubscribe_status = undefined;
                         oldDoc.unsubscribe_attempted_at = undefined;
+                        return oldDoc;
+                    },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                    3: function (oldDoc: any) {
+                        oldDoc.unsubscribe_one_click = false;
                         return oldDoc;
                     }
                 }

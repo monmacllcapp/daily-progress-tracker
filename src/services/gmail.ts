@@ -7,7 +7,7 @@
 
 import { googleFetch, isGoogleConnected } from './google-auth';
 import type { TitanDatabase } from '../db';
-import type { EmailTier, EmailStatus } from '../types/schema';
+import type { Email, EmailTier, EmailStatus } from '../types/schema';
 import { applyTitanLabel, readTitanLabelsFromMessage, fetchLabelMap } from './gmail-labels';
 import { draftResponse } from './email-classifier';
 
@@ -46,7 +46,7 @@ function getHeader(msg: GmailMessage, name: string): string {
  * Fetch a list of recent message IDs from Gmail.
  */
 export async function listMessages(
-    maxResults: number = 20,
+    maxResults: number = 100,
     query: string = 'in:inbox'
 ): Promise<Array<{ id: string; threadId: string }>> {
     if (!isGoogleConnected()) return [];
@@ -70,6 +70,63 @@ export async function getMessage(messageId: string): Promise<GmailMessage> {
     const resp = await googleFetch(`${GMAIL_BASE}/messages/${messageId}?format=full`);
     if (!resp.ok) throw new Error(`Gmail get message failed: ${resp.status}`);
     return resp.json();
+}
+
+/**
+ * Decode a base64url-encoded string (as used in Gmail API).
+ */
+function decodeBase64Url(data: string): string {
+    const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+    return decodeURIComponent(
+        atob(base64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+    );
+}
+
+/**
+ * Extract the message body (HTML preferred, plain text fallback) from a GmailMessage payload.
+ */
+function extractBody(payload: GmailMessage['payload']): { html: string | null; text: string | null } {
+    let html: string | null = null;
+    let text: string | null = null;
+
+    // Single-part message
+    if (payload.body?.data && payload.body.size > 0) {
+        const decoded = decodeBase64Url(payload.body.data);
+        if (payload.mimeType === 'text/html') html = decoded;
+        else text = decoded;
+    }
+
+    // Multi-part message — recurse into parts
+    if (payload.parts) {
+        for (const part of payload.parts) {
+            if (part.body?.data && part.body.size > 0) {
+                const decoded = decodeBase64Url(part.body.data);
+                if (part.mimeType === 'text/html' && !html) html = decoded;
+                else if (part.mimeType === 'text/plain' && !text) text = decoded;
+            }
+            // Handle nested multipart (e.g., multipart/alternative inside multipart/mixed)
+            if ('parts' in part) {
+                const nested = extractBody(part as unknown as GmailMessage['payload']);
+                if (nested.html && !html) html = nested.html;
+                if (nested.text && !text) text = nested.text;
+            }
+        }
+    }
+
+    return { html, text };
+}
+
+/**
+ * Fetch the full body content of an email by its Gmail message ID.
+ * Returns HTML if available, otherwise plain text.
+ */
+export async function getMessageBody(gmailId: string): Promise<{ html: string | null; text: string | null }> {
+    if (!isGoogleConnected()) throw new Error('Not connected to Google');
+    const msg = await getMessage(gmailId);
+    return extractBody(msg.payload);
 }
 
 /**
@@ -147,7 +204,7 @@ export async function getThread(threadId: string): Promise<{ id: string; message
 export async function syncGmailInbox(
     db: TitanDatabase,
     classifyFn: (from: string, subject: string, snippet: string, labels: string[]) => Promise<EmailTier>,
-    maxResults: number = 20
+    maxResults: number = 100
 ): Promise<number> {
     // Ensure label cache is populated for bidirectional sync
     try { await fetchLabelMap(); } catch { /* not connected or labels fail — proceed without */ }
@@ -204,6 +261,10 @@ export async function syncGmailInbox(
         }
         const isNewsletter = !!(listId || unsubscribeUrl || unsubscribeMailto);
 
+        // RFC 8058: List-Unsubscribe-Post header indicates one-click support
+        const listUnsubscribePost = getHeader(msg, 'List-Unsubscribe-Post');
+        const unsubscribeOneClick = !!listUnsubscribePost && listUnsubscribePost.toLowerCase().includes('list-unsubscribe=one-click');
+
         await db.emails.insert({
             id: crypto.randomUUID(),
             gmail_id: ref.id,
@@ -219,6 +280,7 @@ export async function syncGmailInbox(
             list_id: listId,
             unsubscribe_url: unsubscribeUrl,
             unsubscribe_mailto: unsubscribeMailto,
+            unsubscribe_one_click: unsubscribeOneClick,
             is_newsletter: isNewsletter,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -229,4 +291,65 @@ export async function syncGmailInbox(
 
     console.log(`[Gmail] Synced ${newCount} new emails from inbox`);
     return newCount;
+}
+
+/**
+ * Resync Gmail labels for existing emails.
+ * Checks if the user reclassified emails in Gmail and applies those changes locally.
+ * This enables bidirectional learning — organize in Gmail, and the app picks it up.
+ * Returns count of emails updated.
+ */
+export async function resyncGmailLabels(db: TitanDatabase): Promise<number> {
+    if (!isGoogleConnected()) return 0;
+
+    // Ensure label cache is populated
+    try { await fetchLabelMap(); } catch { return 0; }
+
+    const docs = await db.emails.find().exec();
+    let updateCount = 0;
+
+    for (const doc of docs) {
+        const email = doc.toJSON() as Email;
+        if (!email.gmail_id) continue;
+
+        try {
+            // Fetch current labels from Gmail (metadata only, lightweight)
+            const resp = await googleFetch(`${GMAIL_BASE}/messages/${email.gmail_id}?format=metadata&metadataHeaders=From`);
+            if (!resp.ok) continue;
+
+            const msg: { labelIds?: string[] } = await resp.json();
+            const gmailLabelIds = msg.labelIds || [];
+
+            const titanMapping = readTitanLabelsFromMessage(gmailLabelIds);
+            if (!titanMapping) continue;
+
+            const currentTier = email.tier_override || email.tier;
+            const currentStatus = email.status;
+            const patch: Record<string, unknown> = {};
+
+            // If Gmail labels indicate a different tier, update the override
+            if (titanMapping.tier && titanMapping.tier !== currentTier) {
+                patch.tier_override = titanMapping.tier;
+            }
+
+            // If Gmail labels indicate a different status, update it
+            // But don't override local workflow states like 'drafted' or 'snoozed'
+            if (titanMapping.status && titanMapping.status !== currentStatus &&
+                !['drafted', 'snoozed'].includes(currentStatus)) {
+                patch.status = titanMapping.status;
+            }
+
+            if (Object.keys(patch).length > 0) {
+                patch.updated_at = new Date().toISOString();
+                await doc.patch(patch);
+                updateCount++;
+            }
+        } catch {
+            // Skip individual message errors (deleted, permission issues, etc.)
+            continue;
+        }
+    }
+
+    console.log(`[Gmail] Label resync updated ${updateCount} emails from Gmail labels`);
+    return updateCount;
 }

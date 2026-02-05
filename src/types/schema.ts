@@ -155,6 +155,7 @@ export interface Email {
   snooze_until?: string;           // ISO 8601 datetime — when to resurface
   snoozed_at?: string;             // ISO 8601 datetime — when snoozed
   reply_checked_at?: string;          // Last time we checked if this was replied to
+  unsubscribe_one_click?: boolean;       // Has List-Unsubscribe-Post (RFC 8058)
   unsubscribe_status?: 'pending' | 'attempted' | 'confirmed' | 'failed';
   unsubscribe_attempted_at?: string;  // When unsubscribe was last attempted
   created_at?: string;

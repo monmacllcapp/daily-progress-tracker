@@ -15,6 +15,10 @@ const PatternInterrupt = lazy(
   () => import('../PatternInterrupt').then((m) => ({ default: m.PatternInterrupt }))
 );
 
+const JarvisChat = lazy(
+  () => import('../JarvisChat').then((m) => ({ default: m.JarvisChat }))
+);
+
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <div className="fixed bottom-6 right-6 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-up">
@@ -92,6 +96,9 @@ export function AppShell() {
       />
 
       <FeedbackWidget />
+      <Suspense fallback={null}>
+        <JarvisChat />
+      </Suspense>
       <ShortcutHelp
         isOpen={shortcutHelpOpen}
         onClose={() => setShortcutHelpOpen(false)}

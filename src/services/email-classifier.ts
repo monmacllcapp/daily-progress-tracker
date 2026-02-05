@@ -64,7 +64,7 @@ async function classifyWithAI(
     subject: string,
     snippet: string
 ): Promise<EmailTier> {
-    const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `Classify this email into exactly one category. Respond with ONLY the category name, nothing else.
 
@@ -194,7 +194,7 @@ export async function draftResponse(
     if (!ai) return null;
 
     try {
-        const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const prompt = `Draft a brief, professional email reply. Be concise and friendly. Do NOT include subject line or "Dear/Hi" greeting — start with the content directly.
 
