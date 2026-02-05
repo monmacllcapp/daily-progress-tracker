@@ -30,8 +30,8 @@ serve(async (req) => {
       body: JSON.stringify({
         client_id: PLAID_CLIENT_ID,
         secret: PLAID_SECRET,
-        user: { client_user_id: 'titan-user-1' },
-        client_name: 'Titan Life OS',
+        user: { client_user_id: 'maple-user-1' },
+        client_name: 'Maple',
         products: ['transactions'],
         country_codes: ['US'],
         language: 'en',

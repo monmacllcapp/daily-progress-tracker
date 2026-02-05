@@ -77,7 +77,7 @@ export function WelcomeOnboarding({ onComplete }: WelcomeOnboardingProps) {
                         >
                             <div className="space-y-2">
                                 <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-rose-400 bg-clip-text text-transparent">
-                                    Titan Life OS
+                                    Maple
                                 </h1>
                                 <p className="text-slate-400 text-lg">Your cognitive operating system</p>
                             </div>

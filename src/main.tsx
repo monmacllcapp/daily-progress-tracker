@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css' // Restore CSS
 import './utils/reset-db.ts' // Make resetDB() available in console
 
-console.log("Restoring Titan Planner...");
+console.log("Restoring Maple...");
 
 // Dynamic Import Wrapper to catch module loading errors
 function RootErrorBoundary() {

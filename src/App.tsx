@@ -10,7 +10,7 @@ import { trackEvent } from './services/analytics';
 // Log active integrations at startup
 if (typeof window !== 'undefined') {
   const env = import.meta.env;
-  console.log('[Titan] Active integrations:', {
+  console.log('[Maple] Active integrations:', {
     google: !!env.VITE_GOOGLE_CLIENT_ID,
     gemini: !!env.VITE_GEMINI_API_KEY,
     supabase: !!(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_ANON_KEY),
@@ -89,7 +89,7 @@ function App() {
       <div className="min-h-screen bg-[var(--color-background)] text-white flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-secondary">Initializing Titan Life OS...</p>
+          <p className="text-secondary">Initializing Maple...</p>
         </div>
       </div>
     );

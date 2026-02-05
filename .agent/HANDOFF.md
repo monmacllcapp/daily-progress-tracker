@@ -1,35 +1,50 @@
 # Agent Handoff
-**Last Updated:** 2026-02-05T21:10:00Z
-**Trigger:** financial dashboard feature complete
-**Branch:** feature/financial-dashboard (pushed to sandbox)
+**Last Updated:** 2026-02-05T21:30:00Z
+**Trigger:** rebrand + bug fix complete
+**Branch:** feature/financial-dashboard (sandbox)
 
 ## What Was Done
-- Implemented full Financial Dashboard widget (plan phases 1-4 complete)
-- Phase 1: Data layer — 4 new RxDB schemas, 5 Supabase tables, TypeScript types
-- Phase 2: Backend (4 Supabase Edge Functions for Plaid) + Frontend services (plaid.ts, financial-analysis.ts)
-- Phase 3: UI — FinancialDashboard.tsx (895 lines), FinancialPage.tsx, sidebar/route/widget registration
-- Phase 4: Tests — 38 new tests passing (financial-analysis: 23, plaid: 15)
-- Fixed DXE1 error (plaid_item_id removed from indexes)
-- Fixed DB9 error (removed ignoreDuplicate:true — not allowed in RxDB v16 production mode)
-- Resolved 9 merge conflicts when merging origin/sandbox
-- Pushed to sandbox, commented on PR #4
+- Rebranded app from "Titan Life OS" / "Titan Planner" to "Maple" across 15 files
+- Rebranded AI assistant from "ANDIE" to "Maple" in all user-facing strings, system prompts, and UI text
+- Fixed "Cannot read properties of undefined (reading 'insert')" bug in RPMWizard.tsx and MorningFlow.tsx
+- Internal code names (TitanDatabase, JarvisMessage, file names, etc.) intentionally left unchanged to avoid breakage
 
 ## Current State
-- App loads and runs on localhost:5173
-- All 38 new tests pass, tsc clean
-- Committed: 91e6e2c (feat) + a9e946e (merge)
-- PR #4 updated with financial dashboard comment
+- tsc --noEmit passes clean
+- Dev server running on localhost:5173
+- Changes NOT yet committed — pending user confirmation to commit and push
+
+## Files Modified (this session)
+### Rebrand (15 files)
+- package.json — name field
+- index.html — title + loading text
+- vite.config.ts — PWA manifest names
+- .env.example — header comment
+- src/App.tsx — console log + loading text
+- src/main.tsx — console log
+- src/components/layout/TopBar.tsx — default title
+- src/components/WelcomeOnboarding.tsx — welcome screen title
+- supabase/functions/create-link-token/index.ts — Plaid client name
+- src/services/jarvis.ts — system prompts, display text, console logs
+- src/services/jarvis-context.ts — context header
+- src/services/jarvis-proactive.ts — console logs
+- src/components/JarvisChat.tsx — UI text, placeholder, header, welcome message
+- src/components/JarvisIcon.tsx — label text
+- src/hooks/useAppLifecycle.ts — console log
+
+### Bug Fix (2 files)
+- src/components/RPMWizard.tsx — use db from useDatabase() hook instead of createDatabase()
+- src/components/MorningFlow.tsx — same fix for igniteDay() and data-loading useEffects
+
+## Decisions Made
+- Only changed user-visible strings for rebrand; internal types/file names/function names left as-is
+- RxDB database name "titanplannerdb" kept unchanged (renaming would break existing user databases)
+- localStorage keys unchanged for same reason
+- Bug fix: useDatabase() hook is the correct pattern; createDatabase() inside handlers causes race conditions
 
 ## Next Step
-- User review and merge PR #4 to main
-- Set up Plaid sandbox credentials (PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV) for testing
-- Deploy Supabase Edge Functions and run SQL migration
-- Manual testing: connect Plaid sandbox account, verify transaction flow
+- User confirms, then commit and push to sandbox
+- Merge PR #4 to main
 
 ## Blockers
-None — feature is code-complete and deployed to sandbox.
-
-## Context Notes
-- RxDB v16 ignoreDuplicate throws DB9 in non-dev mode (source: rx-database.js:502-507)
-- Dashboard layouts in localStorage (titan_glass_layout_v6), safe from IDB resets
-- financialAccountSchema indexes: ['account_scope'] only — plaid_item_id causes DXE1 with Dexie adapter
+None.

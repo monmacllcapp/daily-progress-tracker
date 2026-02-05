@@ -93,7 +93,7 @@ async function getUpcomingEvents(): Promise<GoogleCalendarEvent[]> {
     try {
         return await fetchGoogleEvents(now, weekOut);
     } catch (err) {
-        console.warn('[Jarvis] Failed to fetch upcoming events:', err);
+        console.warn('[Maple] Failed to fetch upcoming events:', err);
         return [];
     }
 }
@@ -113,7 +113,7 @@ function formatConversationHistory(messages: JarvisMessage[]): string {
     const recent = messages.slice(-6);
     if (recent.length === 0) return '';
     return recent
-        .map((m) => `${m.role === 'user' ? 'User' : 'ANDIE'}: ${m.text}`)
+        .map((m) => `${m.role === 'user' ? 'User' : 'Maple'}: ${m.text}`)
         .join('\n');
 }
 
@@ -145,7 +145,7 @@ export async function parseCalendarIntent(
 
     const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-    const prompt = `You are ANDIE, a calendar assistant. The current date/time in Pacific Time is: ${nowPT()}.
+    const prompt = `You are Maple, a calendar assistant. The current date/time in Pacific Time is: ${nowPT()}.
 Today's date is ${todayISO()}.
 Timezone: ${TIMEZONE}
 
@@ -193,7 +193,7 @@ Rules:
 
         return parsed;
     } catch (err) {
-        console.error('[Jarvis] Intent parsing failed:', err);
+        console.error('[Maple] Intent parsing failed:', err);
         return {
             action: 'unclear',
             response: "Sorry, I had trouble understanding that. Could you rephrase your request?",
@@ -259,7 +259,7 @@ export async function executeCalendarAction(intent: CalendarIntent): Promise<str
                 return intent.response;
         }
     } catch (err) {
-        console.error('[Jarvis] Action execution failed:', err);
+        console.error('[Maple] Action execution failed:', err);
         return `Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again.`;
     }
 }
@@ -291,7 +291,7 @@ export async function processJarvisMessage(
             const ctx = await gatherJarvisContext();
             contextBlock = formatContextForPrompt(ctx);
         } catch (ctxErr) {
-            console.warn('[Jarvis] Context gathering failed, continuing without:', ctxErr);
+            console.warn('[Maple] Context gathering failed, continuing without:', ctxErr);
             contextBlock = '(Context unavailable)';
         }
 
@@ -306,7 +306,7 @@ export async function processJarvisMessage(
 
         const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-        const prompt = `You are ANDIE, a proactive AI life assistant for Titan Planner.
+        const prompt = `You are Maple, a proactive AI life assistant for Maple.
 You see the user's COMPLETE data — tasks, calendar, emails, habits, projects, streaks, and more.
 The current date/time in Pacific Time is: ${nowPT()}.
 Today's date is ${todayISO()}.
@@ -366,11 +366,11 @@ CONVERSATION STYLE — CRITICAL:
 
         return parsed;
     } catch (err) {
-        console.error('[Jarvis] Message processing failed:', err);
+        console.error('[Maple] Message processing failed:', err);
         // Fallback: try a simpler non-JSON approach
         try {
             const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-            const fallbackPrompt = `You are ANDIE, a helpful AI assistant. The user said: "${userMessage}". Reply conversationally in 1-3 sentences.`;
+            const fallbackPrompt = `You are Maple, a helpful AI assistant. The user said: "${userMessage}". Reply conversationally in 1-3 sentences.`;
             const fallbackResult = await model.generateContent(fallbackPrompt);
             const fallbackText = fallbackResult.response.text().trim();
             return {
@@ -390,7 +390,7 @@ CONVERSATION STYLE — CRITICAL:
 
 export async function generateBriefing(): Promise<string> {
     const ai = getGenAI();
-    if (!ai) return "Hey! I'm ANDIE, your AI assistant. Set up your Gemini API key to unlock full intelligence.";
+    if (!ai) return "Hey! I'm Maple, your AI assistant. Set up your Gemini API key to unlock full intelligence.";
 
     try {
         const ctx = await gatherJarvisContext();
@@ -398,7 +398,7 @@ export async function generateBriefing(): Promise<string> {
 
         const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-        const prompt = `You are ANDIE, a proactive AI life assistant. Generate a brief, friendly greeting and status briefing based on this user's data. Keep it to 2-4 sentences. Be specific — reference their actual data (use REAL email subjects and senders from the context, REAL task names, REAL habit names). If something needs attention (overdue tasks, urgent emails, streaks at risk), mention it. End with a question or suggestion.
+        const prompt = `You are Maple, a proactive AI life assistant. Generate a brief, friendly greeting and status briefing based on this user's data. Keep it to 2-4 sentences. Be specific — reference their actual data (use REAL email subjects and senders from the context, REAL task names, REAL habit names). If something needs attention (overdue tasks, urgent emails, streaks at risk), mention it. End with a question or suggestion.
 
 CRITICAL: NEVER fabricate or invent email content, subjects, senders, or any data. ONLY reference what appears in the context below.
 
@@ -411,7 +411,7 @@ Respond with plain text only (no JSON, no markdown).`;
         const result = await model.generateContent(prompt);
         return result.response.text().trim();
     } catch (err) {
-        console.error('[Jarvis] Briefing generation failed:', err);
-        return "Hey! I'm ANDIE, your AI assistant. I can help with tasks, calendar, habits, and more. What's on your mind?";
+        console.error('[Maple] Briefing generation failed:', err);
+        return "Hey! I'm Maple, your AI assistant. I can help with tasks, calendar, habits, and more. What's on your mind?";
     }
 }

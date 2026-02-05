@@ -123,7 +123,7 @@ export function JarvisChat() {
     const isOpenRef = useRef(false);
     // Track whether user initiated voice — only auto-restart mic in voice-initiated conversations
     const userInitiatedVoiceRef = useRef(false);
-    // Cooldown: prevent rapid consecutive ANDIE responses
+    // Cooldown: prevent rapid consecutive Maple responses
     const lastJarvisResponseTimeRef = useRef(0);
 
     // Keep refs in sync
@@ -151,7 +151,7 @@ export function JarvisChat() {
         []
     );
 
-    // Minimum gap between ANDIE responses to prevent rapid-fire loops (ms)
+    // Minimum gap between Maple responses to prevent rapid-fire loops (ms)
     const RESPONSE_COOLDOWN_MS = 2000;
 
     // Start speech recognition (reads refs, no dependency issues)
@@ -171,14 +171,14 @@ export function JarvisChat() {
 
             // Filter out low-confidence transcriptions (echo/noise)
             if (!transcript || confidence < 0.6) {
-                console.log('[ANDIE] Ignoring low-confidence speech:', transcript, confidence);
+                console.log('[Maple] Ignoring low-confidence speech:', transcript, confidence);
                 return;
             }
 
             // Enforce cooldown between responses
             const now = Date.now();
             if (now - lastJarvisResponseTimeRef.current < RESPONSE_COOLDOWN_MS) {
-                console.log('[ANDIE] Cooldown active, ignoring input:', transcript);
+                console.log('[Maple] Cooldown active, ignoring input:', transcript);
                 return;
             }
 
@@ -312,7 +312,7 @@ export function JarvisChat() {
                         {
                             id: crypto.randomUUID(),
                             role: 'jarvis',
-                            text: "Hey! I'm ANDIE, your AI assistant. What can I help you with?",
+                            text: "Hey! I'm Maple, your AI assistant. What can I help you with?",
                             timestamp: new Date(),
                         },
                     ]);
@@ -446,7 +446,7 @@ export function JarvisChat() {
                         exit={{ scale: 0 }}
                         onClick={() => setIsOpen(true)}
                         className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25 flex items-center justify-center hover:shadow-cyan-500/40 transition-shadow"
-                        title="Open ANDIE"
+                        title="Open Maple"
                     >
                         <Bot className="w-5 h-5" />
                     </motion.button>
@@ -479,7 +479,7 @@ export function JarvisChat() {
                                 <div className="flex items-center gap-3">
                                     <SoundwaveAnimation active={isProcessing} size="sm" />
                                     <div>
-                                        <h3 className="text-sm font-semibold text-white">ANDIE</h3>
+                                        <h3 className="text-sm font-semibold text-white">Maple</h3>
                                         <p className="text-[10px] text-slate-400">
                                             {available ? 'AI Assistant' : 'Not configured'}
                                         </p>
@@ -593,7 +593,7 @@ export function JarvisChat() {
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={handleKeyDown}
-                                        placeholder={available ? 'Ask ANDIE anything...' : 'Set VITE_GEMINI_API_KEY to start'}
+                                        placeholder={available ? 'Ask Maple anything...' : 'Set VITE_GEMINI_API_KEY to start'}
                                         disabled={!available || isProcessing}
                                         className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 disabled:opacity-50 transition-colors"
                                     />

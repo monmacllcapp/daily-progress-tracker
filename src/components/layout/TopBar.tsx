@@ -20,7 +20,7 @@ const PAGE_TITLES: Record<string, string> = {
 export function TopBar() {
   const location = useLocation();
   const { setMobileOpen } = useSidebarStore();
-  const title = PAGE_TITLES[location.pathname] ?? 'Titan';
+  const title = PAGE_TITLES[location.pathname] ?? 'Maple';
 
   return (
     <header className="glass-topbar h-16 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20 shrink-0">

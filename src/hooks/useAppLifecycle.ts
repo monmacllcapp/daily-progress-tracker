@@ -141,7 +141,7 @@ export function useAppLifecycle() {
         useJarvisStore.getState().setLatestNudge(nudge);
       });
     }).catch((err) => {
-      console.warn('[Lifecycle] Jarvis proactive init failed:', err);
+      console.warn('[Lifecycle] Maple proactive init failed:', err);
     });
 
     return () => {

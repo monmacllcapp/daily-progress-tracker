@@ -6,6 +6,7 @@ import { createTask } from '../services/task-rollover';
 import { toggleHabitCompletion, syncHabitCategoryStreak } from '../services/habit-service';
 import { onMorningFlowComplete } from '../services/gamification';
 import { trackEvent } from '../services/analytics';
+import { useDatabase } from '../hooks/useDatabase';
 import type { Habit } from '../types/schema';
 import type { CalendarEvent } from '../types/schema';
 import type { MeetingLoadStats, EventConflict } from '../services/calendar-monitor';
@@ -28,6 +29,7 @@ const DEFAULT_HABITS = ['Hydrate', 'Meditate', 'Movement', 'Deep Work Block'];
 export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const navigate = useNavigate();
+    const [db] = useDatabase();
     const [dbHabits, setDbHabits] = useState<Habit[]>([]);
 
     const [formData, setFormData] = useState({
@@ -49,8 +51,8 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
     // Load dynamic habits from DB
     useEffect(() => {
         const load = async () => {
+            if (!db) return;
             try {
-                const db = await createDatabase();
                 const docs = await db.habits.find({
                     selector: { is_archived: false },
                     sort: [{ sort_order: 'asc' }],
@@ -61,11 +63,12 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
             }
         };
         load();
-    }, []);
+    }, [db]);
 
     // Load calendar data when entering the calendar step
     useEffect(() => {
         if (steps[currentStepIndex]?.id !== 'calendar') return;
+        if (!db) return;
 
         const loadCalendarData = async () => {
             setIsCalendarLoading(true);
@@ -81,7 +84,6 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                 const { syncCalendarEvents } = await import('../services/google-calendar');
                 const { detectAllConflicts, getMeetingLoadStats } = await import('../services/calendar-monitor');
                 const { computeFreeSlots, generateCalendarBriefing } = await import('../services/calendar-ai');
-                const db = await createDatabase();
 
                 const today = new Date();
                 const dayStart = new Date(today);
@@ -130,7 +132,7 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
         };
 
         loadCalendarData();
-    }, [currentStepIndex, calendarLoadKey]);
+    }, [currentStepIndex, calendarLoadKey, db]);
 
     const updateArrayField = (field: 'gratitude' | 'non_negotiables' | 'stressors', index: number, value: string) => {
         setFormData(prev => {
@@ -151,8 +153,13 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
     };
 
     const igniteDay = async () => {
+        if (!db) {
+            console.error('[MorningFlow] Database not initialized');
+            alert('Database not ready. Please wait a moment and try again.');
+            return;
+        }
+
         try {
-            const db = await createDatabase();
             const timestamp = new Date().toISOString();
             const today = timestamp.split('T')[0];
 

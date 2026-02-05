@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico'],
       manifest: {
-        name: 'Titan Life OS',
-        short_name: 'Titan',
+        name: 'Maple',
+        short_name: 'Maple',
         description: 'Your personal life operating system — tasks, habits, goals, and growth.',
         theme_color: '#0a0a0f',
         background_color: '#0a0a0f',

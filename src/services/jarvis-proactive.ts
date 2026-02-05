@@ -165,7 +165,7 @@ async function checkRules(onNudge: (nudge: JarvisNudge) => void): Promise<void> 
       }
     }
   } catch (err) {
-    console.warn('[Jarvis Proactive] Rule check failed:', err);
+    console.warn('[Maple Proactive] Rule check failed:', err);
   }
 }
 

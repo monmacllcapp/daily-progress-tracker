@@ -82,8 +82,13 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
         console.log('[RPM Wizard] Ignite Project clicked');
         console.log('[RPM Wizard] Form data:', { result, purpose, subtasks, dueDate });
 
+        if (!db) {
+            console.error('[RPM Wizard] Database not initialized');
+            alert('Database not ready. Please wait a moment and try again.');
+            return;
+        }
+
         try {
-            const db = await createDatabase();
             const projectId = uuidv4();
             const now = new Date().toISOString();
 

@@ -257,7 +257,7 @@ export async function gatherJarvisContext(): Promise<JarvisContextSnapshot> {
 
 export function formatContextForPrompt(ctx: JarvisContextSnapshot): string {
   const lines: string[] = [
-    `=== ANDIE CONTEXT (${ctx.timestamp}) ===`,
+    `=== MAPLE CONTEXT (${ctx.timestamp}) ===`,
     '',
     `TASKS: ${ctx.activeTaskCount} active (${ctx.highPriorityTasks.length} high priority, ${ctx.overdueCount} overdue), ${ctx.completedTodayCount} completed today`,
   ];

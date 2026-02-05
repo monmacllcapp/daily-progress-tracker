@@ -52,7 +52,7 @@ export function JarvisIcon({ onClick, nudge, isActive }: JarvisIconProps) {
 
       {/* Label */}
       <div className="text-center">
-        <p className="text-sm font-bold text-white tracking-widest uppercase">ANDIE</p>
+        <p className="text-sm font-bold text-white tracking-widest uppercase">Maple</p>
         <p className="text-[11px] text-slate-400 mt-0.5">
           {isActive ? 'Chat open' : 'Tap to talk'}
         </p>
