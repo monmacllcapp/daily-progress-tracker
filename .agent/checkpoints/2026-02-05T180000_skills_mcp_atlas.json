@@ -1,0 +1,99 @@
+{
+  "checkpoint_id": "2026-02-05T180000_skills_mcp_atlas",
+  "timestamp": "2026-02-05T18:00:00Z",
+  "agent": {
+    "model": "claude-opus-4-5-20251101",
+    "provider": "anthropic"
+  },
+  "session": {
+    "project": "Titan Atlas + Cross-Project Infrastructure",
+    "goal": "Set up org skills, MCP servers, Titan Atlas PRD, and Spoke 2 lockdown",
+    "branch": "N/A (multi-project infrastructure work)",
+    "working_directory": "/Users/mac/daily-progress-tracker"
+  },
+  "changes": {
+    "summary": "Built 5 org skills (/pr, /checkpoint, /sprint-status, /bootstrap-project, /build-mvp), configured 9 MCP servers (GitHub official binary v0.30.3, Playwright, Supabase, Stripe, Sentry, PostgreSQL, Resend, ElevenLabs, Render), created Titan Atlas PRD with full hub-and-spoke architecture (5 spokes + Security Sentinel as independent layer above hub), audited all 5 project tech stacks and found 24 available MCP servers, corrected milestone/AC tracking across all spokes.",
+    "files_modified": [
+      {"path": "~/governance-ref/skills/pr/SKILL.md", "action": "created", "description": "PR creation skill — push branch, generate summary from all commits, create PR"},
+      {"path": "~/governance-ref/skills/checkpoint/SKILL.md", "action": "created", "description": "Checkpoint skill — write LATEST.json + HANDOFF.md for session continuity"},
+      {"path": "~/governance-ref/skills/sprint-status/SKILL.md", "action": "created", "description": "Sprint status skill — generate project status from milestones, git, handoff"},
+      {"path": "~/governance-ref/skills/bootstrap-project/SKILL.md", "action": "created", "description": "Project bootstrap — interview → PRD → scaffold → GitHub repo"},
+      {"path": "~/governance-ref/skills/build-mvp/SKILL.md", "action": "created", "description": "Build MVP — PRD → plan → Sonnet agents → code → tests → sandbox"},
+      {"path": "~/governance-ref/templates/SKILL_TEMPLATE.md", "action": "created", "description": "Gold standard skill template with YAML frontmatter, 5-step process, guard rails"},
+      {"path": "~/.claude/mcp.json", "action": "created", "description": "9 MCP servers: GitHub (official binary), Playwright, Supabase, Stripe, Sentry, PostgreSQL, Resend, ElevenLabs, Render"},
+      {"path": "~/.claude/CLAUDE.md", "action": "modified", "description": "Added org skills section with 5 skills registered"},
+      {"path": "~/.claude/projects/-Users-mac/memory/MEMORY.md", "action": "modified", "description": "Added Titan Atlas to project locations table"},
+      {"path": "~/titan-atlas/NORTHSTAR.md", "action": "created", "description": "Titan Atlas vision — 5 spokes + hub + Security Sentinel above hub"},
+      {"path": "~/titan-atlas/MVP.md", "action": "created", "description": "45 acceptance criteria across all spokes + security sentinel"},
+      {"path": "~/titan-atlas/MILESTONES.md", "action": "created", "description": "M0-M7 milestones with corrected tool placement per spoke"},
+      {"path": "~/titan-atlas/docs/TOOLING_MAP.md", "action": "created", "description": "Complete tool mapping per spoke + hub skills for M4"},
+      {"path": "~/titan-atlas/hub/README.md", "action": "created", "description": "Central Cortex placeholder"},
+      {"path": "~/titan-atlas/spokes/spoke-*/README.md", "action": "created", "description": "5 spoke placeholder READMEs with status and tool references"},
+      {"path": "~/.claude/projects/-Users-mac-titan-atlas/CLAUDE.md", "action": "created", "description": "Titan Atlas Claude Code spoke — hub project rules and key files"},
+      {"path": "~/.claude/projects/-Users-mac-titan-atlas/memory/MEMORY.md", "action": "created", "description": "Titan Atlas agent memory — decisions and lessons"},
+      {"path": "~/.local/bin/github-mcp-server", "action": "created", "description": "Official GitHub MCP binary v0.30.3 (replaced deprecated npm package)"}
+    ],
+    "decisions_made": [
+      {
+        "decision": "Security Sentinel sits ABOVE the hub as independent layer, not inside it",
+        "rationale": "If hub is compromised, Sentinel goes down too. Independent layer can monitor everything including the hub. Direct alert line to human bypasses hub's decision queue.",
+        "alternatives_considered": ["Sentinel as hub module", "Sentinel as 6th spoke"]
+      },
+      {
+        "decision": "Build order: Spoke 2 → Spoke 3 → Spoke 4 → Hub → Spoke 5 → Security → Spoke 1",
+        "rationale": "Dev Engine is foundation for everything. Marketing next because it drives revenue. Discovery scanner is last because it requires all other spokes to be functional first.",
+        "alternatives_considered": ["Build discovery first", "Build hub first"]
+      },
+      {
+        "decision": "Use official GitHub MCP binary instead of deprecated npm package",
+        "rationale": "@modelcontextprotocol/server-github deprecated May 2025. Official binary from github.com/github/github-mcp-server is actively maintained (v0.30.3, Feb 2026).",
+        "alternatives_considered": ["Keep deprecated npm package", "Docker-based approach"]
+      },
+      {
+        "decision": "Relocate Stripe/Firecrawl/PostHog/Semgrep from Spoke 2 to correct spokes",
+        "rationale": "These tools belong to Revenue (Stripe), Discovery (Firecrawl), Hub (PostHog), Security (Semgrep) — not the Dev Engine.",
+        "alternatives_considered": ["Keep all in Spoke 2 as shared tools"]
+      },
+      {
+        "decision": "Hub needs 6 dedicated skills (morning-brief, kpi-dashboard, decision-queue, reinforce, product-health, signal-router)",
+        "rationale": "Hub is cross-cutting — needs meta-level visibility across all spokes, not just per-project status.",
+        "alternatives_considered": ["Extend /sprint-status for hub use"]
+      }
+    ]
+  },
+  "continuation": {
+    "status": "in_progress",
+    "next_immediate_step": {
+      "action": "Map out Spoke 3 skills in detail",
+      "details": "Define all skills needed for Marketing & Distribution spoke: /market-strategy, /content-create, /distribute, /engage, /ab-analyze. Include tool requirements, process steps, and guard rails for each."
+    },
+    "next_three_steps": [
+      {
+        "step_number": 2,
+        "action": "Build Spoke 3 skills",
+        "details": "Create SKILL.md files for all 5 marketing skills in ~/governance-ref/skills/"
+      },
+      {
+        "step_number": 3,
+        "action": "Fill in MCP server tokens and restart Claude Code",
+        "details": "User needs to provide: Supabase access token, Stripe secret key, Sentry access token, Resend API key, ElevenLabs API key, Render API key. Then restart Claude Code to activate all 9 MCP servers."
+      },
+      {
+        "step_number": 4,
+        "action": "Smoke test MCP servers after restart",
+        "details": "Verify GitHub MCP (binary v0.30.3) and Playwright MCP work. Test any additional servers user has provided tokens for."
+      }
+    ],
+    "blockers": [
+      "7 MCP server tokens needed from user (Supabase, Stripe, Sentry, PostgreSQL, Resend, ElevenLabs, Render)",
+      "Claude Code restart needed to activate MCP servers"
+    ],
+    "context_notes": "Session continued from previous context that built the staffing pipeline. This session focused on infrastructure: skills, MCP servers, and Titan Atlas architecture. 62 unique technologies audited across 5 projects — 24 have available MCP servers. GitHub MCP was deprecated, replaced with official binary. Spoke 2 at 90% — remaining items are token configuration and smoke testing. User wants Spoke 3 (Marketing) as next priority after Spoke 2 lockdown. Discovery Scanner (Spoke 1) is explicitly last priority."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 13,
+    "parent_checkpoint": "2026-02-05T120000_staffingpipeline",
+    "tags": ["titan-atlas", "org-skills", "mcp-servers", "spoke-2", "infrastructure", "architecture"]
+  }
+}

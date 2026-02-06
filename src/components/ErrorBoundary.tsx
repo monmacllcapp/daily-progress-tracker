@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { AlertTriangle } from 'lucide-react';
 
 interface Props {
     children: ReactNode;
@@ -53,6 +54,57 @@ export class ErrorBoundary extends Component<Props, State> {
                             </button>
                         </div>
                     </div>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
+/** Page-level error boundary — renders inline within the app shell */
+interface PageErrorBoundaryProps {
+    children: ReactNode;
+    pageName?: string;
+}
+
+interface PageErrorBoundaryState {
+    hasError: boolean;
+    error: Error | null;
+}
+
+export class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErrorBoundaryState> {
+    state: PageErrorBoundaryState = { hasError: false, error: null };
+
+    static getDerivedStateFromError(error: Error): PageErrorBoundaryState {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error: Error, info: ErrorInfo) {
+        console.error(`[PageErrorBoundary] ${this.props.pageName || 'Page'} crashed:`, error, info.componentStack);
+    }
+
+    private handleRetry = () => {
+        this.setState({ hasError: false, error: null });
+    };
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
+                    <AlertTriangle className="w-12 h-12 text-amber-400 mb-4" />
+                    <h2 className="text-xl font-bold text-slate-200 mb-2">
+                        {this.props.pageName || 'This page'} encountered an error
+                    </h2>
+                    <p className="text-sm text-slate-400 mb-6 max-w-md">
+                        {this.state.error?.message || 'An unexpected error occurred.'}
+                    </p>
+                    <button
+                        onClick={this.handleRetry}
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        Try Again
+                    </button>
                 </div>
             );
         }

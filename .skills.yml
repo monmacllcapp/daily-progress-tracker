@@ -1,0 +1,15 @@
+version: "1.0.0"
+governance_hub: monmacllcapp/governance
+project:
+  name: "daily-progress-tracker"
+  stack: [typescript]
+  domain: "productivity"
+required:
+  - name: sentry-code-review
+    source: skills/sentry
+recommended:
+  - name: dev-methodology
+    source: skills/dev
+auto_resolve: true
+excluded:
+  - name: equity-research

@@ -153,7 +153,7 @@ export class ConflictDetector {
         }
 
         try {
-            const model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+            const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
             const prompt = `
 You are a scheduling assistant. A user is trying to schedule a project that conflicts with an existing calendar event.

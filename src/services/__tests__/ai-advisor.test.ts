@@ -7,6 +7,11 @@ import type { Task, Category, Project } from '../../types/schema';
 describe('AI Advisor — Graceful Degradation', () => {
     beforeEach(() => {
         vi.resetModules();
+        vi.stubEnv('VITE_GEMINI_API_KEY', '');
+    });
+
+    afterEach(() => {
+        vi.unstubAllEnvs();
     });
 
     it('categorizeTask returns null when no API key is set', async () => {

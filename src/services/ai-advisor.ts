@@ -25,7 +25,7 @@ export async function categorizeTask(
     if (!ai || categories.length === 0) return null;
 
     try {
-        const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
         const categoryList = categories.map(c => `- "${c.name}" (id: ${c.id})`).join('\n');
 
         const prompt = `You are a life planning assistant. Categorize this task into one of the user's life categories.
@@ -71,7 +71,7 @@ export async function suggestFocus(
     if (!ai || activeTasks.length === 0) return null;
 
     try {
-        const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const taskDescriptions = activeTasks.slice(0, 10).map(t => {
             const cat = categories.find(c => c.id === t.category_id);
