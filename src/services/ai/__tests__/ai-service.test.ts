@@ -16,7 +16,7 @@ vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: vi.fn(),
 }));
 
-import { detectProvider, askAI, askAIJSON, aiService } from '../ai-service';
+import { detectProvider, askAI, aiService } from '../ai-service';
 import { claudeClient } from '../claude-client';
 import { isAIAvailable as isGeminiAvailable } from '../../ai-advisor';
 

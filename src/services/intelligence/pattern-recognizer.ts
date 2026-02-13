@@ -1,4 +1,4 @@
-import type { Signal, AnticipationContext, ProductivityPattern } from '../../types/signals';
+import type { Signal, AnticipationContext } from '../../types/signals';
 import type { Task, Category } from '../../types/schema';
 import { v4 as uuid } from 'uuid';
 

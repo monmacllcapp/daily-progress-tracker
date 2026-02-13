@@ -377,7 +377,7 @@ export function EmailDashboard() {
                     break;
                 case 'reclassify':
                     await doc.patch({
-                        tier_override: entry.previousTierOverride ?? null,
+                        tier_override: entry.previousTierOverride ?? undefined,
                         updated_at: new Date().toISOString(),
                     });
                     break;
@@ -429,9 +429,6 @@ export function EmailDashboard() {
             const rule = addRule(pattern);
             ruleId = rule.id;
         }
-        // Capture pre-action state for undo
-        const previousStatus = email.status as EmailStatus;
-        const previousTierOverride = (email.tier_override || undefined) as EmailTier | undefined;
         // Apply the action
         if (suggestion.action === 'archive') {
             await handleArchive(email);

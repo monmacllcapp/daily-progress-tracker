@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Signal, SignalSeverity, LifeDomain, SignalType } from '../types/signals';
+import type { Signal, LifeDomain, SignalType } from '../types/signals';
 
 interface SignalState {
   signals: Signal[];

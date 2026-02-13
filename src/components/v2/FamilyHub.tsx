@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Calendar, AlertCircle, Heart } from 'lucide-react';
+import { Users, AlertCircle, Heart } from 'lucide-react';
 import type { FamilyEvent, Signal } from '../../types/signals';
 
 export interface FamilyHubProps {

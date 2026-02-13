@@ -10,9 +10,6 @@ vi.mock('uuid', () => ({ v4: () => 'test-uuid' }));
  * Helper to create minimal valid AnticipationContext
  */
 function makeContext(overrides: Partial<AnticipationContext> = {}): AnticipationContext {
-  const now = new Date('2026-02-13T10:00:00Z');
-  const today = '2026-02-13';
-
   return {
     tasks: [],
     projects: [],
@@ -24,7 +21,7 @@ function makeContext(overrides: Partial<AnticipationContext> = {}): Anticipation
     mcpData: {
       familyCalendars: [],
     },
-    today,
+    today: '2026-02-13',
     currentTime: '10:00',
     dayOfWeek: 'Thursday',
     historicalPatterns: [],

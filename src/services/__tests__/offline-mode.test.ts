@@ -9,13 +9,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  */
 
 // Mock database helper
-function mockDoc(data: Record<string, unknown>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mockDoc<T extends Record<string, any>>(data: T) {
     return {
         ...data,
         toJSON: () => data,
-        patch: vi.fn().mockResolvedValue(undefined),
-        remove: vi.fn().mockResolvedValue(undefined),
-    };
+        patch: vi.fn().mockResolvedValue(undefined) as any,
+        remove: vi.fn().mockResolvedValue(undefined) as any,
+    } as T & { toJSON: () => T; patch: any; remove: any };
 }
 
 function createMockDb(
@@ -29,8 +30,8 @@ function createMockDb(
                 exec: vi.fn().mockResolvedValue(
                     opts?.selector
                         ? tasks.filter(t => {
-                            if ('status' in opts.selector) {
-                                return t.status === opts.selector.status;
+                            if (opts.selector && 'status' in opts.selector) {
+                                return (t as Record<string, unknown>).status === opts.selector.status;
                             }
                             return true;
                         })
@@ -38,7 +39,7 @@ function createMockDb(
                 ),
             })),
             findOne: vi.fn((id: string) => ({
-                exec: vi.fn().mockResolvedValue(tasks.find(t => t.id === id) || null),
+                exec: vi.fn().mockResolvedValue(tasks.find(t => (t as Record<string, unknown>).id === id) || null),
             })),
             insert: vi.fn().mockResolvedValue(undefined),
         },
@@ -47,16 +48,16 @@ function createMockDb(
                 exec: vi.fn().mockResolvedValue(journals),
             })),
             findOne: vi.fn((id: string) => ({
-                exec: vi.fn().mockResolvedValue(journals.find(j => j.id === id) || null),
+                exec: vi.fn().mockResolvedValue(journals.find(j => (j as Record<string, unknown>).id === id) || null),
             })),
             insert: vi.fn().mockResolvedValue(undefined),
         },
         categories: {
-            find: vi.fn((opts?: { sort?: unknown[] }) => ({
+            find: vi.fn((_opts?: { sort?: unknown[] }) => ({
                 exec: vi.fn().mockResolvedValue(categories),
             })),
             findOne: vi.fn((id: string) => ({
-                exec: vi.fn().mockResolvedValue(categories.find(c => c.id === id) || null),
+                exec: vi.fn().mockResolvedValue(categories.find(c => (c as Record<string, unknown>).id === id) || null),
             })),
             insert: vi.fn().mockResolvedValue(undefined),
         },
@@ -254,7 +255,7 @@ describe('Offline Mode - Core CRUD Operations', () => {
                 stressors: [],
                 habits: {},
             });
-            const db = createMockDb([], [journal]);
+            createMockDb([], [journal]);
 
             // Update journal
             await journal.patch({
@@ -305,7 +306,7 @@ describe('Offline Mode - Core CRUD Operations', () => {
                 current_progress: 0,
                 streak_count: 0,
             });
-            const db = createMockDb([], [], [category]);
+            createMockDb([], [], [category]);
 
             // Update category
             await category.patch({
@@ -329,7 +330,7 @@ describe('Offline Mode - Core CRUD Operations', () => {
                 color_theme: '#EF4444',
                 icon: 'trash',
             });
-            const db = createMockDb([], [], [category]);
+            createMockDb([], [], [category]);
 
             // Delete category
             await category.remove();
@@ -417,6 +418,7 @@ describe('Offline Mode - Core CRUD Operations', () => {
             // Create, complete, read
             await createTask(db, {
                 title: 'Task 3',
+                priority: 'medium',
                 status: 'active',
                 source: 'manual',
                 created_date: '2026-02-04',
@@ -480,6 +482,7 @@ describe('Offline Mode - Core CRUD Operations', () => {
 
             await createTask(db, {
                 title: 'Another task',
+                priority: 'medium',
                 status: 'active',
                 source: 'manual',
                 created_date: '2026-02-03',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, TrendingUp, Building2, PieChart } from 'lucide-react';
+import { DollarSign, Building2, PieChart } from 'lucide-react';
 import type { PortfolioSnapshot, Deal } from '../../types/signals';
 
 interface FinancialOverviewProps {

@@ -1,5 +1,4 @@
 import type { Signal, AnticipationContext, SignalSeverity } from '../../types/signals';
-import type { Task } from '../../types/schema';
 
 export function synthesizePriorities(signals: Signal[], context: AnticipationContext): Signal[] {
   const deduplicated = deduplicateSignals(signals);

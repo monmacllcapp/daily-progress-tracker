@@ -1,13 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // Helper to create mock documents for V2 collections
-function mockDoc(data: Record<string, unknown>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mockDoc<T extends Record<string, any>>(data: T) {
     return {
         ...data,
         toJSON: () => data,
-        patch: vi.fn().mockResolvedValue(undefined),
-        remove: vi.fn().mockResolvedValue(undefined),
-    };
+        patch: vi.fn().mockResolvedValue(undefined) as any,
+        remove: vi.fn().mockResolvedValue(undefined) as any,
+    } as T & { toJSON: () => T; patch: any; remove: any };
 }
 
 describe('V2 Collection Schemas', () => {

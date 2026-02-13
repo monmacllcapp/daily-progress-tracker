@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { anticipationWorker, AnticipationWorkerConfig } from '../anticipation-worker';
+import { anticipationWorker } from '../anticipation-worker';
 import type { AnticipationResult } from '../../services/intelligence/anticipation-engine';
 import type { Signal } from '../../types/signals';
 

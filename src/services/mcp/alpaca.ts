@@ -55,6 +55,6 @@ export async function placeOrder(params: PlaceOrderParams) {
   return mcpBridge.callTool({
     server: 'alpaca',
     tool: 'place_order',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
 }

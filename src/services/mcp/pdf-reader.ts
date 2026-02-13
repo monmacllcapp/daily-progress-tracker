@@ -28,7 +28,7 @@ export async function extractText(params: ExtractTextParams) {
   return mcpBridge.callTool({
     server: 'pdf-reader',
     tool: 'extract_text',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
 }
 
@@ -39,7 +39,7 @@ export async function extractTables(params: ExtractTablesParams) {
   return mcpBridge.callTool({
     server: 'pdf-reader',
     tool: 'extract_tables',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
 }
 
@@ -50,6 +50,6 @@ export async function summarizePdf(params: SummarizeParams) {
   return mcpBridge.callTool({
     server: 'pdf-reader',
     tool: 'summarize',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
 }

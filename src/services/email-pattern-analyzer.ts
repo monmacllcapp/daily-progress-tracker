@@ -179,10 +179,6 @@ function detectSubjectKeywordPatterns(actions: EmailAction[]): DetectedPattern[]
 function deduplicatePatterns(patterns: DetectedPattern[]): DetectedPattern[] {
   // If a sender pattern and domain pattern cover the same criteria,
   // prefer the sender pattern (more specific)
-  const senderValues = new Set(
-    patterns.filter(p => p.type === 'sender-action').map(p => p.matchCriteria.value)
-  );
-
   return patterns.filter(p => {
     if (p.type === 'domain-action') {
       // Remove domain pattern if a sender pattern exists for a sender on that domain

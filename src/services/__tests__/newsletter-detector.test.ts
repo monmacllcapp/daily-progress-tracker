@@ -10,6 +10,7 @@ function makeSender(overrides: Partial<NewsletterSender> = {}): NewsletterSender
     lastReceived: new Date().toISOString(),
     hasUnsubscribeUrl: false,
     hasUnsubscribeMailto: false,
+    hasOneClickUnsubscribe: false,
     ...overrides,
   };
 }

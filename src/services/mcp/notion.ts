@@ -31,7 +31,7 @@ export async function searchPages(params: SearchPagesParams) {
   return mcpBridge.callTool({
     server: 'notion',
     tool: 'search_pages',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
 }
 
@@ -53,7 +53,7 @@ export async function createPage(params: CreatePageParams) {
   return mcpBridge.callTool({
     server: 'notion',
     tool: 'create_page',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
 }
 
@@ -64,6 +64,6 @@ export async function updatePage(params: UpdatePageParams) {
   return mcpBridge.callTool({
     server: 'notion',
     tool: 'update_page',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
 }

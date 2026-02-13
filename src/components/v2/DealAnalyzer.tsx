@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, TrendingUp, AlertCircle, DollarSign } from 'lucide-react';
+import { Building2, DollarSign } from 'lucide-react';
 import type { Deal } from '../../types/signals';
 
 interface DealAnalyzerProps {

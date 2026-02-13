@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectAgingSignals, DEFAULT_AGING_CONFIG } from '../aging-detector';
+import { detectAgingSignals } from '../aging-detector';
 import type { AnticipationContext } from '../../../types/signals';
 import type { Email, Task } from '../../../types/schema';
 

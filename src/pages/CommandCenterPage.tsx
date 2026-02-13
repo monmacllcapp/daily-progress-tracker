@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState } from 'react';
 import { MorningBrief } from '../components/v2/MorningBrief';
 import { SignalFeed } from '../components/v2/SignalFeed';
 import { CommandPalette } from '../components/v2/CommandPalette';

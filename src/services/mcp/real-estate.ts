@@ -30,7 +30,7 @@ export async function analyzeDeal(params: AnalyzeDealParams) {
   const result = await mcpBridge.callTool({
     server: 'real-estate',
     tool: 'analyze_deal',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
   return result;
 }
@@ -42,7 +42,7 @@ export async function searchComps(params: CompSearchParams) {
   const result = await mcpBridge.callTool({
     server: 'real-estate',
     tool: 'comp_search',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
   return result;
 }
@@ -54,6 +54,6 @@ export async function getMarketData(params: MarketDataParams) {
   return mcpBridge.callTool({
     server: 'real-estate',
     tool: 'market_data',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
 }

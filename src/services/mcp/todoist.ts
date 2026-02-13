@@ -26,7 +26,7 @@ export async function getTasks(params: GetTasksParams = {}) {
   return mcpBridge.callTool({
     server: 'todoist',
     tool: 'get_tasks',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
 }
 
@@ -37,7 +37,7 @@ export async function createTask(params: CreateTaskParams) {
   return mcpBridge.callTool({
     server: 'todoist',
     tool: 'create_task',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
 }
 

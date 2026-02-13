@@ -124,7 +124,7 @@ export function generatePendingActions(emails: Email[]): PendingAction[] {
 
   for (const email of emails) {
     // Skip already-processed emails
-    if (email.status === 'archived' || email.status === 'snoozed') continue;
+    if ((email.status as string) === 'archived' || (email.status as string) === 'snoozed') continue;
 
     for (const rule of rules) {
       // Skip if action would be redundant

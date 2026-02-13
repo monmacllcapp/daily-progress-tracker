@@ -58,8 +58,6 @@ export function detectAgingSignals(
     }
   });
 
-  const taskStaleThreshold = actualConfig.task_stale_days * 86400000;
-
   context.tasks.forEach((task) => {
     if (task.status !== 'active') {
       return;

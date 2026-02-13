@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { detectCrossDomainSignals } from '../cross-domain-correlator';
-import type { AnticipationContext, Signal, LifeDomain } from '../../../types/signals';
+import type { AnticipationContext, Signal } from '../../../types/signals';
 
 // Mock uuid to return predictable values
 vi.mock('uuid', () => ({

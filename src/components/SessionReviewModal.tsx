@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Globe, User, FileText, Brain, Check, X, ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
+import { Globe, User, FileText, Brain, Check, X, ChevronDown, MessageSquare } from 'lucide-react';
 import type { DetectedPattern } from '../services/email-pattern-analyzer';
 
 interface SessionReviewModalProps {

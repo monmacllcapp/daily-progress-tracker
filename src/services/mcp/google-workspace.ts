@@ -31,7 +31,7 @@ export async function getCalendarEvents(params: CalendarEventsParams = {}) {
   const result = await mcpBridge.callTool({
     server: 'google-workspace',
     tool: 'calendar_events',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
   return result;
 }
@@ -43,7 +43,7 @@ export async function searchGmail(params: GmailSearchParams) {
   const result = await mcpBridge.callTool({
     server: 'google-workspace',
     tool: 'gmail_search',
-    arguments: params as Record<string, unknown>,
+    arguments: { ...params },
   });
   return result;
 }

@@ -41,7 +41,7 @@ export type EventType =
     | 'calendar_schedule';
 
 export interface EventMetadata {
-    [key: string]: string | number | boolean | undefined;
+    [key: string]: string | number | boolean;
 }
 
 /**

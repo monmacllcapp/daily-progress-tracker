@@ -133,7 +133,7 @@ function inferDomainFromEvent(event: CalendarEvent): Signal['domain'] {
 /**
  * Get context-aware suggestion based on event type and timing
  */
-function getContextSwitchSuggestion(event: CalendarEvent, minutesUntil: number): string {
+function getContextSwitchSuggestion(_event: CalendarEvent, minutesUntil: number): string {
   if (minutesUntil <= 5) {
     return 'Wrap up current task and prepare to transition';
   } else if (minutesUntil <= 15) {

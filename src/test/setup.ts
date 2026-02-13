@@ -18,4 +18,4 @@ const localStorageMock = (() => {
   };
 })();
 
-global.localStorage = localStorageMock as Storage;
+(globalThis as Record<string, unknown>).localStorage = localStorageMock as Storage;
