@@ -1,0 +1,65 @@
+{
+  "checkpoint_id": "2026-02-13T072400_session4_mcp_adapters",
+  "timestamp": "2026-02-13T07:24:00Z",
+  "agent": {
+    "model": "claude-sonnet-4-5",
+    "provider": "anthropic",
+    "session_id": "v2-wave-2b-mcp-adapters"
+  },
+  "session": {
+    "project": "MAPLE Life OS V2",
+    "goal": "Session 4 (Partial) — Create 7 MCP Adapter Services + Test File",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Created 7 MCP adapter services (google-workspace, real-estate, zillow, alpaca, notion, todoist, pdf-reader) with typed interfaces wrapping mcpBridge.callTool() + comprehensive test suite with 24 tests",
+    "files_modified": [
+      "src/services/mcp/google-workspace.ts",
+      "src/services/mcp/real-estate.ts",
+      "src/services/mcp/zillow.ts",
+      "src/services/mcp/alpaca.ts",
+      "src/services/mcp/notion.ts",
+      "src/services/mcp/todoist.ts",
+      "src/services/mcp/pdf-reader.ts",
+      "src/services/mcp/__tests__/mcp-adapters.test.ts",
+      ".agent/checkpoints/LATEST.json",
+      ".agent/HANDOFF.md"
+    ],
+    "decisions_made": [
+      "All adapters follow consistent pattern: import mcpBridge, export typed async functions, call mcpBridge.callTool with server/tool/arguments",
+      "Each adapter provides typed interfaces for parameters (CalendarEventsParams, AnalyzeDealParams, etc.)",
+      "Adapters return McpToolResult directly - let callers handle success/error logic",
+      "Todoist adapter created even though not yet in mcp-config.ts - uses server name 'todoist'",
+      "Test suite uses vi.mock to mock mcpBridge, verifies correct server/tool/arguments passed to callTool",
+      "24 tests cover all 7 adapters with multiple test cases per adapter (4 Google Workspace, 3 Real Estate, 3 Zillow, 4 Alpaca, 4 Notion, 3 Todoist, 3 PDF Reader)"
+    ]
+  },
+  "test_results": {
+    "total_files": 35,
+    "total_tests": 433,
+    "new_tests": 24,
+    "status": "all passing for MCP adapters (24/24)",
+    "notes": "MCP adapter tests: 24 passing. Note: 3 unrelated tests failing in financial-sentinel.test.ts from parallel session work."
+  },
+  "continuation": {
+    "status": "mcp-adapters-complete",
+    "next_immediate_step": {
+      "action": "Session 4 completion requires remaining intelligence services",
+      "details": "5 intelligence services appear to be created (financial-sentinel, cross-domain-correlator, family-awareness, context-switch-prep, morning-brief) but financial-sentinel has 3 failing tests. Those services need review/fixes, then full Session 4 can be marked complete."
+    },
+    "next_three_steps": [
+      "Fix failing tests in financial-sentinel.test.ts (3 failures in deal pipeline alerts)",
+      "Verify all Session 4 intelligence services are complete and tested",
+      "Session 5: Core V2 Widgets — MorningBrief, SignalFeed, CommandPalette (~16 tests)"
+    ],
+    "blockers": [],
+    "context_notes": "MCP adapters complete with 24 tests. TypeScript compiles clean. All adapters wrap mcpBridge.callTool with typed interfaces. Ready for use by intelligence services and UI components."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 5,
+    "parent_checkpoint": "2026-02-13T071800_session3_complete",
+    "tags": ["v2-wave-2b", "session-4-partial", "mcp-adapters"]
+  }
+}
