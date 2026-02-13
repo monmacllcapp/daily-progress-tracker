@@ -1,46 +1,47 @@
-# Agent Handoff
+# MAPLE Life OS V2 — Handoff
+
+**Last Updated:** 2026-02-13T20:30:00Z
+**Checkpoint ID:** 2026-02-13T203000_merge_complete_pr_updated
+**Branch:** sandbox at `e244e7d`
+**Status:** ALL SESSIONS COMPLETE — Merged with remote, PR #4 updated
+
+---
 
 ## What Was Done
 
-Fixed 3 remaining TypeScript build errors across 3 files:
+All 9 sessions of V2 implementation + merge with remote branch features (staffing, financial, vision, Jarvis).
 
-### Fix 1: EmailDashboard.tsx — Updated EmailTier enum values
-- **Lines 30-37:** Updated TIER_CONFIG and TIER_ORDER to use new 7-tier system
-  - Old `'urgent'` → New `'reply_urgent'`
-  - Old `'important'` → New `'to_review'`
-  - Old `'promotions'` → New `'social'`
-  - Added new tiers: `'low_priority'`, `'offers'`, `'newsletters'`
-  - Kept `'unsubscribe'` unchanged
-- **Line 72:** Updated default expanded tiers from `['urgent', 'important']` to `['reply_urgent', 'to_review']`
+### Final Metrics
+- **Total tests**: 663 (312 V1 + 294 V2 + 57 new feature) — all passing
+- **Production build**: Clean (`tsc -b && vite build` — zero errors)
+- **Files changed**: ~170 (vs origin/main)
+- **PR**: #4 (sandbox → main) — https://github.com/monmacllcapp/daily-progress-tracker/pull/4
 
-### Fix 2: FinancialDashboard.tsx — Removed unused imports
-- **Line 7:** Removed unused `Check` from lucide-react import
-- **Line 8:** Removed unused `ArrowUpDown` from lucide-react import
-- **Line 14:** Removed unused `categorizeTransaction` from financial-analysis import
+### Merge Resolution
+Resolved 10 merge conflicts between V2 intelligence layer and remote features:
+- App.tsx, Sidebar.tsx, TopBar.tsx — routes + navigation
+- db/index.ts, schema.ts — combined 14 new collection schemas
+- widgetRegistry.ts — combined 4 new widget registrations
+- EmailTier migration — updated V2 tests from 4-tier to 7-tier system
+- sidebar.ts — added Intelligence nav group to dynamic config
 
-### Fix 3: JarvisChat.tsx — Fixed SpeechRecognition runtime value usage
-- **Lines 10-48:** Replaced `declare global` type declarations with runtime shim approach
-  - Created runtime constant: `const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition`
-  - Kept interface type definitions but removed global window augmentation
-  - Used `any` type for event parameters to avoid complex type gymnastics
-- **Lines 80-83:** Simplified `getSpeechRecognition()` to return the runtime shim
-- **Line 209:** Changed `SpeechRecognitionEvent` parameter to `any` to avoid type conflicts
-
-Verified clean build with `npx tsc --noEmit` - **zero TypeScript errors**.
+---
 
 ## Current State
 
-- **Build status:** ✅ Clean TypeScript compilation (0 errors)
-- **Branch:** sandbox
-- **Modified files:**
-  - `/src/components/EmailDashboard.tsx` (tier system update)
-  - `/src/components/FinancialDashboard.tsx` (import cleanup)
-  - `/src/components/JarvisChat.tsx` (SpeechRecognition fix)
-- **Test status:** Not verified (type fixes only)
+- TypeScript: zero errors
+- Tests: 663/663 passing across 53 test files
+- Build: production build succeeds with proper chunk splitting
+- Branch: `sandbox`, all work committed and pushed
+- PR: #4 open (sandbox → main)
+
+---
 
 ## Next Step
 
-Run test suite (`npm test`) to verify no regressions from type fixes, or proceed with next feature work.
+- Review and merge PR #4
+- Deploy to production
+- Manual verification of MCP server connections and AI responses
 
 ## Blockers
 
@@ -48,6 +49,8 @@ None.
 
 ## Context Notes
 
-- EmailTier enum was previously updated in schema but component wasn't synced
-- SpeechRecognition is a browser-provided constructor (window.SpeechRecognition), not just a type — required runtime shim approach
-- All fixes were type/import corrections with no logic changes
+- V2 files isolated in `src/components/v2/`, `src/services/intelligence/`, `src/services/mcp/`, `src/services/ai/`
+- AI fallback chain: Claude (via proxy at localhost:3100) → Gemini → rule-based
+- All MCP servers `required: false` — graceful degradation when offline
+- Sidebar uses dynamic config system (types/sidebar.ts) — V2 items in "Intelligence" section
+- Email tier system migrated to 7-tier: reply_urgent, reply_needed, to_review, important_not_urgent, unsure, social, unsubscribe
