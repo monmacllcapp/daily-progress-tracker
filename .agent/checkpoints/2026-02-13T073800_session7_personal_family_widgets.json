@@ -1,0 +1,70 @@
+{
+  "checkpoint_id": "2026-02-13T073800_session7_personal_family_widgets",
+  "timestamp": "2026-02-13T07:38:00Z",
+  "agent": {
+    "model": "claude-sonnet-4-5",
+    "provider": "anthropic",
+    "session_id": "v2-session-7-personal-family-widgets"
+  },
+  "session": {
+    "project": "MAPLE Life OS V2",
+    "goal": "Session 7 COMPLETE — 5 personal & family widgets with comprehensive tests",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Created 5 personal & family widgets (FamilyHub, HealthTracker, DocumentIntel, KnowledgeBase, WeeklyDigest) with comprehensive test suite (21 tests). All components are presentational (props-based), use Tailwind dark theme, lucide-react icons, and follow established V2 widget patterns. 543 total tests passing.",
+    "files_modified": [
+      "src/components/v2/FamilyHub.tsx",
+      "src/components/v2/HealthTracker.tsx",
+      "src/components/v2/DocumentIntel.tsx",
+      "src/components/v2/KnowledgeBase.tsx",
+      "src/components/v2/WeeklyDigest.tsx",
+      "src/components/v2/__tests__/PersonalWidgets.test.tsx"
+    ],
+    "decisions_made": [
+      "FamilyHub widget (80 LOC): Displays family calendar events and family-domain signals. Shows member name with heart icon, event summary, and time. Pink color theme for family signals. Empty state with Users icon.",
+      "HealthTracker widget (85 LOC): Shows health_fitness signals, streak display with flame icon, and today's habits checklist (read-only display). Empty state when no health data. Emerald/green color theme for health signals.",
+      "DocumentIntel widget (60 LOC): Lists recently analyzed documents with title, summary snippet (truncated), and extraction timestamp. Blue color theme with FileText icon. Empty state when no documents analyzed.",
+      "KnowledgeBase widget (85 LOC): Shows recent Notion pages with search functionality. Filters pages by title using controlled search input. Purple color theme with BookOpen icon. Empty state adapts to show 'No matching pages' during search.",
+      "WeeklyDigest widget (95 LOC): Weekly review widget showing 3-column stat grid (tasks, signals, streaks) and productivity patterns list with confidence percentages. Includes week start date header. Empty state when no weekly data.",
+      "Test coverage: 21 tests total across all 5 widgets. Test helpers: makeFamilyEvent(), makeSignal(), makePattern() with defaults + overrides.",
+      "FamilyHub tests (5): loading state, empty events, renders events, shows family signals, and loading state edge case",
+      "HealthTracker tests (5): loading state, empty state, streak display, habits checklist, health signals",
+      "DocumentIntel tests (3): loading state, empty state, renders documents list",
+      "KnowledgeBase tests (4): loading state, empty state, renders pages, search filtering using fireEvent.change",
+      "WeeklyDigest tests (4): loading state, empty state, renders summary stats, renders patterns with confidence, handles missing data gracefully",
+      "All components use named exports (export const ComponentName), Tailwind dark theme (bg-slate-900/50, bg-slate-800/30, text-white, text-slate-300/400/500), lucide-react icons, and React.FC<Props> pattern"
+    ]
+  },
+  "test_results": {
+    "total_files": 45,
+    "total_tests": 543,
+    "v1_tests": 312,
+    "v2_tests": 231,
+    "status": "all passing",
+    "new_tests_this_session": [
+      "PersonalWidgets.test.tsx: 21 tests (FamilyHub: 5, HealthTracker: 5, DocumentIntel: 3, KnowledgeBase: 4, WeeklyDigest: 4)"
+    ]
+  },
+  "continuation": {
+    "status": "session-7-complete",
+    "next_immediate_step": {
+      "action": "Update MILESTONES.md and scorecard for V2 session tracking",
+      "details": "Document Session 7 completion in project milestones. Update V2 progress tracking. All V2 widgets now complete (12 total widgets). Next: Session 8 - Dashboard composition and integration."
+    },
+    "next_three_steps": [
+      "Update MILESTONES.md with V2 session tracking (Sessions 5-7 complete)",
+      "Begin Session 8: Dashboard composition - create V2 dashboard layout, wire up all widgets to data sources",
+      "Session 9: Integration testing - anticipation engine integration, full data flow verification, keyboard shortcuts"
+    ],
+    "blockers": [],
+    "context_notes": "543 tests passing (312 V1 + 231 V2). TypeScript compiles clean. All V2 widgets complete (12 total widgets). Session 7 delivered 5 personal/family widgets with 21 tests. Next sessions focus on dashboard composition, integration with anticipation engine, and polish."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 12,
+    "parent_checkpoint": "2026-02-13T073900_session6_business_widgets_complete",
+    "tags": ["v2-wave-2b", "session-7-complete", "personal-family-widgets-complete", "all-v2-widgets-complete"]
+  }
+}
