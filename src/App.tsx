@@ -31,6 +31,11 @@ const LifePage = lazy(() => import('./pages/LifePage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 const MorningFlowPage = lazy(() => import('./pages/MorningFlowPage'));
+const CommandCenterPage = lazy(() => import('./pages/CommandCenterPage'));
+const DealsPage = lazy(() => import('./pages/DealsPage'));
+const TradingPage = lazy(() => import('./pages/TradingPage'));
+const FamilyPage = lazy(() => import('./pages/FamilyPage'));
+const FinancePage = lazy(() => import('./pages/FinancePage'));
 
 function LoadingSpinner() {
   return (
@@ -112,6 +117,11 @@ function App() {
               <Route path="/life" element={<PageErrorBoundary pageName="Life"><LifePage /></PageErrorBoundary>} />
               <Route path="/journal" element={<PageErrorBoundary pageName="Journal"><JournalPage /></PageErrorBoundary>} />
               <Route path="/projects" element={<PageErrorBoundary pageName="Projects"><ProjectsPage /></PageErrorBoundary>} />
+              <Route path="/command-center" element={<PageErrorBoundary pageName="Command Center"><CommandCenterPage /></PageErrorBoundary>} />
+              <Route path="/deals" element={<PageErrorBoundary pageName="Deals"><DealsPage /></PageErrorBoundary>} />
+              <Route path="/trading" element={<PageErrorBoundary pageName="Trading"><TradingPage /></PageErrorBoundary>} />
+              <Route path="/family" element={<PageErrorBoundary pageName="Family"><FamilyPage /></PageErrorBoundary>} />
+              <Route path="/finance" element={<PageErrorBoundary pageName="Finance"><FinancePage /></PageErrorBoundary>} />
             </Route>
           </Routes>
         </Suspense>

@@ -12,6 +12,11 @@ import {
   PanelLeftClose,
   PanelLeft,
   X,
+  Zap,
+  Building2,
+  BarChart3,
+  Heart,
+  Wallet,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSidebarStore } from './SidebarStore';
@@ -33,6 +38,14 @@ const lifeNav: NavItem[] = [
   { label: 'Wheel of Life', icon: Target, path: '/life' },
   { label: 'Journal', icon: BookOpen, path: '/journal' },
   { label: 'Projects', icon: Image, path: '/projects' },
+];
+
+const intelligenceNav: NavItem[] = [
+  { label: 'Command Center', icon: Zap, path: '/command-center' },
+  { label: 'Deals', icon: Building2, path: '/deals' },
+  { label: 'Trading', icon: BarChart3, path: '/trading' },
+  { label: 'Family', icon: Heart, path: '/family' },
+  { label: 'Finance', icon: Wallet, path: '/finance' },
 ];
 
 const flowNav: NavItem[] = [
@@ -135,6 +148,8 @@ export function Sidebar() {
         <NavGroup label="Main" items={mainNav} collapsed={collapsed} onNavigate={onNavigate} />
         <div className="border-t border-white/5" />
         <NavGroup label="Life" items={lifeNav} collapsed={collapsed} onNavigate={onNavigate} />
+        <div className="border-t border-white/5" />
+        <NavGroup label="Intelligence" items={intelligenceNav} collapsed={collapsed} onNavigate={onNavigate} />
         <div className="border-t border-white/5" />
         <NavGroup label="Flow" items={flowNav} collapsed={collapsed} onNavigate={onNavigate} />
       </nav>

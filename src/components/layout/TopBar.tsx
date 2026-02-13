@@ -11,6 +11,11 @@ const PAGE_TITLES: Record<string, string> = {
   '/life': 'Wheel of Life',
   '/journal': 'Journal',
   '/projects': 'Projects',
+  '/command-center': 'Command Center',
+  '/deals': 'Deals Pipeline',
+  '/trading': 'Trading Dashboard',
+  '/family': 'Family Hub',
+  '/finance': 'Financial Overview',
 };
 
 export function TopBar() {

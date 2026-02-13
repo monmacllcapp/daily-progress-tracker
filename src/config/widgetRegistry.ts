@@ -34,6 +34,12 @@ const HabitTracker = lazy(() =>
 const OnePercentTracker = lazy(() =>
     import('../components/OnePercentTracker').then((m) => ({ default: m.OnePercentTracker }))
 );
+const MorningBriefWidget = lazy(() =>
+  import('../components/v2/MorningBrief').then((m) => ({ default: m.MorningBrief }))
+);
+const SignalFeedWidget = lazy(() =>
+  import('../components/v2/SignalFeed').then((m) => ({ default: m.SignalFeed }))
+);
 
 export interface WidgetConfig {
     id: string;
@@ -120,5 +126,19 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
         title: '1% Better',
         type: 'metric',
         defaultLayout: { x: 6, y: 30, w: 6, h: 6, minW: 3, minH: 4 }
+    },
+    {
+        id: 'morning-brief',
+        component: MorningBriefWidget,
+        title: 'Morning Brief',
+        type: 'interactive',
+        defaultLayout: { x: 0, y: 36, w: 6, h: 6, minW: 4, minH: 4 }
+    },
+    {
+        id: 'signal-feed',
+        component: SignalFeedWidget,
+        title: 'Signal Feed',
+        type: 'interactive',
+        defaultLayout: { x: 6, y: 36, w: 6, h: 6, minW: 4, minH: 4 }
     }
 ];
