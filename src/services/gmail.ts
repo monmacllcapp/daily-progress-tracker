@@ -247,3 +247,13 @@ export async function syncGmailInbox(
     console.log(`[Gmail] Synced ${newCount} new emails from inbox`);
     return { newCount, nextPageToken };
 }
+
+/**
+ * Fetch a Gmail thread by ID. Returns the thread with all messages.
+ */
+export async function getThread(threadId: string): Promise<{ messages: Array<{ id: string; labelIds?: string[] }> }> {
+    const { googleFetch } = await import('./google-auth');
+    const res = await googleFetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=metadata&metadataHeaders=labelIds`);
+    if (!res.ok) throw new Error(`Gmail getThread failed: ${res.status}`);
+    return res.json();
+}

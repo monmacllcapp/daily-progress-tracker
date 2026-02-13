@@ -131,8 +131,8 @@ export interface CalendarEvent {
 }
 
 // -- 8. Email (Gmail integration) --
-export type EmailTier = 'urgent' | 'important' | 'promotions' | 'unsubscribe';
-export type EmailStatus = 'unread' | 'read' | 'drafted' | 'replied' | 'archived' | 'snoozed';
+export type EmailTier = 'reply_urgent' | 'reply_needed' | 'to_review' | 'important_not_urgent' | 'unsure' | 'unsubscribe' | 'social';
+export type EmailStatus = 'unread' | 'read' | 'drafted' | 'replied' | 'waiting' | 'reviewed' | 'archived' | 'snoozed';
 
 export interface Email {
   id: UUID;
@@ -155,6 +155,9 @@ export interface Email {
   is_newsletter?: boolean;         // True if List-ID or unsubscribe headers present
   snooze_until?: string;           // ISO 8601 datetime — when to resurface
   snoozed_at?: string;             // ISO 8601 datetime — when snoozed
+  reply_checked_at?: string;          // Last time we checked if this was replied to
+  unsubscribe_status?: 'pending' | 'attempted' | 'confirmed' | 'failed';
+  unsubscribe_attempted_at?: string;  // When unsubscribe was last attempted
   created_at?: string;
   updated_at?: string;
 }
@@ -268,3 +271,176 @@ export type V2EventType =
   | 'mcp_disconnected'
   | 'morning_brief_generated'
   | 'anticipation_cycle_complete';
+
+// -- 14. Staffing KPIs --
+export type StaffRole = 'cold_caller' | 'admin_caller' | 'closer' | 'lead_manager';
+export type PayType = 'hourly' | 'weekly_flat';
+export type ExpenseCategory = 'platform' | 'marketing' | 'other_opex';
+
+export interface StaffMember {
+  id: UUID;
+  name: string;
+  role: StaffRole;
+  pay_type: PayType;
+  base_rate: number;              // $/hr for hourly, $/week for flat
+  payment_method?: string;        // e.g. 'Wise', 'PayPal'
+  hubstaff_user_id?: string;      // Linked Hubstaff user ID
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StaffPayPeriod {
+  id: UUID;
+  staff_id: string;               // FK to StaffMember
+  period_start: string;           // ISO date (Monday)
+  period_end: string;             // ISO date (Sunday)
+  // -- Common --
+  base_pay: number;
+  total_pay: number;
+  is_paid: boolean;
+  notes?: string;
+  // -- Hourly workers --
+  hours_worked?: number;
+  activity_pct?: number;          // Hubstaff activity %
+  bonus?: number;
+  holiday_pay?: number;
+  // -- Caller KPIs --
+  num_leads?: number;
+  num_passes?: number;
+  cost_per_lead?: number;
+  lists_added?: number;
+  num_recs_added?: number;
+  // -- Closer / Lead Manager KPIs --
+  dials?: number;
+  convos?: number;
+  quality_convos?: number;
+  lead_to_acq?: number;
+  calls_processed?: number;
+  underwrote?: number;
+  apt_set?: number;
+  apt_met?: number;
+  offers_made?: number;
+  offers_accepted?: number;
+  offers_rejected?: number;
+  deals_closed?: number;
+  deals_fellthrough?: number;
+  commission?: number;
+  // -- Sync metadata --
+  hubstaff_synced_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StaffExpense {
+  id: UUID;
+  date: string;                   // ISO date
+  category: ExpenseCategory;
+  vendor: string;
+  amount: number;
+  channel?: string;               // e.g. 'Google Ads', 'Facebook'
+  leads_generated?: number;
+  cost_per_lead?: number;
+  month: string;                  // YYYY-MM for grouping
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StaffKpiSummary {
+  id: UUID;                       // = month string (YYYY-MM)
+  month: string;
+  total_staff_cost: number;
+  total_platform_cost: number;
+  total_marketing_spend: number;
+  total_burn: number;
+  total_leads: number;
+  avg_cost_per_lead: number;
+  staff_breakdown: string;        // JSON string of per-staff summaries
+  created_at?: string;
+  updated_at?: string;
+}
+
+// -- 15. Financial Dashboard --
+export type AccountType = 'checking' | 'savings' | 'credit' | 'investment' | 'loan' | 'other';
+export type AccountScope = 'business' | 'personal';
+export type TransactionScope = 'business' | 'personal';
+export type TransactionCategory =
+  | 'income' | 'subscription' | 'utilities' | 'rent_mortgage' | 'payroll'
+  | 'software' | 'marketing' | 'food' | 'entertainment' | 'travel'
+  | 'insurance' | 'taxes' | 'office' | 'supplies' | 'professional_services'
+  | 'healthcare' | 'education' | 'transfer' | 'other';
+export type SubscriptionFrequency = 'weekly' | 'monthly' | 'quarterly' | 'annual';
+
+export interface FinancialAccount {
+  id: UUID;
+  plaid_account_id?: string;
+  plaid_item_id?: string;
+  institution_name: string;
+  account_name: string;
+  account_type: AccountType;
+  account_scope: AccountScope;
+  mask?: string;
+  current_balance: number;
+  available_balance?: number;
+  currency: string;
+  is_active: boolean;
+  last_synced_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface FinancialTransaction {
+  id: UUID;
+  account_id: string;
+  plaid_transaction_id?: string;
+  date: string;
+  amount: number;
+  name: string;
+  merchant_name?: string;
+  category: TransactionCategory;
+  plaid_category?: string;
+  scope: TransactionScope;
+  is_recurring: boolean;
+  is_subscription: boolean;
+  pending: boolean;
+  month: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface FinancialSubscription {
+  id: UUID;
+  account_id?: string;
+  merchant_name: string;
+  amount: number;
+  frequency: SubscriptionFrequency;
+  category: TransactionCategory;
+  scope: TransactionScope;
+  is_active: boolean;
+  last_charge_date?: string;
+  last_used_date?: string;
+  next_expected_date?: string;
+  flagged_unused: boolean;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface FinancialMonthlySummary {
+  id: UUID;
+  month: string;
+  total_income: number;
+  total_expenses: number;
+  net_cash_flow: number;
+  business_income: number;
+  business_expenses: number;
+  personal_income: number;
+  personal_expenses: number;
+  subscription_burn: number;
+  top_categories: string;
+  ai_insights: string;
+  created_at?: string;
+  updated_at?: string;
+}

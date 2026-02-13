@@ -28,13 +28,16 @@ import { UnsubscribeSweep } from './UnsubscribeSweep';
 import { PendingActionsBar } from './PendingActionsBar';
 
 const TIER_CONFIG: Record<EmailTier, { label: string; icon: typeof AlertCircle; color: string; bgColor: string; bgLight: string; bgMedium: string }> = {
-    urgent: { label: 'Urgent', icon: AlertCircle, color: 'text-red-400', bgColor: 'bg-red-500', bgLight: 'bg-red-500/20', bgMedium: 'bg-red-500/30' },
-    important: { label: 'Important', icon: MessageSquare, color: 'text-blue-400', bgColor: 'bg-blue-500', bgLight: 'bg-blue-500/20', bgMedium: 'bg-blue-500/30' },
-    promotions: { label: 'Promotions', icon: Tag, color: 'text-amber-400', bgColor: 'bg-amber-500', bgLight: 'bg-amber-500/20', bgMedium: 'bg-amber-500/30' },
+    reply_urgent: { label: 'Reply Urgent', icon: AlertCircle, color: 'text-red-400', bgColor: 'bg-red-500', bgLight: 'bg-red-500/20', bgMedium: 'bg-red-500/30' },
+    to_review: { label: 'To Review', icon: MessageSquare, color: 'text-blue-400', bgColor: 'bg-blue-500', bgLight: 'bg-blue-500/20', bgMedium: 'bg-blue-500/30' },
+    reply_needed: { label: 'Reply Needed', icon: MessageSquare, color: 'text-orange-400', bgColor: 'bg-orange-500', bgLight: 'bg-orange-500/20', bgMedium: 'bg-orange-500/30' },
+    social: { label: 'Social', icon: Tag, color: 'text-amber-400', bgColor: 'bg-amber-500', bgLight: 'bg-amber-500/20', bgMedium: 'bg-amber-500/30' },
+    important_not_urgent: { label: 'Important', icon: Newspaper, color: 'text-teal-400', bgColor: 'bg-teal-500', bgLight: 'bg-teal-500/20', bgMedium: 'bg-teal-500/30' },
+    unsure: { label: 'Unsure', icon: Brain, color: 'text-purple-400', bgColor: 'bg-purple-500', bgLight: 'bg-purple-500/20', bgMedium: 'bg-purple-500/30' },
     unsubscribe: { label: 'Unsubscribe', icon: Trash2, color: 'text-slate-400', bgColor: 'bg-slate-500', bgLight: 'bg-slate-500/20', bgMedium: 'bg-slate-500/30' },
 };
 
-const TIER_ORDER: EmailTier[] = ['urgent', 'important', 'promotions', 'unsubscribe'];
+const TIER_ORDER: EmailTier[] = ['reply_urgent', 'reply_needed', 'to_review', 'important_not_urgent', 'unsure', 'social', 'unsubscribe'];
 
 interface UndoEntry {
     id: string;
@@ -69,7 +72,7 @@ export function EmailDashboard() {
     const [db] = useDatabase();
     const [emails] = useRxQuery<Email>(db?.emails, { sort: [{ received_at: 'desc' }] });
     const [isSyncing, setIsSyncing] = useState(false);
-    const [expandedTiers, setExpandedTiers] = useState<Set<EmailTier>>(new Set(['urgent', 'important']));
+    const [expandedTiers, setExpandedTiers] = useState<Set<EmailTier>>(new Set(['reply_urgent', 'to_review']));
     const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
     const [draftText, setDraftText] = useState('');
     const [isDrafting, setIsDrafting] = useState(false);

@@ -1,13 +1,16 @@
 /**
  * AI Email Classifier
  *
- * Uses Gemini to classify emails into 4 tiers:
- * - urgent: time-sensitive, requires immediate action
- * - important: meaningful, needs a thoughtful response
- * - promotions: marketing, newsletters, deals
- * - unsubscribe: spam-like, should be unsubscribed from
+ * Uses Gemini to classify emails into 7 tiers:
+ * - reply_urgent: time-sensitive, requires immediate reply TODAY
+ * - reply_needed: deserves a reply but not time-critical
+ * - to_review: needs to be read and a decision made
+ * - important_not_urgent: meaningful but can wait
+ * - unsure: unclear what to do with this
+ * - unsubscribe: persistent junk, should unsubscribe
+ * - social: social media notifications, community updates
  *
- * Also drafts AI responses for urgent/important emails.
+ * Also drafts AI responses for reply-urgent emails.
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -35,7 +38,7 @@ export function isClassifierAvailable(): boolean {
 }
 
 /**
- * Classify an email into one of 4 tiers using AI.
+ * Classify an email into one of 7 tiers using AI.
  * Falls back to rule-based classification if AI is unavailable.
  */
 export async function classifyEmail(
@@ -63,38 +66,45 @@ async function classifyWithAI(
     subject: string,
     snippet: string
 ): Promise<EmailTier> {
-    const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-    const prompt = `Classify this email into exactly one tier. Respond with ONLY the tier name, nothing else.
+    const prompt = `Classify this email into exactly one category. Respond with ONLY the category name, nothing else.
 
-Tiers:
-- urgent: Time-sensitive, requires immediate action (bills due, meeting changes, security alerts)
-- important: Meaningful correspondence that deserves a thoughtful reply (personal emails, work requests, client messages)
-- promotions: Marketing emails, newsletters, deals, social media notifications
-- unsubscribe: Persistent unwanted emails, spam-like content the user should unsubscribe from
+Categories:
+- reply_urgent: Requires a reply TODAY. Time-sensitive requests, meetings, bills due, clients waiting, security alerts, anything where delay = consequences.
+- reply_needed: Deserves a reply but not time-critical. Casual asks, follow-ups, networking, informational requests.
+- to_review: Needs to be read and a decision made. Reports, updates, documents to review, newsletters worth reading.
+- important_not_urgent: Meaningful but can wait. Industry articles, long reads, reference material, FYI messages.
+- unsure: Unclear what to do with this. Ambiguous or hard to classify.
+- unsubscribe: Persistent junk, should unsubscribe. Daily digests from services you don't use, repeated marketing.
+- social: Social media notifications, community updates, event invites, app alerts.
 
 Email:
 From: ${from}
 Subject: ${subject}
 Preview: ${snippet.slice(0, 200)}
 
-Tier:`;
+Category:`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text().trim().toLowerCase();
 
-    const validTiers: EmailTier[] = ['urgent', 'important', 'promotions', 'unsubscribe'];
+    const validTiers: EmailTier[] = [
+        'reply_urgent', 'reply_needed', 'to_review',
+        'important_not_urgent', 'unsure', 'unsubscribe', 'social'
+    ];
+
     if (validTiers.includes(text as EmailTier)) {
         return text as EmailTier;
     }
 
-    // Try to extract from response
+    // Try to extract from verbose response
     for (const tier of validTiers) {
         if (text.includes(tier)) return tier;
     }
 
-    return 'promotions'; // Default
+    return 'unsure'; // Default for unrecognized AI response
 }
 
 function classifyWithRules(
@@ -108,33 +118,21 @@ function classifyWithRules(
     const lowerSnippet = snippet.toLowerCase();
 
     // Gmail's own labels help
-    if (labels.includes('CATEGORY_PROMOTIONS')) return 'promotions';
+    if (labels.includes('CATEGORY_SOCIAL')) return 'social';
+    if (labels.includes('CATEGORY_PROMOTIONS')) return 'social';
     if (labels.includes('SPAM')) return 'unsubscribe';
 
-    // Urgent patterns
+    // Urgency patterns → reply_urgent
     if (lowerSubject.includes('urgent') ||
         lowerSubject.includes('action required') ||
         lowerSubject.includes('payment due') ||
         lowerSubject.includes('security alert') ||
         lowerSubject.includes('password reset') ||
         labels.includes('IMPORTANT')) {
-        return 'urgent';
+        return 'reply_urgent';
     }
 
-    // Promotion patterns
-    if (lowerSubject.includes('unsubscribe') ||
-        lowerSnippet.includes('unsubscribe') ||
-        lowerSubject.includes('sale') ||
-        lowerSubject.includes('% off') ||
-        lowerSubject.includes('deal') ||
-        lowerSubject.includes('newsletter') ||
-        lowerFrom.includes('noreply') ||
-        lowerFrom.includes('no-reply') ||
-        lowerFrom.includes('marketing')) {
-        return 'promotions';
-    }
-
-    // Unsubscribe patterns (persistent junk)
+    // Unsubscribe patterns
     if (lowerFrom.includes('notifications@') ||
         lowerFrom.includes('digest@') ||
         lowerSubject.includes('daily digest') ||
@@ -142,8 +140,41 @@ function classifyWithRules(
         return 'unsubscribe';
     }
 
-    // Default to important for personal-looking emails
-    return 'important';
+    // Newsletter / noreply / marketing patterns → social
+    if (lowerSubject.includes('sale') ||
+        lowerSubject.includes('% off') ||
+        lowerSubject.includes('deal') ||
+        lowerSubject.includes('newsletter') ||
+        lowerFrom.includes('noreply') ||
+        lowerFrom.includes('no-reply') ||
+        lowerFrom.includes('marketing')) {
+        return 'social';
+    }
+
+    // Unsubscribe mention in snippet → social
+    if (lowerSubject.includes('unsubscribe') ||
+        lowerSnippet.includes('unsubscribe')) {
+        return 'social';
+    }
+
+    // Personal email patterns → reply_needed
+    // Named sender + question in subject or Re: thread
+    const hasQuestion = lowerSubject.includes('?');
+    const isReply = lowerSubject.startsWith('re:');
+    const hasPersonalSender = !lowerFrom.includes('noreply') &&
+        !lowerFrom.includes('no-reply') &&
+        !lowerFrom.includes('notifications@') &&
+        !lowerFrom.includes('marketing') &&
+        !lowerFrom.includes('digest@');
+
+    if (hasPersonalSender && (hasQuestion || isReply)) {
+        return 'reply_needed';
+    }
+
+    // Default for ambiguous → unsure (force explicit triage)
+    if (hasPersonalSender) return 'unsure';
+
+    return 'unsure';
 }
 
 /** @internal Reset cached AI instance and optionally override the key (for testing). */
@@ -166,7 +197,7 @@ export async function draftResponse(
     if (!ai) return null;
 
     try {
-        const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const prompt = `Draft a brief, professional email reply. Be concise and friendly. Do NOT include subject line or "Dear/Hi" greeting — start with the content directly.
 

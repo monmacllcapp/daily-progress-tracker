@@ -104,8 +104,8 @@ describe('V2 Regression Tests', () => {
       from: 'sender@example.com',
       subject: 'Important project update',
       snippet: 'Please review the attached document...',
-      tier: 'important',
-      tier_override: 'urgent',
+      tier: 'to_review',
+      tier_override: 'reply_urgent',
       status: 'unread',
       ai_draft: 'Thank you for the update. I will review...',
       received_at: '2026-02-13T08:00:00Z',
@@ -127,11 +127,11 @@ describe('V2 Regression Tests', () => {
     expect(email.gmail_id).toBe('gmail-msg-456');
     expect(email.from).toBe('sender@example.com');
     expect(email.subject).toBe('Important project update');
-    expect(email.tier).toBe('important');
+    expect(email.tier).toBe('to_review');
     expect(email.status).toBe('unread');
 
     // Verify enums work
-    const validTiers: EmailTier[] = ['urgent', 'important', 'promotions', 'unsubscribe'];
+    const validTiers: EmailTier[] = ['reply_urgent', 'to_review', 'social', 'unsubscribe'];
     const validStatuses: EmailStatus[] = [
       'unread',
       'read',
@@ -379,7 +379,7 @@ describe('V2 Regression Tests', () => {
   });
 
   it('should maintain V1 email tier enum values', () => {
-    const tiers: EmailTier[] = ['urgent', 'important', 'promotions', 'unsubscribe'];
+    const tiers: EmailTier[] = ['reply_urgent', 'to_review', 'social', 'unsubscribe'];
 
     tiers.forEach((tier) => {
       const email: Email = {

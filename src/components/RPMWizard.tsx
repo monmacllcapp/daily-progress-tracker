@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { createDatabase } from '../db';
 import { createTask } from '../services/task-rollover';
 import { Sparkles, Target, Zap, ArrowRight, ArrowLeft, FolderOpen, Eye } from 'lucide-react';
 import { DatePicker } from './DatePicker';
@@ -82,8 +81,13 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
         console.log('[RPM Wizard] Ignite Project clicked');
         console.log('[RPM Wizard] Form data:', { result, purpose, subtasks, dueDate });
 
+        if (!db) {
+            console.error('[RPM Wizard] Database not initialized');
+            alert('Database not ready. Please wait a moment and try again.');
+            return;
+        }
+
         try {
-            const db = await createDatabase();
             const projectId = uuidv4();
             const now = new Date().toISOString();
 

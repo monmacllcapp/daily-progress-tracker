@@ -1,0 +1,63 @@
+{
+  "checkpoint_id": "2026-02-05T213000_rebrand_maple",
+  "timestamp": "2026-02-05T21:30:00Z",
+  "agent": {
+    "model": "claude-opus-4-6",
+    "provider": "anthropic",
+    "session_id": "5052c1c8-5ed8-4268-8b22-5086c342a455"
+  },
+  "session": {
+    "project": "daily-progress-tracker",
+    "goal": "Rebrand app to Maple and fix RPMWizard insert bug",
+    "branch": "feature/financial-dashboard",
+    "working_directory": "/Users/mac/daily-progress-tracker"
+  },
+  "changes": {
+    "summary": "Rebranded app from Titan Life OS to Maple, AI from ANDIE to Maple. Fixed createDatabase() race condition in RPMWizard and MorningFlow.",
+    "files_modified": [
+      "package.json",
+      "index.html",
+      "vite.config.ts",
+      ".env.example",
+      "src/App.tsx",
+      "src/main.tsx",
+      "src/components/layout/TopBar.tsx",
+      "src/components/WelcomeOnboarding.tsx",
+      "supabase/functions/create-link-token/index.ts",
+      "src/services/jarvis.ts",
+      "src/services/jarvis-context.ts",
+      "src/services/jarvis-proactive.ts",
+      "src/components/JarvisChat.tsx",
+      "src/components/JarvisIcon.tsx",
+      "src/hooks/useAppLifecycle.ts",
+      "src/components/RPMWizard.tsx",
+      "src/components/MorningFlow.tsx"
+    ],
+    "decisions_made": [
+      "User-visible strings only for rebrand — internal types/file names/function names unchanged",
+      "RxDB database name titanplannerdb kept to avoid breaking existing databases",
+      "localStorage keys unchanged for backward compatibility",
+      "Fixed createDatabase() race condition by using useDatabase() hook pattern"
+    ]
+  },
+  "continuation": {
+    "status": "in_progress",
+    "next_immediate_step": {
+      "action": "Commit and push to sandbox",
+      "details": "User confirmed app loads. Commit rebrand + bug fix, push to sandbox."
+    },
+    "next_three_steps": [
+      "Commit and push to sandbox",
+      "Merge PR #4 to main",
+      "Set up Plaid sandbox credentials for financial dashboard testing"
+    ],
+    "blockers": [],
+    "context_notes": "Rebrand is user-facing only. Internal code still references Titan/Jarvis in type names and file names."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 6,
+    "parent_checkpoint": "2026-02-05T211000_financial_dashboard_shipped",
+    "tags": ["rebrand", "maple", "bug-fix"]
+  }
+}

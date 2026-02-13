@@ -1,0 +1,62 @@
+{
+  "checkpoint_id": "2026-02-04T153000_emailpipeline",
+  "timestamp": "2026-02-04T15:30:00Z",
+  "agent": {
+    "model": "claude-opus-4-5-20251101",
+    "provider": "anthropic"
+  },
+  "session": {
+    "project": "daily-progress-tracker",
+    "goal": "Implement automated email unsubscribe agent + email body viewing + widget fixes + layout presets",
+    "branch": "main (no git repo)",
+    "working_directory": "/Users/mac/daily-progress-tracker"
+  },
+  "changes": {
+    "summary": "Completed full email body rendering with sanitized HTML, fixed widget resize handles via overflow-hidden + portal pattern for modals, implemented automated unsubscribe agent, layout presets, inline tier classification, and Gmail bidirectional learning.",
+    "files_modified": [
+      {"path": "src/components/EmailDashboard.tsx", "action": "modified", "description": "Added createPortal for modal/bulk-bar/toast (escape backdrop-filter containing block), sanitized HTML email body rendering with clickable links, openEmail() helper for async body fetch, inline tier reclassification icons, auto-unsubscribe button, layout preset UI with color editor, learning mode default=true"},
+      {"path": "src/components/dashboard/WidgetWrapper.tsx", "action": "modified", "description": "Re-added overflow-hidden to root div to prevent content overflow from displacing resize handle"},
+      {"path": "src/index.css", "action": "modified", "description": "Added .react-resizable-handle custom CSS for dark theme visibility, added .email-html-body styles for sanitized email content"},
+      {"path": "src/services/gmail.ts", "action": "modified", "description": "Added decodeBase64Url(), extractBody(), getMessageBody() for full email body fetch; added resyncGmailLabels() for bidirectional label learning; added List-Unsubscribe-Post header extraction"},
+      {"path": "src/services/unsubscribe-agent.ts", "action": "created", "description": "4-tier unsubscribe cascade: one-click POST, mailto via Gmail API, headless Puppeteer, manual fallback"},
+      {"path": "server/unsubscribe-plugin.ts", "action": "created", "description": "Vite dev server middleware for unsubscribe proxy endpoints"},
+      {"path": "server/headless-unsubscribe.ts", "action": "created", "description": "Puppeteer-core automation for interactive unsubscribe pages"},
+      {"path": "src/services/layout-presets.ts", "action": "created", "description": "Layout preset CRUD with localStorage, 14 color palettes"},
+      {"path": "src/types/schema.ts", "action": "modified", "description": "Added unsubscribe_one_click boolean to Email interface"},
+      {"path": "src/db/index.ts", "action": "modified", "description": "Schema v2 to v3, migration strategy for unsubscribe_one_click"},
+      {"path": "src/services/newsletter-detector.ts", "action": "modified", "description": "Added hasOneClick, unsubscribeStatus, buildUnsubscribeStrategy()"},
+      {"path": "vite.config.ts", "action": "modified", "description": "Registered unsubscribePlugin()"},
+      {"path": "tsconfig.node.json", "action": "modified", "description": "Added server directory to include array"},
+      {"path": "package.json", "action": "modified", "description": "Added puppeteer-core to devDependencies"},
+      {"path": "src/services/__tests__/unsubscribe-agent.test.ts", "action": "created", "description": "9 tests for parseMailto and executeUnsubscribe"},
+      {"path": "src/services/__tests__/newsletter-detector.test.ts", "action": "modified", "description": "Added 5 buildUnsubscribeStrategy tests"}
+    ],
+    "decisions_made": [
+      {"decision": "Use createPortal for modal/bulk-bar/toast", "rationale": "backdrop-filter on WidgetWrapper creates containing block for fixed-position descendants, causing modal clipping", "alternatives_considered": ["Remove backdrop-filter", "Move modal to App level"]},
+      {"decision": "Sanitized HTML rendering instead of iframe", "rationale": "Iframe had JS-disabled warnings and white background; plain text lost clickable links", "alternatives_considered": ["Sandboxed iframe", "Plain text only"]},
+      {"decision": "Re-add overflow-hidden to WidgetWrapper", "rationale": "Without it, widget content overflows grid cell boundary causing resize handle displacement", "alternatives_considered": ["Position relative only"]},
+      {"decision": "puppeteer-core not puppeteer", "rationale": "No bundled Chromium (~300MB), uses system Chrome", "alternatives_considered": ["Full puppeteer"]},
+      {"decision": "Vite middleware for unsubscribe proxy", "rationale": "No new server process, piggybacks on dev server", "alternatives_considered": ["Separate Express server"]}
+    ]
+  },
+  "continuation": {
+    "status": "completed",
+    "next_immediate_step": {
+      "action": "Manual testing of email body + unsubscribe flows",
+      "details": "Test: clicking emails shows full body with clickable links in properly sized modal, action buttons visible, resize handles on all widgets, auto-unsubscribe on newsletters"
+    },
+    "next_three_steps": [
+      {"step_number": 2, "action": "Test widget scrolling", "details": "Verify email widget scrolls to Processed/Reviewed section"},
+      {"step_number": 3, "action": "Test layout presets", "details": "Save/load/delete presets with custom tier colors"},
+      {"step_number": 4, "action": "Test unsubscribe agent", "details": "Try auto-unsubscribe on a real newsletter sender"}
+    ],
+    "blockers": [],
+    "context_notes": "284 tests pass (15 failures pre-existing). tsc clean. vite build clean. Preset dropdown menu uses absolute positioning inside widget — may need portalling if clipped. No git repo initialized."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 11,
+    "parent_checkpoint": "2026-02-02T192000_kanban",
+    "tags": ["email-unsubscribe", "email-body-viewer", "widget-resize", "layout-presets", "portal-fix", "gmail-bidirectional"]
+  }
+}

@@ -94,10 +94,63 @@ export function useAppLifecycle() {
       }
     }, 60_000);
 
+    // Check for unreplied urgent emails every 4 hours
+    const unrepliedInterval = setInterval(async () => {
+      try {
+        const db = await createDatabase();
+        const { scanForUnrepliedEmails } = await import('../services/email-reply-checker');
+        const result = await scanForUnrepliedEmails(db, 7);
+        if (result.unreplied.length > 0) {
+          setToast(`${result.unreplied.length} urgent email${result.unreplied.length > 1 ? 's' : ''} need a response`);
+        }
+      } catch (err) {
+        console.error('Failed to check unreplied:', err);
+      }
+    }, 14_400_000);
+
+    // Auto-sync calendar on app load + every 15 minutes
+    const syncCalendar = async () => {
+      try {
+        const { isGoogleConnected } = await import('../services/google-auth');
+        if (!isGoogleConnected()) return;
+        const { syncCalendarEvents } = await import('../services/google-calendar');
+        const db = await createDatabase();
+        const now = new Date();
+        const start = new Date(now);
+        start.setDate(start.getDate() - 1);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(now);
+        end.setDate(end.getDate() + 1);
+        end.setHours(23, 59, 59, 999);
+        await syncCalendarEvents(db, start, end);
+      } catch (err) {
+        console.error('[Lifecycle] Calendar sync failed:', err);
+      }
+    };
+
+    syncCalendar(); // Initial sync on app load
+    const calendarInterval = setInterval(syncCalendar, 900_000); // 15 min
+
+    // Jarvis proactive nudge engine
+    let stopJarvis: (() => void) | undefined;
+    Promise.all([
+      import('../services/jarvis-proactive'),
+      import('../store/jarvisStore'),
+    ]).then(([{ startJarvisProactive }, { useJarvisStore }]) => {
+      stopJarvis = startJarvisProactive((nudge) => {
+        useJarvisStore.getState().setLatestNudge(nudge);
+      });
+    }).catch((err) => {
+      console.warn('[Lifecycle] Maple proactive init failed:', err);
+    });
+
     return () => {
       healthWorker.terminate();
       resetWorker.terminate();
       clearInterval(snoozeInterval);
+      clearInterval(unrepliedInterval);
+      clearInterval(calendarInterval);
+      stopJarvis?.();
     };
   }, [handleTaskRollover, clearTodaysStressors]);
 

@@ -150,6 +150,45 @@ export interface UnsubscribeResult {
 }
 
 /**
+ * Unsubscribe strategy for the automated unsubscribe agent.
+ * Represents a single method to try for unsubscribing.
+ */
+export interface UnsubscribeStrategy {
+  method: 'one_click' | 'mailto' | 'headless' | 'manual';
+  target: string; // URL or mailto: URI
+}
+
+/**
+ * Build a prioritized list of unsubscribe strategies for a sender.
+ * Priority: one-click POST > mailto > headless > manual
+ */
+export function buildUnsubscribeStrategy(sender: NewsletterSender): UnsubscribeStrategy[] {
+  const strategies: UnsubscribeStrategy[] = [];
+
+  // 1. RFC 8058 One-Click POST (requires both one-click flag and URL)
+  if (sender.hasOneClickUnsubscribe && sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
+    strategies.push({ method: 'one_click', target: sender.unsubscribeUrl });
+  }
+
+  // 2. Mailto via Gmail API
+  if (sender.hasUnsubscribeMailto && sender.unsubscribeMailto) {
+    strategies.push({ method: 'mailto', target: sender.unsubscribeMailto });
+  }
+
+  // 3. Headless browser (only available in dev mode, will be skipped in prod)
+  if (sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
+    strategies.push({ method: 'headless', target: sender.unsubscribeUrl });
+  }
+
+  // 4. Manual fallback (open URL in new tab)
+  if (sender.hasUnsubscribeUrl && sender.unsubscribeUrl) {
+    strategies.push({ method: 'manual', target: sender.unsubscribeUrl });
+  }
+
+  return strategies;
+}
+
+/**
  * Attempt to unsubscribe from a newsletter sender using the best available method.
  *
  * Priority:

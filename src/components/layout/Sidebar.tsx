@@ -1,160 +1,211 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard,
-  CheckSquare,
-  Calendar,
-  Mail,
-  Target,
-  BookOpen,
-  Image,
-  Sun,
   PanelLeftClose,
   PanelLeft,
   X,
-  Zap,
-  Building2,
-  BarChart3,
-  Heart,
-  Wallet,
+  Settings,
+  Plus,
+  RotateCcw,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
 import { useSidebarStore } from './SidebarStore';
-
-interface NavItem {
-  label: string;
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-  path: string;
-}
-
-const mainNav: NavItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
-  { label: 'Tasks', icon: CheckSquare, path: '/tasks' },
-  { label: 'Calendar', icon: Calendar, path: '/calendar' },
-  { label: 'Email', icon: Mail, path: '/email' },
-];
-
-const lifeNav: NavItem[] = [
-  { label: 'Wheel of Life', icon: Target, path: '/life' },
-  { label: 'Journal', icon: BookOpen, path: '/journal' },
-  { label: 'Projects', icon: Image, path: '/projects' },
-];
-
-const intelligenceNav: NavItem[] = [
-  { label: 'Command Center', icon: Zap, path: '/command-center' },
-  { label: 'Deals', icon: Building2, path: '/deals' },
-  { label: 'Trading', icon: BarChart3, path: '/trading' },
-  { label: 'Family', icon: Heart, path: '/family' },
-  { label: 'Finance', icon: Wallet, path: '/finance' },
-];
-
-const flowNav: NavItem[] = [
-  { label: 'Morning Flow', icon: Sun, path: '/morning' },
-];
-
-function NavGroup({
-  label,
-  items,
-  collapsed,
-  onNavigate,
-}: {
-  label: string;
-  items: NavItem[];
-  collapsed: boolean;
-  onNavigate?: () => void;
-}) {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  return (
-    <div>
-      {!collapsed && (
-        <p className="px-3 mb-2 text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
-          {label}
-        </p>
-      )}
-      <div className="space-y-1">
-        {items.map((item) => {
-          const isActive = location.pathname === item.path;
-          const Icon = item.icon;
-
-          return (
-            <button
-              key={item.path}
-              onClick={() => {
-                navigate(item.path);
-                onNavigate?.();
-              }}
-              className={clsx(
-                'relative flex items-center gap-3 w-full rounded-xl transition-all duration-200',
-                collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5',
-                isActive
-                  ? 'nav-item-active'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-              )}
-              title={collapsed ? item.label : undefined}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="sidebar-active"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-gradient-to-b from-blue-400 to-purple-500"
-                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                />
-              )}
-              <Icon className="w-5 h-5 shrink-0" style={{ strokeWidth: 1.5 }} />
-              {!collapsed && (
-                <span className="text-sm font-medium truncate">{item.label}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+import type { NavItem } from '../../types/sidebar';
+import { DynamicNavSection } from './DynamicNavSection';
 
 export function Sidebar() {
-  const { isCollapsed, isMobileOpen, toggleCollapsed, setMobileOpen } =
-    useSidebarStore();
+  const {
+    isCollapsed,
+    isMobileOpen,
+    editMode,
+    config,
+    toggleCollapsed,
+    setMobileOpen,
+    setEditMode,
+    moveItem,
+    reorderItems,
+    createSection,
+    resetConfig,
+  } = useSidebarStore();
 
-  const sidebarContent = (collapsed: boolean, onNavigate?: () => void) => (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div
-        className={clsx(
-          'flex items-center h-16 border-b border-white/5 shrink-0',
-          collapsed ? 'justify-center px-2' : 'justify-between px-4'
-        )}
-      >
-        {!collapsed && (
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-rose-400 bg-clip-text text-transparent">
-            Titan
-          </h1>
-        )}
-        <button
-          onClick={collapsed ? toggleCollapsed : toggleCollapsed}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors lg:block hidden"
-        >
-          {collapsed ? (
-            <PanelLeft className="w-5 h-5" style={{ strokeWidth: 1.5 }} />
-          ) : (
-            <PanelLeftClose className="w-5 h-5" style={{ strokeWidth: 1.5 }} />
-          )}
-        </button>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-4 space-y-6">
-        <NavGroup label="Main" items={mainNav} collapsed={collapsed} onNavigate={onNavigate} />
-        <div className="border-t border-white/5" />
-        <NavGroup label="Life" items={lifeNav} collapsed={collapsed} onNavigate={onNavigate} />
-        <div className="border-t border-white/5" />
-        <NavGroup label="Intelligence" items={intelligenceNav} collapsed={collapsed} onNavigate={onNavigate} />
-        <div className="border-t border-white/5" />
-        <NavGroup label="Flow" items={flowNav} collapsed={collapsed} onNavigate={onNavigate} />
-      </nav>
-    </div>
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+
+  // Build a map of itemId -> NavItem for quick lookup
+  const itemMap = useMemo(() => {
+    const m = new Map<string, NavItem>();
+    config.items.forEach((item) => m.set(item.id, item));
+    return m;
+  }, [config.items]);
+
+  // Find which section contains an item
+  const findSectionForItem = useCallback(
+    (itemId: string): string | null => {
+      for (const sec of config.sections) {
+        if (sec.itemIds.includes(itemId)) return sec.id;
+      }
+      return null;
+    },
+    [config.sections]
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeId = String(active.id);
+    const overId = String(over.id);
+
+    const fromSection = findSectionForItem(activeId);
+    if (!fromSection) return;
+
+    // Check if over is a section droppable or another item
+    const toSectionDirect = config.sections.find((s) => s.id === overId);
+    if (toSectionDirect) {
+      // Dropped on a section header/droppable — append to end
+      if (fromSection === toSectionDirect.id) return;
+      moveItem(
+        activeId,
+        fromSection,
+        toSectionDirect.id,
+        toSectionDirect.itemIds.length
+      );
+      return;
+    }
+
+    // Over is another item — find its section
+    const toSection = findSectionForItem(overId);
+    if (!toSection) return;
+
+    const toSec = config.sections.find((s) => s.id === toSection)!;
+    const overIndex = toSec.itemIds.indexOf(overId);
+
+    if (fromSection === toSection) {
+      const fromIndex = toSec.itemIds.indexOf(activeId);
+      reorderItems(toSection, fromIndex, overIndex);
+    } else {
+      moveItem(activeId, fromSection, toSection, overIndex);
+    }
+  }
+
+  const sidebarContent = (collapsed: boolean, onNavigate?: () => void) => {
+    const navContent = (
+      <>
+        {config.sections.map((section, idx) => {
+          const sectionItems = section.itemIds
+            .map((id) => itemMap.get(id))
+            .filter(Boolean) as NavItem[];
+
+          return (
+            <React.Fragment key={section.id}>
+              {idx > 0 && <div className="border-t border-white/5" />}
+              <DynamicNavSection
+                section={section}
+                items={sectionItems}
+                collapsed={collapsed}
+                editMode={editMode}
+                onNavigate={onNavigate}
+              />
+            </React.Fragment>
+          );
+        })}
+
+        {/* New Section button — edit mode only, not when collapsed */}
+        {editMode && !collapsed && (
+          <button
+            onClick={() => createSection('New Section')}
+            className="flex items-center gap-2 w-full px-3 py-2 text-slate-500 hover:text-slate-300 transition-colors text-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Section</span>
+          </button>
+        )}
+      </>
+    );
+
+    return (
+      <div className="flex flex-col h-full">
+        {/* Logo + edit mode toggle */}
+        <div
+          className={clsx(
+            'flex items-center h-16 border-b border-white/5 shrink-0',
+            collapsed ? 'justify-center px-2' : 'justify-between px-4'
+          )}
+        >
+          {!collapsed && (
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-rose-400 bg-clip-text text-transparent">
+              Titan
+            </h1>
+          )}
+          <div className="flex items-center gap-1">
+            {!collapsed && (
+              <button
+                onClick={() => setEditMode(!editMode)}
+                className={clsx(
+                  'p-1.5 rounded-lg transition-colors lg:block hidden',
+                  editMode
+                    ? 'text-blue-400 bg-blue-500/10'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                )}
+                title={editMode ? 'Exit edit mode' : 'Edit sidebar'}
+              >
+                <Settings className="w-4 h-4" style={{ strokeWidth: 1.5 }} />
+              </button>
+            )}
+            <button
+              onClick={toggleCollapsed}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors lg:block hidden"
+            >
+              {collapsed ? (
+                <PanelLeft className="w-5 h-5" style={{ strokeWidth: 1.5 }} />
+              ) : (
+                <PanelLeftClose className="w-5 h-5" style={{ strokeWidth: 1.5 }} />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Edit mode banner */}
+        {editMode && !collapsed && (
+          <div className="px-3 py-2 bg-blue-500/10 border-b border-blue-500/20 flex items-center justify-between">
+            <span className="text-xs text-blue-300 font-medium">Edit Mode</span>
+            <button
+              onClick={() => resetConfig()}
+              className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+              title="Reset to defaults"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reset
+            </button>
+          </div>
+        )}
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-4 space-y-4">
+          {editMode ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              {navContent}
+            </DndContext>
+          ) : (
+            navContent
+          )}
+        </nav>
+      </div>
+    );
+  };
 
   return (
     <>

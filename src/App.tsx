@@ -10,7 +10,7 @@ import { trackEvent } from './services/analytics';
 // Log active integrations at startup
 if (typeof window !== 'undefined') {
   const env = import.meta.env;
-  console.log('[Titan] Active integrations:', {
+  console.log('[Maple] Active integrations:', {
     google: !!env.VITE_GOOGLE_CLIENT_ID,
     gemini: !!env.VITE_GEMINI_API_KEY,
     supabase: !!(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_ANON_KEY),
@@ -36,7 +36,10 @@ const DealsPage = lazy(() => import('./pages/DealsPage'));
 const TradingPage = lazy(() => import('./pages/TradingPage'));
 const FamilyPage = lazy(() => import('./pages/FamilyPage'));
 const FinancePage = lazy(() => import('./pages/FinancePage'));
-
+const StaffingPage = lazy(() => import('./pages/StaffingPage'));
+const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
+const VisionPage = lazy(() => import('./pages/VisionPage'));
+const FinancialPage = lazy(() => import('./pages/FinancialPage'));
 function LoadingSpinner() {
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-white flex items-center justify-center">
@@ -90,7 +93,7 @@ function App() {
       <div className="min-h-screen bg-[var(--color-background)] text-white flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-secondary">Initializing Titan Life OS...</p>
+          <p className="text-secondary">Initializing Maple...</p>
         </div>
       </div>
     );
@@ -122,6 +125,10 @@ function App() {
               <Route path="/trading" element={<PageErrorBoundary pageName="Trading"><TradingPage /></PageErrorBoundary>} />
               <Route path="/family" element={<PageErrorBoundary pageName="Family"><FamilyPage /></PageErrorBoundary>} />
               <Route path="/finance" element={<PageErrorBoundary pageName="Finance"><FinancePage /></PageErrorBoundary>} />
+              <Route path="/staffing" element={<PageErrorBoundary pageName="Staffing"><StaffingPage /></PageErrorBoundary>} />
+              <Route path="/categories" element={<PageErrorBoundary pageName="Categories"><CategoriesPage /></PageErrorBoundary>} />
+              <Route path="/finances" element={<PageErrorBoundary pageName="Finances"><FinancialPage /></PageErrorBoundary>} />
+              <Route path="/vision" element={<PageErrorBoundary pageName="Vision"><VisionPage /></PageErrorBoundary>} />
             </Route>
           </Routes>
         </Suspense>

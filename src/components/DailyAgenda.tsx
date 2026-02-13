@@ -354,9 +354,9 @@ export function DailyAgenda() {
                                     }}
                                     title={`${block.title} (${block.durationMinutes}min)`}
                                 >
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1 min-w-0">
                                         {block.isFocusBlock && <Focus className="w-3 h-3 text-purple-400 flex-shrink-0" />}
-                                        <span className="text-xs font-medium truncate flex-1" style={{ color: block.color }}>
+                                        <span className="text-sm font-medium truncate flex-1" style={{ color: block.color }}>
                                             {block.title}
                                         </span>
                                         {block.linkedTaskId && (
@@ -395,7 +395,7 @@ export function DailyAgenda() {
                             key={task.id}
                             className="flex items-center justify-between py-0.5"
                         >
-                            <span className="text-xs text-slate-400 truncate">{task.title}</span>
+                            <span className="text-sm text-slate-400 truncate">{task.title}</span>
                             <span className="text-[10px] text-slate-600 flex-shrink-0 ml-2">
                                 {task.time_estimate_minutes}m
                             </span>

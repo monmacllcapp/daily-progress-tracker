@@ -28,7 +28,7 @@ function makeEmail(overrides: Partial<Email> = {}): Email {
     from: 'test@test.com',
     subject: 'Test Email',
     snippet: 'test',
-    tier: 'important',
+    tier: 'to_review',
     status: 'unread',
     received_at: new Date(Date.now() - 72 * 3600000).toISOString(),
     ...overrides,
@@ -98,7 +98,7 @@ describe('aging-detector', () => {
 
   it('skips promotions and unsubscribe emails', () => {
     const promotionsEmail = makeEmail({
-      tier: 'promotions',
+      tier: 'social',
       received_at: new Date(Date.now() - 73 * 3600000).toISOString(),
     });
     const unsubscribeEmail = makeEmail({

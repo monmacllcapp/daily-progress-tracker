@@ -22,7 +22,7 @@ export function detectAgingSignals(
       return;
     }
 
-    if (email.tier === 'promotions' || email.tier === 'unsubscribe') {
+    if (email.tier === 'social' || email.tier === 'unsubscribe') {
       return;
     }
 

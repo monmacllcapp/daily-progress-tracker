@@ -62,7 +62,7 @@ describe('V2 Integration Tests', () => {
           from: 'client@example.com',
           subject: 'Urgent: Property analysis needed',
           snippet: 'Please review the attached property analysis',
-          tier: 'urgent',
+          tier: 'reply_urgent',
           status: 'unread',
           received_at: new Date(Date.now() - 50 * 60 * 60 * 1000).toISOString(), // 50 hours ago
           labels: [],
@@ -445,7 +445,7 @@ describe('V2 Integration Tests', () => {
           from: 'test@example.com',
           subject: 'Test 25h',
           snippet: 'Test',
-          tier: 'important',
+          tier: 'to_review',
           status: 'unread',
           received_at: new Date(now - 25 * 60 * 60 * 1000).toISOString(), // Just over 24h
           labels: [],
@@ -456,7 +456,7 @@ describe('V2 Integration Tests', () => {
           from: 'test@example.com',
           subject: 'Test 49h',
           snippet: 'Test',
-          tier: 'important',
+          tier: 'to_review',
           status: 'unread',
           received_at: new Date(now - 49 * 60 * 60 * 1000).toISOString(), // Just over 48h
           labels: [],
@@ -467,7 +467,7 @@ describe('V2 Integration Tests', () => {
           from: 'test@example.com',
           subject: 'Test 73h',
           snippet: 'Test',
-          tier: 'important',
+          tier: 'to_review',
           status: 'unread',
           received_at: new Date(now - 73 * 60 * 60 * 1000).toISOString(), // Just over 72h
           labels: [],
