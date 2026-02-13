@@ -251,3 +251,20 @@ export interface AnalyticsEvent {
   metadata: Record<string, string | number | boolean>;
   timestamp: string; // ISO 8601 datetime
 }
+
+// -- V2 Re-exports --
+export type { Signal, SignalType, SignalSeverity, LifeDomain, Deal, DealStrategy, DealStatus, PortfolioSnapshot, PortfolioPosition, FamilyEvent, FamilyMember, FamilyRelationship, MorningBrief, PortfolioPulse, ProductivityPattern, PatternType, AnticipationContext, AgingConfig } from './signals';
+export type { McpServerConfig, McpTransport, McpConnectionStatus, McpServerState, McpToolCall, McpToolResult, McpSseEvent, McpProxyConfig, ClaudeMessage, ClaudeRequest, ClaudeResponse } from './mcp-types';
+
+// Extend EventType for V2
+export type V2EventType =
+  | EventType
+  | 'signal_generated'
+  | 'signal_dismissed'
+  | 'signal_acted_on'
+  | 'deal_created'
+  | 'deal_analyzed'
+  | 'mcp_connected'
+  | 'mcp_disconnected'
+  | 'morning_brief_generated'
+  | 'anticipation_cycle_complete';

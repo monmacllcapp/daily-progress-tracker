@@ -4,6 +4,7 @@ import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { createClient } from '@supabase/supabase-js';
 import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile, AnalyticsEvent } from '../types/schema';
+import type { Signal, Deal, PortfolioSnapshot, FamilyEvent, MorningBrief, ProductivityPattern } from '../types/signals';
 
 // Add migration plugin
 addRxPlugin(RxDBMigrationSchemaPlugin);
@@ -305,6 +306,139 @@ const analyticsEventSchema = {
     indexes: ['timestamp', 'event_type']
 };
 
+// -- V2 Schema Definitions --
+
+const signalSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        type: { type: 'string' },
+        severity: { type: 'string' },
+        domain: { type: 'string' },
+        source: { type: 'string' },
+        title: { type: 'string' },
+        context: { type: 'string' },
+        suggested_action: { type: 'string' },
+        auto_actionable: { type: 'boolean' },
+        is_dismissed: { type: 'boolean' },
+        is_acted_on: { type: 'boolean' },
+        related_entity_ids: { type: 'array', items: { type: 'string' } },
+        created_at: { type: 'string' },
+        expires_at: { type: 'string' },
+        updated_at: { type: 'string' },
+    },
+    required: ['id', 'type', 'severity', 'domain', 'title', 'created_at'],
+    indexes: ['type', 'severity', 'domain', 'created_at'],
+};
+
+const dealSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        address: { type: 'string' },
+        city: { type: 'string' },
+        state: { type: 'string' },
+        zip: { type: 'string' },
+        strategy: { type: 'string' },
+        status: { type: 'string' },
+        purchase_price: { type: 'number' },
+        arv: { type: 'number' },
+        rehab_cost: { type: 'number' },
+        noi: { type: 'number' },
+        cap_rate: { type: 'number' },
+        dscr: { type: 'number' },
+        cash_on_cash: { type: 'number' },
+        zestimate: { type: 'number' },
+        last_analysis_at: { type: 'string' },
+        notes: { type: 'string' },
+        linked_email_ids: { type: 'array', items: { type: 'string' } },
+        linked_task_ids: { type: 'array', items: { type: 'string' } },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' },
+    },
+    required: ['id', 'address', 'strategy', 'status'],
+    indexes: ['status', 'strategy'],
+};
+
+const portfolioSnapshotSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        date: { type: 'string' },
+        equity: { type: 'number' },
+        cash: { type: 'number' },
+        buying_power: { type: 'number' },
+        positions_count: { type: 'integer' },
+        day_pnl: { type: 'number' },
+        total_pnl: { type: 'number' },
+        positions: { type: 'array', items: { type: 'object' } },
+        source: { type: 'string' },
+        created_at: { type: 'string' },
+    },
+    required: ['id', 'date', 'equity', 'source'],
+    indexes: ['date'],
+};
+
+const familyEventSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        member: { type: 'string' },
+        summary: { type: 'string' },
+        start_time: { type: 'string' },
+        end_time: { type: 'string' },
+        source_calendar: { type: 'string' },
+        conflict_with: { type: 'string' },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' },
+    },
+    required: ['id', 'member', 'summary', 'start_time', 'end_time'],
+    indexes: ['start_time', 'member'],
+};
+
+const morningBriefSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        date: { type: 'string' },
+        urgent_signals: { type: 'array', items: { type: 'object' } },
+        attention_signals: { type: 'array', items: { type: 'object' } },
+        portfolio_pulse: { type: 'object' },
+        calendar_summary: { type: 'array', items: { type: 'string' } },
+        family_summary: { type: 'array', items: { type: 'string' } },
+        ai_insight: { type: 'string' },
+        generated_at: { type: 'string' },
+    },
+    required: ['id', 'date', 'generated_at'],
+    indexes: ['date'],
+};
+
+const productivityPatternSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        pattern_type: { type: 'string' },
+        description: { type: 'string' },
+        data: { type: 'object' },
+        confidence: { type: 'number' },
+        week_start: { type: 'string' },
+        created_at: { type: 'string' },
+    },
+    required: ['id', 'pattern_type', 'description', 'week_start'],
+};
+
 // -- Database Type Definition --
 
 export type TitanDatabaseCollections = {
@@ -323,6 +457,13 @@ export type TitanDatabaseCollections = {
     habit_completions: RxCollection<HabitCompletion>;
     user_profile: RxCollection<UserProfile>;
     analytics_events: RxCollection<AnalyticsEvent>;
+    // V2 Collections
+    signals: RxCollection<Signal>;
+    deals: RxCollection<Deal>;
+    portfolio_snapshots: RxCollection<PortfolioSnapshot>;
+    family_events: RxCollection<FamilyEvent>;
+    morning_briefs: RxCollection<MorningBrief>;
+    productivity_patterns: RxCollection<ProductivityPattern>;
 };
 
 export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
@@ -331,7 +472,7 @@ export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
 
 async function startReplication(db: TitanDatabase, url: string, key: string) {
     const supabase = createClient(url, key);
-    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'analytics_events'];
+    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'analytics_events', 'signals', 'deals', 'portfolio_snapshots', 'family_events', 'morning_briefs', 'productivity_patterns'];
 
     for (const table of tables) {
         // @ts-expect-error - dynamic access
@@ -512,6 +653,13 @@ async function initDatabase(): Promise<TitanDatabase> {
             habit_completions: { schema: habitCompletionSchema },
             user_profile: { schema: userProfileSchema },
             analytics_events: { schema: analyticsEventSchema },
+            // V2 Collections
+            signals: { schema: signalSchema },
+            deals: { schema: dealSchema },
+            portfolio_snapshots: { schema: portfolioSnapshotSchema },
+            family_events: { schema: familyEventSchema },
+            morning_briefs: { schema: morningBriefSchema },
+            productivity_patterns: { schema: productivityPatternSchema },
         });
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
