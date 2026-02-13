@@ -1,0 +1,63 @@
+{
+  "checkpoint_id": "2026-02-13T071400_session3_partial",
+  "timestamp": "2026-02-13T07:14:00Z",
+  "agent": {
+    "model": "claude-sonnet-4-5",
+    "provider": "anthropic",
+    "session_id": "v2-wave-1c"
+  },
+  "session": {
+    "project": "MAPLE Life OS V2",
+    "goal": "Session 3 — Intelligence Services: streak-guardian.ts & deadline-radar.ts with tests",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Implemented 2 intelligence services (streak-guardian, deadline-radar) with 12 comprehensive tests",
+    "files_modified": [
+      "src/services/intelligence/streak-guardian.ts",
+      "src/services/intelligence/deadline-radar.ts",
+      "src/services/intelligence/__tests__/streak-guardian.test.ts",
+      "src/services/intelligence/__tests__/deadline-radar.test.ts"
+    ],
+    "decisions_made": [
+      "Streak Guardian: detects streaks at risk based on last_active_date. Severity escalates with streak length (>=7 days = urgent vs <7 days = attention)",
+      "Streak Guardian: mapCategoryToDomain helper provides simple name-to-LifeDomain mapping with personal_growth as default",
+      "Deadline Radar: monitors tasks (0-3 day window), projects (0-7 day window), and calendar events (30-minute warning)",
+      "Deadline Radar: severity levels — overdue=critical, due today=urgent, due tomorrow=attention, due in 3 days=info",
+      "Calendar events: only non-all-day events trigger 0-30 minute warnings, type='calendar_conflict'",
+      "All signals use uuid() for id generation, source field identifies service, auto_actionable=false (require user confirmation)"
+    ]
+  },
+  "test_results": {
+    "total_files": 30,
+    "total_tests": 377,
+    "v1_tests": 312,
+    "v2_tests": 65,
+    "status": "all passing",
+    "new_tests": [
+      "streak-guardian.test.ts: 6 tests (empty/no-streak/yesterday/broken/severity-levels/domain-mapping)",
+      "deadline-radar.test.ts: 6 tests (no-deadlines/overdue/today/tomorrow/skip-completed/project-deadline)"
+    ]
+  },
+  "continuation": {
+    "status": "partial",
+    "next_immediate_step": {
+      "action": "Continue Session 3 — Create remaining 4 intelligence services",
+      "details": "Create: anticipation-engine.ts (orchestrator), aging-detector.ts (email/task aging), pattern-recognizer.ts (productivity insights), priority-synthesizer.ts (scoring). Write ~24 more tests to complete Session 3."
+    },
+    "next_three_steps": [
+      "Complete Session 3: 4 remaining intelligence services + tests",
+      "Session 4: Intelligence Services Part 2 + MCP Adapters (morning-brief-generator, weekly-review, 7 MCP adapters)",
+      "Session 5: Core V2 Widgets — MorningBrief, SignalFeed, CommandPalette"
+    ],
+    "blockers": [],
+    "context_notes": "377 tests passing (312 V1 + 65 V2). TypeScript compiles clean. Streak/deadline services fully functional. Plan: ~/.claude/plans/proud-beaming-seahorse.md"
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 3,
+    "parent_checkpoint": "2026-02-13T144300_session2_complete",
+    "tags": ["v2-wave-1c", "session-3-partial", "intelligence-services"]
+  }
+}
