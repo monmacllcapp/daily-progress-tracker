@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { AlertTriangle, AlertCircle, Info, Bell, X, CheckCircle } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Info, Bell, X, CheckCircle, Lightbulb } from 'lucide-react';
 import { useSignalStore } from '../../store/signalStore';
 import type { Signal, SignalSeverity } from '../../types/signals';
 
@@ -19,11 +19,15 @@ interface SignalCardProps {
 
 const SignalCard: React.FC<SignalCardProps> = ({ signal, onDismiss, onAct }) => {
   const config = severityConfig[signal.severity];
-  const Icon = config.icon;
+
+  // Override icon and color for learned_suggestion type
+  const Icon = signal.type === 'learned_suggestion' ? Lightbulb : config.icon;
+  const iconColor = signal.type === 'learned_suggestion' ? 'text-violet-400' : config.color;
+  const cardBg = signal.type === 'learned_suggestion' ? 'bg-violet-500/10 border-violet-500/20' : config.bg;
 
   return (
-    <div className={`p-3 border rounded-lg ${config.bg} flex items-start gap-3`}>
-      <Icon className={`w-4 h-4 ${config.color} mt-0.5 flex-shrink-0`} />
+    <div className={`p-3 border rounded-lg ${cardBg} flex items-start gap-3`}>
+      <Icon className={`w-4 h-4 ${iconColor} mt-0.5 flex-shrink-0`} />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-white truncate">{signal.title}</div>
         <div className="text-xs text-slate-400 mt-0.5 line-clamp-2">{signal.context}</div>

@@ -1,0 +1,54 @@
+{
+  "checkpoint_id": "2026-02-13T221800_progress-bars",
+  "timestamp": "2026-02-13T22:18:00Z",
+  "agent": {
+    "model": "opus-4.6",
+    "provider": "anthropic",
+    "session_id": "dev-intel-progress-bars"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "Add progress bars to Dev Intelligence Dashboard cards + fix GitHub API issues",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Added progress bars to each project card in the Dev Intelligence Dashboard. Parses [x]/[ ] checklist items from MILESTONES.md for granular task-level progress. Falls back to milestone phase completion counts when no checklists found. Color-coded bar: red (<40%), amber (40-70%), blue (70-99%), green (100%). Also fixed GitHub API auth (swapped fine-grained PAT for gh OAuth token), base64 newline decoding, docs/ file paths, Promise.allSettled resilience, and flexible milestone parser for both table and heading+checklist formats.",
+    "files_modified": [
+      "src/services/github-projects.ts (ADD — ProgressInfo type, parseProgress(), flexible milestone parser, base64 fix, docs/ paths, Promise.allSettled)",
+      "src/store/devProjectsStore.ts (FIX — added progress field to error fallback ProjectStatus)",
+      "src/components/v2/DevProjectCard.tsx (ADD — progress bar section with color-coded indicator)",
+      "src/services/__tests__/github-projects.test.ts (FIX — updated error test assertion for allSettled + progress field)",
+      ".env (MOD — swapped fine-grained PAT for gh CLI OAuth token)"
+    ],
+    "decisions_made": [
+      "Parse [x]/[ ] checkboxes from full MILESTONES.md for granular progress (not just phase counts)",
+      "Fall back to milestone phase status counts when no checklists found",
+      "Color-coded progress bar: red <40%, amber 40-70%, blue 70-99%, green 100%",
+      "Progress bar hidden when total=0 (no milestones data)",
+      "Used gh CLI OAuth token instead of fine-grained PAT for repo access",
+      "Promise.allSettled for partial failure resilience",
+      "Flexible milestone parser: table format + heading+checklist format"
+    ]
+  },
+  "continuation": {
+    "status": "complete",
+    "next_immediate_step": {
+      "action": "Verify live dashboard with progress bars on localhost:4009/dev-projects",
+      "details": "All 5 project cards should show colored progress bars with task counts"
+    },
+    "next_three_steps": [
+      "Verify progress bars render correctly for all 5 projects",
+      "Add progress percentage to the summary bar at top",
+      "Consider adding per-project deep links and click-to-navigate"
+    ],
+    "blockers": [],
+    "context_notes": "686 tests pass. Clean build. Dev server on port 4009."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 19,
+    "parent_checkpoint": "2026-02-13T221500_dev-intel-bugfixes",
+    "tags": ["dev-intelligence", "progress-bars", "github-api"]
+  }
+}

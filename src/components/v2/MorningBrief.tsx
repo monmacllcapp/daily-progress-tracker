@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Bell, TrendingUp, Calendar, Users, Brain } from 'lucide-react';
+import { AlertTriangle, Bell, TrendingUp, Calendar, Users, Brain, Lightbulb } from 'lucide-react';
 import type { MorningBrief as MorningBriefType } from '../../types/signals';
 
 interface MorningBriefProps {
@@ -97,6 +97,25 @@ export const MorningBrief: React.FC<MorningBriefProps> = ({ brief, isLoading = f
           <div className="space-y-1">
             {brief.family_summary.map((item, i) => (
               <div key={i} className="text-sm text-slate-300">{item}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Learned Suggestions */}
+      {brief.learned_suggestions && brief.learned_suggestions.length > 0 && (
+        <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <Lightbulb className="w-4 h-4 text-violet-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Learned Insights
+            </span>
+          </div>
+          <div className="space-y-2">
+            {brief.learned_suggestions.map((suggestion, index) => (
+              <p key={index} className="text-sm text-slate-300 pl-6">
+                {suggestion}
+              </p>
             ))}
           </div>
         </div>

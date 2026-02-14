@@ -4,7 +4,7 @@ import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { createClient } from '@supabase/supabase-js';
 import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile, AnalyticsEvent, StaffMember, StaffPayPeriod, StaffExpense, StaffKpiSummary, FinancialAccount, FinancialTransaction, FinancialSubscription, FinancialMonthlySummary } from '../types/schema';
-import type { Signal, Deal, PortfolioSnapshot, FamilyEvent, MorningBrief, ProductivityPattern } from '../types/signals';
+import type { Signal, Deal, PortfolioSnapshot, FamilyEvent, MorningBrief, ProductivityPattern, SignalWeight } from '../types/signals';
 
 // Add migration plugin
 addRxPlugin(RxDBMigrationSchemaPlugin);
@@ -445,6 +445,26 @@ const productivityPatternSchema = {
     indexes: ['week_start'],
 };
 
+const signalWeightSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        signal_type: { type: 'string' },
+        domain: { type: 'string' },
+        total_generated: { type: 'integer' },
+        total_dismissed: { type: 'integer' },
+        total_acted_on: { type: 'integer' },
+        effectiveness_score: { type: 'number' },
+        weight_modifier: { type: 'number' },
+        last_updated: { type: 'string' },
+        created_at: { type: 'string' },
+    },
+    required: ['id', 'signal_type', 'domain'],
+    indexes: [['signal_type', 'domain']],
+};
+
 const staffMemberSchema = {
     version: 0,
     primaryKey: 'id',
@@ -675,6 +695,7 @@ export type TitanDatabaseCollections = {
     family_events: RxCollection<FamilyEvent>;
     morning_briefs: RxCollection<MorningBrief>;
     productivity_patterns: RxCollection<ProductivityPattern>;
+    signal_weights: RxCollection<SignalWeight>;
     // Staffing + Financial Collections
     staff_members: RxCollection<StaffMember>;
     staff_pay_periods: RxCollection<StaffPayPeriod>;
@@ -692,7 +713,7 @@ export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
 
 async function startReplication(db: TitanDatabase, url: string, key: string) {
     const supabase = createClient(url, key);
-    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'analytics_events', 'signals', 'deals', 'portfolio_snapshots', 'family_events', 'morning_briefs', 'productivity_patterns', 'staff_members', 'staff_pay_periods', 'staff_expenses', 'staff_kpi_summaries', 'financial_accounts', 'financial_transactions', 'financial_subscriptions', 'financial_monthly_summaries'];
+    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'analytics_events', 'signals', 'deals', 'portfolio_snapshots', 'family_events', 'morning_briefs', 'productivity_patterns', 'signal_weights', 'staff_members', 'staff_pay_periods', 'staff_expenses', 'staff_kpi_summaries', 'financial_accounts', 'financial_transactions', 'financial_subscriptions', 'financial_monthly_summaries'];
 
     for (const table of tables) {
         // @ts-expect-error - dynamic access
@@ -909,6 +930,7 @@ async function initDatabase(): Promise<TitanDatabase> {
             family_events: { schema: familyEventSchema },
             morning_briefs: { schema: morningBriefSchema },
             productivity_patterns: { schema: productivityPatternSchema },
+            signal_weights: { schema: signalWeightSchema },
             // Staffing + Financial Collections
             staff_members: { schema: staffMemberSchema },
             staff_pay_periods: { schema: staffPayPeriodSchema },

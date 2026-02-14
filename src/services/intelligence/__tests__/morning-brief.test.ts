@@ -311,4 +311,24 @@ describe('morning-brief', () => {
     expect(brief.calendar_summary[0]).toContain('Event 0');
     expect(brief.calendar_summary[4]).toContain('Event 4');
   });
+
+  it('includes learned_suggestions when provided', () => {
+    const context = makeContext();
+    const signals: Signal[] = [];
+    const suggestions = ['Your productivity peaks at 9am', 'Consider blocking Tuesday mornings for deep work'];
+
+    const brief = generateMorningBrief(context, signals, suggestions);
+
+    expect(brief.learned_suggestions).toEqual(suggestions);
+    expect(brief.learned_suggestions).toHaveLength(2);
+  });
+
+  it('learned_suggestions is undefined when not provided', () => {
+    const context = makeContext();
+    const signals: Signal[] = [];
+
+    const brief = generateMorningBrief(context, signals);
+
+    expect(brief.learned_suggestions).toBeUndefined();
+  });
 });

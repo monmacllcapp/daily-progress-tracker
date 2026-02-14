@@ -38,6 +38,7 @@ describe('useAnticipationEngine', () => {
       isRunning: false,
       lastRunAt: null,
       config: { intervalMs: 300000, enabled: true },
+      cachedWeightsCount: 0,
     });
   });
 

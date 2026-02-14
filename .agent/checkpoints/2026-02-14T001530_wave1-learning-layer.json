@@ -1,0 +1,51 @@
+{
+  "checkpoint_id": "2026-02-14T001530_wave1-learning-layer",
+  "timestamp": "2026-02-14T00:15:30Z",
+  "agent": {
+    "model": "sonnet-4.5",
+    "provider": "anthropic",
+    "session_id": "70dd80cb-9fdd-487f-a1d4-85765ee892da"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "MAPLE Life OS Learning Layer Wave 1 Agent A — Type Extensions and RxDB Collection Setup",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Extended type system and database schema for Learning Layer MVP. Added SignalWeight collection, new pattern types, learned_suggestion signal type, and supporting fields to enable feedback-based signal prioritization.",
+    "files_modified": [
+      "src/types/signals.ts",
+      "src/db/index.ts"
+    ],
+    "decisions_made": [
+      "Added 'learned_suggestion' as 15th SignalType for AI-generated suggestions based on learned patterns",
+      "Extended PatternType with 3 new values: task_estimation, cadence, domain_balance",
+      "Created SignalWeight interface to track effectiveness metrics per signal_type/domain pair",
+      "Added signalWeights field to AnticipationContext for runtime access to effectiveness data",
+      "Added learned_suggestions field to MorningBrief for displaying AI suggestions",
+      "Created signal_weights RxDB collection with composite index on [signal_type, domain]",
+      "Added signal_weights to replication tables array for Supabase sync"
+    ]
+  },
+  "continuation": {
+    "status": "completed",
+    "next_immediate_step": {
+      "action": "Wave 1 Agent A complete — ready for Agent B (Signal Weight Tracker)",
+      "details": "Types and DB schema ready. Next: implement SignalWeightTracker service to populate signal_weights collection based on user interactions (dismiss, act on, ignore signals)."
+    },
+    "next_three_steps": [
+      "Wave 1 Agent B: Build SignalWeightTracker service with track(), calculateEffectiveness(), updateWeights() methods",
+      "Wave 1 Agent C: Build LearningEngine service to read signal_weights and generate learned_suggestion signals",
+      "Wave 1 Agent D: Integrate learning engine into morning brief generation pipeline"
+    ],
+    "blockers": [],
+    "context_notes": "TypeScript compilation passed. All modifications surgical — no existing functionality altered. Ready for next wave agent."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 1,
+    "parent_checkpoint": "2026-02-14T001454_autocompact",
+    "tags": ["learning-layer", "wave-1", "agent-a", "types", "rxdb", "signals"]
+  }
+}

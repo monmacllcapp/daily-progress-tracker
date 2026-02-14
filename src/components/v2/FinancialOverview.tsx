@@ -1,17 +1,19 @@
 import React from 'react';
-import { DollarSign, Building2, PieChart } from 'lucide-react';
-import type { PortfolioSnapshot, Deal } from '../../types/signals';
+import { DollarSign, Building2, PieChart, AlertCircle } from 'lucide-react';
+import type { PortfolioSnapshot, Deal, Signal } from '../../types/signals';
 
 interface FinancialOverviewProps {
   snapshot?: PortfolioSnapshot | null;
   deals?: Deal[];
+  signals?: Signal[];
 }
 
 export const FinancialOverview: React.FC<FinancialOverviewProps> = ({
   snapshot,
-  deals = []
+  deals = [],
+  signals = []
 }) => {
-  const hasData = snapshot || deals.length > 0;
+  const hasData = snapshot || deals.length > 0 || signals.filter(s => !s.is_dismissed).length > 0;
 
   if (!hasData) {
     return (
@@ -53,6 +55,30 @@ export const FinancialOverview: React.FC<FinancialOverviewProps> = ({
         <DollarSign className="w-5 h-5 text-emerald-400" />
         <h2 className="text-lg font-semibold text-white">Financial Overview</h2>
       </div>
+
+      {/* Financial Signals */}
+      {signals.filter(s => !s.is_dismissed).length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            Financial Alerts
+          </h3>
+          <div className="space-y-1">
+            {signals.filter(s => !s.is_dismissed).slice(0, 3).map(signal => (
+              <div
+                key={signal.id}
+                className={`flex items-center gap-2 p-2 rounded-lg text-sm ${
+                  signal.severity === 'critical' || signal.severity === 'urgent'
+                    ? 'bg-amber-500/10 border border-amber-500/20 text-amber-200'
+                    : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-200'
+                }`}
+              >
+                <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">{signal.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Net worth summary */}
       <div className="text-center bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/30 rounded-lg p-4">

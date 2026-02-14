@@ -3,6 +3,7 @@ import { detectAgingSignals } from './aging-detector';
 import { detectStreakSignals } from './streak-guardian';
 import { detectDeadlineSignals } from './deadline-radar';
 import { detectPatternSignals } from './pattern-recognizer';
+import { generateClaudeInsights } from './claude-insight-engine';
 import { synthesizePriorities } from './priority-synthesizer';
 
 export interface AnticipationResult {
@@ -26,6 +27,7 @@ export async function runAnticipationCycle(
     { name: 'streak-guardian', fn: () => detectStreakSignals(context) },
     { name: 'deadline-radar', fn: () => detectDeadlineSignals(context) },
     { name: 'pattern-recognizer', fn: () => detectPatternSignals(context) },
+    { name: 'claude-insight-engine', fn: () => generateClaudeInsights(context, context.historicalPatterns, context.signals) },
   ];
 
   const results = await Promise.allSettled(
@@ -54,7 +56,7 @@ export async function runAnticipationCycle(
     }
   });
 
-  const prioritizedSignals = synthesizePriorities(allSignals, context);
+  const prioritizedSignals = synthesizePriorities(allSignals, context, context.signalWeights);
 
   const runDuration = performance.now() - startTime;
 

@@ -1,57 +1,86 @@
-# MAPLE Life OS V2 — Handoff
-
-**Last Updated:** 2026-02-13T21:00:00Z
-**Checkpoint ID:** 2026-02-13T210000_merge_complete_pr_ready
-**Branch:** sandbox at `77c3d7e`
-**Status:** ALL SESSIONS COMPLETE — Merged with remote, PR #4 updated, dev server verified
-
----
+# Agent Handoff
+**Last Updated:** 2026-02-14T08:00:00Z
+**Agent:** Claude Opus 4.6 (orchestrator) + 4x Sonnet agents
+**Branch:** sandbox
 
 ## What Was Done
 
-All 9 sessions of V2 implementation + merge with remote branch features (staffing, financial, vision, Jarvis).
+### Session 14: 3-Tier Learning Intelligence Layer (COMPLETE)
+Built the full learning system with 3 tiers:
 
-### Final Metrics
-- **Total tests**: 663 (312 V1 + 294 V2 + 57 new feature) — all passing
-- **Production build**: Clean (`tsc -b && vite build` — zero errors)
-- **Files changed**: ~170 (vs origin/main)
-- **PR**: #4 (sandbox → main) — https://github.com/monmacllcapp/daily-progress-tracker/pull/4
+**Tier 1 — Pattern Learner** (`src/services/intelligence/pattern-learner.ts`)
+- Computes 6 pattern types from user data: peak_hours, task_estimation, day_of_week, deep_work_ratio, domain_balance, completion_rate
+- Writes to existing (previously empty) `productivity_patterns` RxDB collection
+- 14 tests in `__tests__/pattern-learner.test.ts`
 
-### Merge Resolution
-Resolved 10 merge conflicts between V2 intelligence layer and remote features:
-- App.tsx, Sidebar.tsx, TopBar.tsx — routes + navigation
-- db/index.ts, schema.ts — combined 14 new collection schemas
-- widgetRegistry.ts — combined 4 new widget registrations
-- EmailTier migration — updated V2 tests from 4-tier to 7-tier system
-- sidebar.ts — added Intelligence nav group to dynamic config
+**Tier 2 — Claude Insight Engine** (`src/services/intelligence/claude-insight-engine.ts`)
+- Feeds patterns + signals to AI for higher-order insights via existing `askAIJSON()`
+- Returns `learned_suggestion` type signals, caps at 3, 24h expiry
+- Falls back to `[]` when no AI available
+- 10 tests in `__tests__/claude-insight-engine.test.ts`
 
----
+**Tier 3 — Feedback Loop** (`src/services/intelligence/feedback-loop.ts`)
+- Analyzes dismissed vs acted-on signals, computes effectiveness weights (0.3x–2.0x)
+- New `signal_weights` RxDB collection
+- 10 tests in `__tests__/feedback-loop.test.ts`
+
+**Integration changes:**
+- `src/types/signals.ts` — Extended PatternType, SignalType unions; added SignalWeight interface
+- `src/db/index.ts` — Added signal_weights collection schema + replication
+- `src/services/intelligence/priority-synthesizer.ts` — Apply feedback weights to scoring
+- `src/services/intelligence/anticipation-engine.ts` — 5th detector (Claude insights)
+- `src/workers/anticipation-worker.ts` — Hourly learning cycle + load weights
+- `src/services/intelligence/morning-brief.ts` — Accept learned_suggestions
+- `src/components/v2/MorningBrief.tsx` — Render learned suggestions (Lightbulb, purple)
+- `src/components/v2/SignalFeed.tsx` — Visual treatment for learned_suggestion type
+
+### Session 15: Full Intelligence Wiring (COMPLETE)
+Connected ALL pages and widgets to the intelligence/signal system.
+
+**Critical Bug Fix:**
+- `src/App.tsx` — Added `anticipationWorker.setDatabase(database)` after DB init. Without this, the entire learning cycle was dead code (this.db was always null).
+
+**3 Widgets gained signal props:**
+- `src/components/v2/TradingDashboard.tsx` — signals prop, "Trading Alerts" section
+- `src/components/v2/DealAnalyzer.tsx` — signals prop, "Deal Alerts" section
+- `src/components/v2/FinancialOverview.tsx` — signals prop, "Financial Alerts" section
+
+**14 Pages wired to signal store:**
+- `src/pages/TradingPage.tsx` — business_trading domain, SignalFeed + widget props
+- `src/pages/DealsPage.tsx` — business_re domain, SignalFeed + DealAnalyzer props
+- `src/pages/FinancePage.tsx` — finance domain, SignalFeed + FinancialOverview props
+- `src/pages/FinancialPage.tsx` — finance domain, SignalFeed
+- `src/pages/FamilyPage.tsx` — family domain, SignalFeed + FamilyHub props
+- `src/pages/LifePage.tsx` — health_fitness + personal_growth domains, dual SignalFeed
+- `src/pages/TasksPage.tsx` — type-filtered (deadline, follow_up, streak) inline strip
+- `src/pages/EmailPage.tsx` — type-filtered (aging_email) inline strip
+- `src/pages/DashboardPage.tsx` — urgent signals banner (critical/urgent only)
+- `src/pages/CalendarPage.tsx` — type-filtered (calendar_conflict, context_switch) inline strip
+- `src/pages/DevProjectsPage.tsx` — business_tech domain, SignalFeed
+- `src/pages/ProjectsPage.tsx` — business_tech domain, SignalFeed
+- `src/pages/StaffingPage.tsx` — business_tech domain, SignalFeed
+- `src/pages/JournalPage.tsx` — personal_growth domain, SignalFeed
+
+**Pages intentionally NOT wired (low signal relevance):**
+- VisionPage.tsx, CategoriesPage.tsx, MorningFlowPage.tsx
+- CommandCenterPage.tsx (already fully wired)
 
 ## Current State
-
-- TypeScript: zero errors
-- Tests: 663/663 passing across 53 test files
-- Build: production build succeeds with proper chunk splitting
-- Branch: `sandbox`, all work committed and pushed
-- PR: #4 open (sandbox → main)
-- Dev server: verified running on port 4009
-
----
+- TypeScript: Clean (`npx tsc --noEmit` — zero errors)
+- Tests: 726 passed (1 pre-existing failure in analytics streak test)
+- Build: Production build successful (4.52s)
+- All changes uncommitted on `sandbox` branch
 
 ## Next Step
-
-- Review and merge PR #4
-- Deploy to production
-- Manual verification of MCP server connections and AI responses
+- Commit all changes
+- No immediate code tasks pending
+- Deferred: Intelligence layer for Maple 360 project
 
 ## Blockers
-
 None.
 
 ## Context Notes
-
-- V2 files isolated in `src/components/v2/`, `src/services/intelligence/`, `src/services/mcp/`, `src/services/ai/`
-- AI fallback chain: Claude (via proxy at localhost:3100) → Gemini → rule-based
-- All MCP servers `required: false` — graceful degradation when offline
-- Sidebar uses dynamic config system (types/sidebar.ts) — V2 items in "Intelligence" section
-- Email tier system migrated to 7-tier: reply_urgent, reply_needed, to_review, important_not_urgent, unsure, social, unsubscribe
+- The 3-tier learning system runs on two cadences: anticipation every 5 min, learning every 1 hour
+- Feedback weights multiply base scores (0.3x–2.0x), never replace them
+- All signal sections render conditionally — clean UX on day-1 with no data
+- All widget props default to `[]` for backward compatibility

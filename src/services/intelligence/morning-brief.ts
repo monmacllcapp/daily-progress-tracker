@@ -16,7 +16,8 @@ import { v4 as uuid } from 'uuid';
 
 export function generateMorningBrief(
   context: AnticipationContext,
-  signals: Signal[]
+  signals: Signal[],
+  learnedSuggestions?: string[]
 ): MorningBrief {
   const now = new Date();
   const today = context.today;
@@ -48,6 +49,7 @@ export function generateMorningBrief(
     calendar_summary: calendarSummary,
     family_summary: familySummary,
     ai_insight: aiInsight,
+    learned_suggestions: learnedSuggestions,
     generated_at: now.toISOString(),
   };
 }

@@ -43,7 +43,7 @@ export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
       id: 'section-intelligence',
       title: 'Intelligence',
       isCollapsed: false,
-      itemIds: ['nav-command-center', 'nav-deals', 'nav-trading', 'nav-family', 'nav-finance'],
+      itemIds: ['nav-command-center', 'nav-deals', 'nav-trading', 'nav-family', 'nav-finance', 'nav-dev-projects'],
     },
     {
       id: 'section-business',
@@ -67,6 +67,7 @@ export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
     { id: 'nav-trading', label: 'Trading', iconName: 'BarChart3', path: '/trading' },
     { id: 'nav-family', label: 'Family', iconName: 'Heart', path: '/family' },
     { id: 'nav-finance', label: 'Finance', iconName: 'Wallet', path: '/finance' },
+    { id: 'nav-dev-projects', label: 'Dev Projects', iconName: 'GitBranch', path: '/dev-projects' },
     { id: 'nav-staffing', label: 'Staffing KPIs', iconName: 'Users', path: '/staffing' },
     { id: 'nav-finances', label: 'Finances', iconName: 'Wallet', path: '/finances' },
   ],

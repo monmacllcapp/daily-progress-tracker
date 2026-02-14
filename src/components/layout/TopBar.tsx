@@ -20,6 +20,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/staffing': 'Staffing KPIs',
   '/categories': 'Life Categories',
   '/vision': 'Vision Board',
+  '/dev-projects': 'Dev Intelligence',
 };
 
 export function TopBar() {

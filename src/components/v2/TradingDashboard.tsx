@@ -1,14 +1,16 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, BarChart3, DollarSign } from 'lucide-react';
-import type { PortfolioSnapshot } from '../../types/signals';
+import { TrendingUp, TrendingDown, BarChart3, DollarSign, AlertCircle } from 'lucide-react';
+import type { PortfolioSnapshot, Signal } from '../../types/signals';
 
 interface TradingDashboardProps {
   snapshot?: PortfolioSnapshot | null;
+  signals?: Signal[];
   isLoading?: boolean;
 }
 
 export const TradingDashboard: React.FC<TradingDashboardProps> = ({
   snapshot,
+  signals = [],
   isLoading = false
 }) => {
   if (isLoading) {
@@ -102,6 +104,30 @@ export const TradingDashboard: React.FC<TradingDashboardProps> = ({
           <div className="text-xs text-slate-400 mt-0.5">All time</div>
         </div>
       </div>
+
+      {/* Trading Signals */}
+      {signals.filter(s => !s.is_dismissed).length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            Trading Alerts
+          </h3>
+          <div className="space-y-1">
+            {signals.filter(s => !s.is_dismissed).slice(0, 3).map(signal => (
+              <div
+                key={signal.id}
+                className={`flex items-center gap-2 p-2 rounded-lg text-sm ${
+                  signal.severity === 'critical' || signal.severity === 'urgent'
+                    ? 'bg-red-500/10 border border-red-500/20 text-red-200'
+                    : 'bg-blue-500/10 border border-blue-500/20 text-blue-200'
+                }`}
+              >
+                <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">{signal.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Top positions */}
       {snapshot.positions.length > 0 && (

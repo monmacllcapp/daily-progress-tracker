@@ -5,6 +5,7 @@ vi.mock('../aging-detector', () => ({ detectAgingSignals: vi.fn(() => []) }));
 vi.mock('../streak-guardian', () => ({ detectStreakSignals: vi.fn(() => []) }));
 vi.mock('../deadline-radar', () => ({ detectDeadlineSignals: vi.fn(() => []) }));
 vi.mock('../pattern-recognizer', () => ({ detectPatternSignals: vi.fn(() => []) }));
+vi.mock('../claude-insight-engine', () => ({ generateClaudeInsights: vi.fn(() => []) }));
 vi.mock('../priority-synthesizer', () => ({ synthesizePriorities: vi.fn((signals) => signals) }));
 
 import { runAnticipationCycle, getDefaultContext } from '../anticipation-engine';
@@ -148,5 +149,12 @@ describe('anticipation-engine', () => {
     expect(context.today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(context.currentTime).toMatch(/^\d{2}:\d{2}$/);
     expect(context.dayOfWeek).toMatch(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/);
+  });
+
+  it('includes claude-insight-engine in detectors', async () => {
+    const result = await runAnticipationCycle(mockContext);
+
+    expect(result.servicesRun).toContain('claude-insight-engine');
+    expect(result.servicesRun).toHaveLength(5); // Now 5 detectors total
   });
 });

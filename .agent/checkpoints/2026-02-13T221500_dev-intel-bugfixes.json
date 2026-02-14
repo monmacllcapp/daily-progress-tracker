@@ -1,0 +1,51 @@
+{
+  "checkpoint_id": "2026-02-13T221500_dev-intel-bugfixes",
+  "timestamp": "2026-02-13T22:15:00Z",
+  "agent": {
+    "model": "opus-4.6",
+    "provider": "anthropic",
+    "session_id": "dev-intel-bugfixes"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "Fix Dev Intelligence Dashboard — GitHub API auth, base64 decoding, file paths, resilient fetching, flexible milestone parser",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Fixed 5 bugs preventing the Dev Intelligence Dashboard from fetching live data: swapped non-working fine-grained PAT for gh CLI OAuth token, fixed base64 newline decoding, corrected docs/ file paths, switched to Promise.allSettled for partial failure resilience, and built flexible milestone parser supporting both table and heading+checklist formats.",
+    "files_modified": [
+      "src/services/github-projects.ts (FIX — base64 newline strip, docs/ paths, Promise.allSettled, flexible milestone parser)",
+      "src/components/v2/DevProjectCard.tsx (FIX — property name mismatches: lastCommit→latestCommit, pullRequests→openPRs, milestone.id→milestone.phase, removed unused onRefresh)",
+      "src/pages/DevProjectsPage.tsx (FIX — pullRequests→openPRs, stopAutoRefresh→cleanup from startAutoRefresh)",
+      ".env (MOD — swapped fine-grained PAT for gh CLI OAuth token)"
+    ],
+    "decisions_made": [
+      "Used gh CLI OAuth token (gho_*) instead of fine-grained PAT — fine-grained PATs need explicit repo permissions",
+      "Promise.allSettled instead of Promise.all — partial data still shows when some endpoints fail",
+      "Flexible milestone parser handles both table format (daily-progress-tracker, maple-docs) and heading+checklist format (titan-trinity-core, maple-underwriter)",
+      "GitHub base64 content contains embedded newlines — strip before atob()",
+      "Governance docs live in docs/ subfolder, not repo root"
+    ]
+  },
+  "continuation": {
+    "status": "complete",
+    "next_immediate_step": {
+      "action": "Verify live dashboard on localhost:4009/dev-projects",
+      "details": "All 5 project cards should now show live data — branches, milestones, PRs, session status, North Star"
+    },
+    "next_three_steps": [
+      "Verify all 5 project cards render with real data",
+      "Run full test suite to confirm no regressions",
+      "Consider adding per-project deep links and click-to-navigate"
+    ],
+    "blockers": [],
+    "context_notes": "686 tests pass. Clean build. Dev server running on port 4009. gh OAuth token expires — may need refresh via gh auth login."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 18,
+    "parent_checkpoint": "2026-02-13T211500_dev-intelligence-dashboard",
+    "tags": ["dev-intelligence", "bugfix", "github-api"]
+  }
+}

@@ -1,6 +1,8 @@
 import { runAnticipationCycle, getDefaultContext } from '../services/intelligence/anticipation-engine';
 import { useSignalStore } from '../store/signalStore';
 import type { AnticipationContext } from '../types/signals';
+import type { TitanDatabase } from '../db';
+import type { SignalWeight } from '../types/signals';
 
 export interface AnticipationWorkerConfig {
   intervalMs: number;  // default: 300000 (5 minutes)
@@ -18,6 +20,9 @@ class AnticipationWorker {
   private isRunning = false;
   private lastRunAt: string | null = null;
   private contextProvider: (() => Promise<AnticipationContext>) | null = null;
+  private learningIntervalId: ReturnType<typeof setInterval> | null = null;
+  private db: TitanDatabase | null = null;
+  private cachedWeights: SignalWeight[] = [];
 
   constructor(config: Partial<AnticipationWorkerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -25,6 +30,36 @@ class AnticipationWorker {
 
   setContextProvider(provider: () => Promise<AnticipationContext>) {
     this.contextProvider = provider;
+  }
+
+  setDatabase(db: TitanDatabase) {
+    this.db = db;
+  }
+
+  async runLearningCycle(): Promise<void> {
+    if (!this.db) {
+      console.warn('[Anticipation Worker] No database set, skipping learning cycle');
+      return;
+    }
+
+    try {
+      console.info('[Anticipation Worker] Starting learning cycle...');
+
+      // Dynamically import to avoid circular deps and keep lazy
+      const { learnPatterns } = await import('../services/intelligence/pattern-learner');
+      const { computeSignalWeights } = await import('../services/intelligence/feedback-loop');
+
+      // Run pattern learning (Tier 1)
+      await learnPatterns(this.db);
+
+      // Run feedback weight computation (Tier 3)
+      const weights = await computeSignalWeights(this.db);
+      this.cachedWeights = weights;
+
+      console.info(`[Anticipation Worker] Learning cycle complete: ${weights.length} weights computed`);
+    } catch (err) {
+      console.error('[Anticipation Worker] Learning cycle failed:', err);
+    }
   }
 
   async start(): Promise<void> {
@@ -42,6 +77,17 @@ class AnticipationWorker {
         console.error('[Anticipation Worker] Cycle error:', err);
       });
     }, this.config.intervalMs);
+
+    // Start learning cycle (hourly)
+    this.runLearningCycle().catch(err => {
+      console.error('[Anticipation Worker] Initial learning cycle failed:', err);
+    });
+
+    this.learningIntervalId = setInterval(() => {
+      this.runLearningCycle().catch(err => {
+        console.error('[Anticipation Worker] Learning cycle error:', err);
+      });
+    }, 3600000); // 1 hour
   }
 
   stop(): void {
@@ -49,6 +95,10 @@ class AnticipationWorker {
       clearInterval(this.intervalId);
       this.intervalId = null;
       console.info('[Anticipation Worker] Stopped');
+    }
+    if (this.learningIntervalId) {
+      clearInterval(this.learningIntervalId);
+      this.learningIntervalId = null;
     }
   }
 
@@ -65,6 +115,10 @@ class AnticipationWorker {
 
       if (this.contextProvider) {
         context = await this.contextProvider();
+        // Inject cached feedback weights
+        if (!context.signalWeights) {
+          context.signalWeights = this.cachedWeights;
+        }
       } else {
         // Build minimal context from defaults
         const defaults = getDefaultContext();
@@ -81,6 +135,7 @@ class AnticipationWorker {
           currentTime: defaults.currentTime!,
           dayOfWeek: defaults.dayOfWeek!,
           historicalPatterns: [],
+          signalWeights: this.cachedWeights,
         };
       }
 
@@ -113,6 +168,7 @@ class AnticipationWorker {
       isRunning: this.isRunning,
       lastRunAt: this.lastRunAt,
       config: this.config,
+      cachedWeightsCount: this.cachedWeights.length,
     };
   }
 

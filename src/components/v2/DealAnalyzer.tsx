@@ -1,13 +1,14 @@
 import React from 'react';
-import { Building2, DollarSign } from 'lucide-react';
-import type { Deal } from '../../types/signals';
+import { Building2, DollarSign, AlertCircle } from 'lucide-react';
+import type { Deal, Signal } from '../../types/signals';
 
 interface DealAnalyzerProps {
   deals?: Deal[];
+  signals?: Signal[];
   isLoading?: boolean;
 }
 
-export const DealAnalyzer: React.FC<DealAnalyzerProps> = ({ deals = [], isLoading = false }) => {
+export const DealAnalyzer: React.FC<DealAnalyzerProps> = ({ deals = [], signals = [], isLoading = false }) => {
   if (isLoading) {
     return (
       <div className="p-4 bg-slate-900/50 rounded-lg border border-white/10">
@@ -60,6 +61,26 @@ export const DealAnalyzer: React.FC<DealAnalyzerProps> = ({ deals = [], isLoadin
         <Building2 className="w-5 h-5 text-emerald-400" />
         <h2 className="text-lg font-semibold text-white">Deal Pipeline</h2>
       </div>
+
+      {/* Real Estate Signals */}
+      {signals.filter(s => !s.is_dismissed).length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            Deal Alerts
+          </h3>
+          <div className="space-y-1">
+            {signals.filter(s => !s.is_dismissed).slice(0, 3).map(signal => (
+              <div
+                key={signal.id}
+                className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg"
+              >
+                <AlertCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                <span className="text-sm text-emerald-200 truncate">{signal.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-2">

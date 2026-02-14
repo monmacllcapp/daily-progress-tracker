@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { synthesizePriorities, scoreSeverity, deduplicateSignals } from '../priority-synthesizer';
-import type { Signal, AnticipationContext } from '../../../types/signals';
+import type { Signal, AnticipationContext, SignalWeight } from '../../../types/signals';
 
 function makeSignal(overrides: Partial<Signal> = {}): Signal {
   return {
@@ -129,6 +129,71 @@ describe('priority-synthesizer', () => {
       const result = synthesizePriorities(signals, context);
 
       expect(result[0].title).toBe('Related to urgent task');
+    });
+
+    it('applies feedback weights to signal scores', () => {
+      const signals = [
+        makeSignal({
+          type: 'pattern_insight',
+          domain: 'personal_growth',
+          severity: 'info',
+          title: 'Weighted signal',
+        }),
+        makeSignal({
+          type: 'aging_email',
+          domain: 'business_re',
+          severity: 'info',
+          title: 'Unweighted signal',
+        }),
+      ];
+
+      const weights: SignalWeight[] = [
+        {
+          id: 'w1',
+          signal_type: 'pattern_insight',
+          domain: 'personal_growth',
+          total_generated: 10,
+          total_dismissed: 8,
+          total_acted_on: 2,
+          effectiveness_score: 0.2,
+          weight_modifier: 0.64, // 0.3 + (0.2 * 1.7)
+          last_updated: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        },
+      ];
+
+      const context = makeContext();
+      const result = synthesizePriorities(signals, context, weights);
+
+      // Both signals have same severity (info = 25 base score)
+      // pattern_insight should be ranked LOWER due to 0.64x weight
+      // aging_email has no weight, so keeps original score
+      expect(result[0].title).toBe('Unweighted signal');
+      expect(result[1].title).toBe('Weighted signal');
+    });
+
+    it('maintains original behavior without weights', () => {
+      const signals = [
+        makeSignal({
+          severity: 'attention',
+          title: 'Signal 1',
+          type: 'pattern_insight',
+        }),
+        makeSignal({
+          severity: 'info',
+          title: 'Signal 2',
+          type: 'aging_email',
+        }),
+      ];
+
+      const context = makeContext();
+      const withoutWeights = synthesizePriorities(signals, context);
+      const withEmptyWeights = synthesizePriorities(signals, context, []);
+
+      // Both should produce same ordering
+      expect(withoutWeights.map(s => s.title)).toEqual(withEmptyWeights.map(s => s.title));
+      expect(withoutWeights[0].severity).toBe('attention');
+      expect(withoutWeights[1].severity).toBe('info');
     });
   });
 

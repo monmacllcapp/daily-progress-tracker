@@ -1,11 +1,12 @@
-import type { Signal, AnticipationContext, SignalSeverity } from '../../types/signals';
+import type { Signal, AnticipationContext, SignalSeverity, SignalWeight } from '../../types/signals';
+import { applyFeedbackWeights } from './feedback-loop';
 
-export function synthesizePriorities(signals: Signal[], context: AnticipationContext): Signal[] {
+export function synthesizePriorities(signals: Signal[], context: AnticipationContext, weights?: SignalWeight[]): Signal[] {
   const deduplicated = deduplicateSignals(signals);
 
   const scored = deduplicated.map(signal => ({
     signal,
-    score: calculateSignalScore(signal, context),
+    score: calculateSignalScore(signal, context, weights),
   }));
 
   scored.sort((a, b) => b.score - a.score);
@@ -13,7 +14,7 @@ export function synthesizePriorities(signals: Signal[], context: AnticipationCon
   return scored.map(item => item.signal);
 }
 
-function calculateSignalScore(signal: Signal, context: AnticipationContext): number {
+function calculateSignalScore(signal: Signal, context: AnticipationContext, weights?: SignalWeight[]): number {
   let score = scoreSeverity(signal.severity);
 
   if (signal.related_entity_ids.length > 0) {
@@ -33,6 +34,11 @@ function calculateSignalScore(signal: Signal, context: AnticipationContext): num
   );
   if (relatedProject && relatedProject.status === 'active') {
     score += 20;
+  }
+
+  // Apply feedback-learned weight modifiers
+  if (weights && weights.length > 0) {
+    score = applyFeedbackWeights(score, signal, weights);
   }
 
   return score;

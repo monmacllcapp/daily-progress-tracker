@@ -1,0 +1,54 @@
+{
+  "checkpoint_id": "2026-02-14T073000_anticipation-worker-fix-signals",
+  "timestamp": "2026-02-14T07:30:00Z",
+  "agent": {
+    "model": "claude-sonnet-4-5-20250929",
+    "provider": "anthropic",
+    "session_id": "current"
+  },
+  "session": {
+    "project": "Daily Progress Tracker (MAPLE Life OS)",
+    "goal": "Fix critical App.tsx anticipation worker bug and add signal props to 3 dashboard widgets",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Fixed critical bug where anticipation worker database was never initialized, and added signal prop integration to TradingDashboard, DealAnalyzer, and FinancialOverview widgets",
+    "files_modified": [
+      "src/App.tsx",
+      "src/components/v2/TradingDashboard.tsx",
+      "src/components/v2/DealAnalyzer.tsx",
+      "src/components/v2/FinancialOverview.tsx"
+    ],
+    "decisions_made": [
+      "Added anticipationWorker.setDatabase(database) call in App.tsx after database initialization",
+      "Added Signal type imports and signals prop to all three widgets (TradingDashboard, DealAnalyzer, FinancialOverview)",
+      "Placed signal banners before primary content sections in each widget",
+      "Used domain-specific styling: red/blue for trading alerts, emerald for real estate alerts, amber/emerald for financial alerts",
+      "Limited display to 3 non-dismissed signals per widget using slice(0, 3)",
+      "Added AlertCircle icon from lucide-react for all signal displays"
+    ]
+  },
+  "continuation": {
+    "status": "complete",
+    "next_immediate_step": {
+      "action": "Parent components need to pass signals prop",
+      "details": "Update DealsPage, TradingPage, and FinancePage to filter and pass domain-specific signals to the widgets"
+    },
+    "next_three_steps": [
+      "Update DealsPage to pass signals.filter(s => s.domain === 'real_estate') to DealAnalyzer",
+      "Update TradingPage to pass signals.filter(s => s.domain === 'trading') to TradingDashboard",
+      "Update FinancePage to pass signals.filter(s => s.domain === 'finance') to FinancialOverview",
+      "Test that signals flow through correctly and display in widgets",
+      "Verify anticipation worker learning cycle is now active after database init fix"
+    ],
+    "blockers": [],
+    "context_notes": "The App.tsx fix was critical - the anticipation engine's learning cycle was silently failing because this.db was always null. All widget edits maintain existing functionality and styling patterns. TypeScript compilation passed with no errors."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 1,
+    "parent_checkpoint": "2026-02-14T070223_autocompact",
+    "tags": ["bugfix", "critical", "anticipation-worker", "signals", "widgets"]
+  }
+}

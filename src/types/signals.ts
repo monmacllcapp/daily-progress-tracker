@@ -18,7 +18,8 @@ export type SignalType =
   | 'financial_update'
   | 'document_action'
   | 'follow_up_due'
-  | 'context_switch_prep';
+  | 'context_switch_prep'
+  | 'learned_suggestion';
 
 // Life domains the system tracks
 export type LifeDomain =
@@ -143,11 +144,12 @@ export interface MorningBrief {
   calendar_summary: string[];
   family_summary: string[];
   ai_insight: string;
+  learned_suggestions?: string[];
   generated_at: string;        // ISO 8601
 }
 
 // Productivity pattern from weekly analysis
-export type PatternType = 'peak_hours' | 'category_trend' | 'completion_rate' | 'streak_health' | 'day_of_week' | 'deep_work_ratio';
+export type PatternType = 'peak_hours' | 'category_trend' | 'completion_rate' | 'streak_health' | 'day_of_week' | 'deep_work_ratio' | 'task_estimation' | 'cadence' | 'domain_balance';
 
 export interface ProductivityPattern {
   id: UUID;
@@ -156,6 +158,19 @@ export interface ProductivityPattern {
   data: Record<string, unknown>;  // Varies by pattern type
   confidence: number;          // 0.0 to 1.0
   week_start: string;          // ISO date of the week this covers
+  created_at: string;
+}
+
+export interface SignalWeight {
+  id: UUID;
+  signal_type: SignalType;
+  domain: LifeDomain;
+  total_generated: number;
+  total_dismissed: number;
+  total_acted_on: number;
+  effectiveness_score: number;
+  weight_modifier: number;
+  last_updated: string;
   created_at: string;
 }
 
@@ -179,6 +194,7 @@ export interface AnticipationContext {
   currentTime: string;         // HH:MM
   dayOfWeek: string;
   historicalPatterns: ProductivityPattern[];
+  signalWeights?: SignalWeight[];
 }
 
 // Aging detector configuration

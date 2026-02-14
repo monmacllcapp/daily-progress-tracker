@@ -6,6 +6,7 @@ import { ErrorBoundary, PageErrorBoundary } from './components/ErrorBoundary';
 import { WelcomeOnboarding } from './components/WelcomeOnboarding';
 import { hasCompletedOnboarding } from './utils/onboarding';
 import { trackEvent } from './services/analytics';
+import { anticipationWorker } from './workers/anticipation-worker';
 
 // Log active integrations at startup
 if (typeof window !== 'undefined') {
@@ -40,6 +41,7 @@ const StaffingPage = lazy(() => import('./pages/StaffingPage'));
 const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const VisionPage = lazy(() => import('./pages/VisionPage'));
 const FinancialPage = lazy(() => import('./pages/FinancialPage'));
+const DevProjectsPage = lazy(() => import('./pages/DevProjectsPage'));
 function LoadingSpinner() {
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-white flex items-center justify-center">
@@ -60,6 +62,8 @@ function App() {
     createDatabase()
       .then(database => {
         setDb(database);
+        // Initialize anticipation engine with database for learning cycle
+        anticipationWorker.setDatabase(database);
         // Track app open event (analytics)
         trackEvent(database, 'app_open').catch(err =>
           console.warn('[Analytics] Failed to track app open:', err)
@@ -129,6 +133,7 @@ function App() {
               <Route path="/categories" element={<PageErrorBoundary pageName="Categories"><CategoriesPage /></PageErrorBoundary>} />
               <Route path="/finances" element={<PageErrorBoundary pageName="Finances"><FinancialPage /></PageErrorBoundary>} />
               <Route path="/vision" element={<PageErrorBoundary pageName="Vision"><VisionPage /></PageErrorBoundary>} />
+              <Route path="/dev-projects" element={<PageErrorBoundary pageName="Dev Projects"><DevProjectsPage /></PageErrorBoundary>} />
             </Route>
           </Routes>
         </Suspense>
