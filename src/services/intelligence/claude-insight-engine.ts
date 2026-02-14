@@ -1,5 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import type { Signal, ProductivityPattern, AnticipationContext, SignalSeverity, LifeDomain } from '../../types/signals';
+import { sanitizeForPrompt } from '../../utils/sanitize-prompt';
 
 interface ClaudeInsight {
   title: string;
@@ -34,7 +35,7 @@ function buildInsightPrompt(
   context: AnticipationContext
 ): string {
   const patternSummary = patterns.map(p =>
-    `- ${p.pattern_type}: ${p.description} (confidence: ${(p.confidence * 100).toFixed(0)}%)`
+    `- ${p.pattern_type}: ${sanitizeForPrompt(p.description, 300)} (confidence: ${(p.confidence * 100).toFixed(0)}%)`
   ).join('\n');
 
   // Summarize recent signals (last 24h)

@@ -15,6 +15,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { EmailTier } from '../types/schema';
+import { sanitizeForPrompt } from '../utils/sanitize-prompt';
 
 const GEMINI_KEY = typeof import.meta !== 'undefined'
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Vite import.meta type narrowing
@@ -80,9 +81,9 @@ Categories:
 - social: Social media notifications, community updates, event invites, app alerts.
 
 Email:
-From: ${from}
-Subject: ${subject}
-Preview: ${snippet.slice(0, 200)}
+From: ${sanitizeForPrompt(from, 200)}
+Subject: ${sanitizeForPrompt(subject, 300)}
+Preview: ${sanitizeForPrompt(snippet, 200)}
 
 Category:`;
 
@@ -202,11 +203,11 @@ export async function draftResponse(
         const prompt = `Draft a brief, professional email reply. Be concise and friendly. Do NOT include subject line or "Dear/Hi" greeting — start with the content directly.
 
 Original email:
-From: ${from}
-Subject: ${subject}
-Content: ${snippet}
+From: ${sanitizeForPrompt(from, 200)}
+Subject: ${sanitizeForPrompt(subject, 300)}
+Content: ${sanitizeForPrompt(snippet, 500)}
 
-${userContext ? `Additional context from user: ${userContext}` : ''}
+${userContext ? `Additional context from user: ${sanitizeForPrompt(userContext, 300)}` : ''}
 
 Reply:`;
 

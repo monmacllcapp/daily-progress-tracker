@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { GoogleCalendarEvent as CalendarEvent } from './google-calendar';
 import type { Project } from '../types/schema';
+import { sanitizeForPrompt } from '../utils/sanitize-prompt';
 
 export interface Conflict {
     type: 'overlap' | 'back-to-back' | 'overbooked';
@@ -159,13 +160,13 @@ export class ConflictDetector {
 You are a scheduling assistant. A user is trying to schedule a project that conflicts with an existing calendar event.
 
 New Project:
-- Title: ${project.title}
-- Purpose: ${project.motivation_payload.why}
+- Title: ${sanitizeForPrompt(project.title, 200)}
+- Purpose: ${sanitizeForPrompt(project.motivation_payload.why, 300)}
 - Estimated Duration: ${project.metrics.total_time_estimated} minutes
 - Priority: ${project.priority || 'medium'}
 
 Conflicting Event:
-- Title: ${conflictingEvent.summary}
+- Title: ${sanitizeForPrompt(conflictingEvent.summary, 200)}
 - Start: ${conflictingEvent.start.dateTime}
 - End: ${conflictingEvent.end.dateTime}
 

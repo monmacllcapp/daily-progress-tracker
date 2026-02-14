@@ -5,6 +5,7 @@ import type {
   PortfolioPulse
 } from '../../types/signals';
 import { v4 as uuid } from 'uuid';
+import { sanitizeForPrompt } from '../../utils/sanitize-prompt';
 
 /**
  * Morning Brief Intelligence Service
@@ -100,7 +101,7 @@ function buildCalendarSummary(context: AnticipationContext): string[] {
   return todayEvents.map(event => {
     const start = new Date(event.start_time);
     const time = formatTime(start);
-    return `${time} - ${event.summary}`;
+    return `${time} - ${sanitizeForPrompt(event.summary, 150)}`;
   });
 }
 
@@ -127,7 +128,7 @@ function buildFamilySummary(context: AnticipationContext): string[] {
   return todayFamilyEvents.map(event => {
     const start = new Date(event.start_time);
     const time = formatTime(start);
-    return `${event.member}: ${event.summary} at ${time}`;
+    return `${sanitizeForPrompt(event.member, 50)}: ${sanitizeForPrompt(event.summary, 150)} at ${time}`;
   });
 }
 

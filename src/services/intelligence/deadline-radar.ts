@@ -1,5 +1,6 @@
 import type { Signal, AnticipationContext } from '../../types/signals';
 import { v4 as uuid } from 'uuid';
+import { sanitizeForPrompt } from '../../utils/sanitize-prompt';
 
 export function detectDeadlineSignals(context: AnticipationContext): Signal[] {
   const signals: Signal[] = [];
@@ -27,19 +28,19 @@ export function detectDeadlineSignals(context: AnticipationContext): Signal[] {
     if (daysUntil < 0) {
       severity = 'critical';
       titlePrefix = 'OVERDUE';
-      contextMessage = `Task "${task.title}" was due ${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} ago.`;
+      contextMessage = `Task "${sanitizeForPrompt(task.title, 200)}" was due ${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} ago.`;
     } else if (daysUntil === 0) {
       severity = 'urgent';
       titlePrefix = 'Due today';
-      contextMessage = `Task "${task.title}" is due today.`;
+      contextMessage = `Task "${sanitizeForPrompt(task.title, 200)}" is due today.`;
     } else if (daysUntil === 1) {
       severity = 'attention';
       titlePrefix = 'Due tomorrow';
-      contextMessage = `Task "${task.title}" is due tomorrow.`;
+      contextMessage = `Task "${sanitizeForPrompt(task.title, 200)}" is due tomorrow.`;
     } else if (daysUntil <= 3) {
       severity = 'info';
       titlePrefix = `Due in ${daysUntil} days`;
-      contextMessage = `Task "${task.title}" is due in ${daysUntil} days.`;
+      contextMessage = `Task "${sanitizeForPrompt(task.title, 200)}" is due in ${daysUntil} days.`;
     }
 
     if (severity) {
@@ -49,7 +50,7 @@ export function detectDeadlineSignals(context: AnticipationContext): Signal[] {
         severity,
         domain: 'personal_growth',
         source: 'deadline-radar',
-        title: `${titlePrefix}: ${task.title}`,
+        title: `${titlePrefix}: ${sanitizeForPrompt(task.title, 100)}`,
         context: contextMessage,
         suggested_action: daysUntil < 0 ? 'Address this overdue task immediately' : 'Schedule time to complete this task',
         auto_actionable: false,
@@ -81,15 +82,15 @@ export function detectDeadlineSignals(context: AnticipationContext): Signal[] {
     if (daysUntil < 0) {
       severity = 'critical';
       titlePrefix = 'OVERDUE';
-      contextMessage = `Project "${project.title}" was due ${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} ago.`;
+      contextMessage = `Project "${sanitizeForPrompt(project.title, 200)}" was due ${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} ago.`;
     } else if (daysUntil <= 3) {
       severity = 'urgent';
       titlePrefix = `Due in ${daysUntil} day${daysUntil === 1 ? '' : 's'}`;
-      contextMessage = `Project "${project.title}" is due in ${daysUntil} day${daysUntil === 1 ? '' : 's'}.`;
+      contextMessage = `Project "${sanitizeForPrompt(project.title, 200)}" is due in ${daysUntil} day${daysUntil === 1 ? '' : 's'}.`;
     } else if (daysUntil <= 7) {
       severity = 'attention';
       titlePrefix = `Due in ${daysUntil} days`;
-      contextMessage = `Project "${project.title}" is due in ${daysUntil} days.`;
+      contextMessage = `Project "${sanitizeForPrompt(project.title, 200)}" is due in ${daysUntil} days.`;
     }
 
     if (severity) {
@@ -99,7 +100,7 @@ export function detectDeadlineSignals(context: AnticipationContext): Signal[] {
         severity,
         domain: 'personal_growth',
         source: 'deadline-radar',
-        title: `${titlePrefix}: ${project.title}`,
+        title: `${titlePrefix}: ${sanitizeForPrompt(project.title, 100)}`,
         context: contextMessage,
         suggested_action: daysUntil < 0 ? 'Review and reschedule this overdue project' : 'Review project progress and plan next actions',
         auto_actionable: false,
@@ -126,8 +127,8 @@ export function detectDeadlineSignals(context: AnticipationContext): Signal[] {
         severity: 'attention',
         domain: 'personal_growth',
         source: 'deadline-radar',
-        title: `Upcoming event in ${minutesUntil} min: ${event.summary}`,
-        context: `Calendar event "${event.summary}" starts at ${eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}.`,
+        title: `Upcoming event in ${minutesUntil} min: ${sanitizeForPrompt(event.summary, 100)}`,
+        context: `Calendar event "${sanitizeForPrompt(event.summary, 150)}" starts at ${eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}.`,
         suggested_action: 'Wrap up current work and prepare for this event',
         auto_actionable: false,
         is_dismissed: false,

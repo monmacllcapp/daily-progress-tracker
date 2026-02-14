@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { Task, Category, Project } from '../types/schema';
+import { sanitizeForPrompt } from '../utils/sanitize-prompt';
 
 let genAI: GoogleGenerativeAI | null = null;
 
@@ -30,7 +31,7 @@ export async function categorizeTask(
 
         const prompt = `You are a life planning assistant. Categorize this task into one of the user's life categories.
 
-Task: "${taskTitle}"
+Task: "${sanitizeForPrompt(taskTitle, 200)}"
 
 Available categories:
 ${categoryList}
@@ -76,7 +77,7 @@ export async function suggestFocus(
         const taskDescriptions = activeTasks.slice(0, 10).map(t => {
             const cat = categories.find(c => c.id === t.category_id);
             const proj = projects.find(p => p.id === t.goal_id);
-            return `- [${t.id}] "${t.title}" (priority: ${t.priority}, category: ${cat?.name || 'none'}, project: ${proj?.title || 'standalone'}, estimate: ${t.time_estimate_minutes || '?'}min)`;
+            return `- [${t.id}] "${sanitizeForPrompt(t.title, 200)}" (priority: ${t.priority}, category: ${sanitizeForPrompt(cat?.name || 'none', 100)}, project: ${sanitizeForPrompt(proj?.title || 'standalone', 200)}, estimate: ${t.time_estimate_minutes || '?'}min)`;
         }).join('\n');
 
         const prompt = `You are a personal productivity advisor using the RPM framework (Result, Purpose, Massive Action).

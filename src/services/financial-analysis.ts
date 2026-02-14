@@ -8,6 +8,7 @@ import type {
   TransactionScope,
   SubscriptionFrequency,
 } from '../types/schema';
+import { sanitizeForPrompt } from '../utils/sanitize-prompt';
 
 // Gemini singleton (same pattern as ai-advisor.ts)
 let genAI: GoogleGenerativeAI | null = null;
@@ -175,7 +176,7 @@ export async function analyzeSpending(
       .filter(t => t.amount > 0)
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 10)
-      .map(t => ({ name: t.name, amount: t.amount, category: t.category }));
+      .map(t => ({ name: sanitizeForPrompt(t.name, 150), amount: t.amount, category: t.category }));
 
     const prompt = `You are a financial advisor analyzing personal/business spending data.
 
@@ -191,7 +192,7 @@ Previous months: ${JSON.stringify(monthHistory)}
 
 Top recent expenses: ${JSON.stringify(topSpending)}
 
-Unused subscriptions (no activity in 30+ days): ${unusedSubs.map(s => `${s.merchant_name} ($${s.amount}/${s.frequency})`).join(', ') || 'none'}
+Unused subscriptions (no activity in 30+ days): ${unusedSubs.map(s => `${sanitizeForPrompt(s.merchant_name, 100)} ($${s.amount}/${s.frequency})`).join(', ') || 'none'}
 
 Provide 3-5 actionable insights. For each, specify:
 - type: "anomaly" | "trend" | "optimization" | "alert"

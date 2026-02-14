@@ -15,6 +15,7 @@ import {
     type GoogleCalendarEvent,
 } from './google-calendar';
 import { gatherJarvisContext, formatContextForPrompt } from './jarvis-context';
+import { sanitizeForPrompt } from '../utils/sanitize-prompt';
 
 // --- Singleton Gemini client (same pattern as ai-advisor.ts) ---
 
@@ -154,7 +155,7 @@ ${eventsContext}
 
 ${conversationContext ? `Recent conversation:\n${conversationContext}\n` : ''}
 
-The user says: "${userMessage}"
+The user says: "${sanitizeForPrompt(userMessage, 500)}"
 
 Analyze the user's request and respond with a JSON object (no markdown fencing). The JSON must have these fields:
 {
@@ -316,7 +317,7 @@ ${contextBlock}
 
 ${eventsContext ? `CALENDAR EVENTS (for scheduling actions):\n${eventsContext}\n` : ''}
 ${conversationContext ? `Recent conversation:\n${conversationContext}\n` : ''}
-The user says: "${userMessage}"
+The user says: "${sanitizeForPrompt(userMessage, 500)}"
 
 You MUST respond with ONLY a valid JSON object. No other text before or after. The JSON must have these fields:
 {
@@ -370,7 +371,7 @@ CONVERSATION STYLE — CRITICAL:
         // Fallback: try a simpler non-JSON approach
         try {
             const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-            const fallbackPrompt = `You are Maple, a helpful AI assistant. The user said: "${userMessage}". Reply conversationally in 1-3 sentences.`;
+            const fallbackPrompt = `You are Maple, a helpful AI assistant. The user said: "${sanitizeForPrompt(userMessage, 500)}". Reply conversationally in 1-3 sentences.`;
             const fallbackResult = await model.generateContent(fallbackPrompt);
             const fallbackText = fallbackResult.response.text().trim();
             return {

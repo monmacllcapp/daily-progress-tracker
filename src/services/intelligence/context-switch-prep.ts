@@ -1,6 +1,7 @@
 import type { Signal, AnticipationContext, SignalSeverity } from '../../types/signals';
 import type { CalendarEvent } from '../../types/schema';
 import { v4 as uuid } from 'uuid';
+import { sanitizeForPrompt } from '../../utils/sanitize-prompt';
 
 /**
  * Context Switch Preparation Intelligence Service
@@ -49,7 +50,7 @@ export function detectContextSwitchSignals(context: AnticipationContext): Signal
         domain: 'personal_growth', // Deep work relates to personal productivity
         source: 'context-switch-prep',
         title: 'Deep work session approaching',
-        context: `Focus block "${event.summary}" starts in ${minutesUntil} minutes at ${formatTime(startTime)}`,
+        context: `Focus block "${sanitizeForPrompt(event.summary, 150)}" starts in ${minutesUntil} minutes at ${formatTime(startTime)}`,
         suggested_action: 'Prepare your environment: close distractions, silence notifications, gather materials',
         auto_actionable: false,
         is_dismissed: false,
@@ -66,7 +67,7 @@ export function detectContextSwitchSignals(context: AnticipationContext): Signal
         domain: inferDomainFromEvent(event),
         source: 'context-switch-prep',
         title: 'Upcoming context switch',
-        context: `"${event.summary}" starts in ${minutesUntil} minutes at ${formatTime(startTime)}`,
+        context: `"${sanitizeForPrompt(event.summary, 150)}" starts in ${minutesUntil} minutes at ${formatTime(startTime)}`,
         suggested_action: getContextSwitchSuggestion(event, minutesUntil),
         auto_actionable: false,
         is_dismissed: false,
