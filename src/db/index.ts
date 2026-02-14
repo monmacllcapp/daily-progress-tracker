@@ -36,7 +36,7 @@ const taskSchema = {
         updated_at: { type: 'string' }
     },
     required: ['id', 'title', 'status', 'source', 'created_date', 'category_id'],
-    indexes: ['status', 'created_date', 'category_id', 'due_date', 'priority']
+    indexes: ['status', 'created_date', 'category_id']
 };
 
 const projectSchema = {
