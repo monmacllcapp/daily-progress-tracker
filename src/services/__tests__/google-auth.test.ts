@@ -6,8 +6,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const TOKEN_STORAGE_KEY = 'google_auth_token';
 const TOKEN_EXPIRY_KEY = 'google_auth_expiry';
 
-// Mock localStorage
-const localStorageMock = (() => {
+// Mock sessionStorage (OAuth tokens now stored in sessionStorage for security)
+const sessionStorageMock = (() => {
     let store: Record<string, string> = {};
     return {
         getItem: vi.fn((key: string) => store[key] ?? null),
@@ -28,15 +28,15 @@ const localStorageMock = (() => {
 })();
 
 describe('Google Auth Service', () => {
-    const originalLocalStorage = globalThis.localStorage;
+    const originalSessionStorage = globalThis.sessionStorage;
     const originalFetch = globalThis.fetch;
 
     beforeEach(() => {
         vi.resetModules();
         vi.clearAllMocks();
-        localStorageMock.clear();
-        Object.defineProperty(globalThis, 'localStorage', {
-            value: localStorageMock,
+        sessionStorageMock.clear();
+        Object.defineProperty(globalThis, 'sessionStorage', {
+            value: sessionStorageMock,
             writable: true,
             configurable: true,
         });
@@ -46,8 +46,8 @@ describe('Google Auth Service', () => {
     });
 
     afterEach(() => {
-        Object.defineProperty(globalThis, 'localStorage', {
-            value: originalLocalStorage,
+        Object.defineProperty(globalThis, 'sessionStorage', {
+            value: originalSessionStorage,
             writable: true,
             configurable: true,
         });
@@ -68,7 +68,7 @@ describe('Google Auth Service', () => {
                 access_token: 'valid-token',
                 expires_at: Date.now() + 3600000, // 1 hour from now
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
 
             const { isGoogleConnected } = await import('../google-auth');
             expect(isGoogleConnected()).toBe(true);
@@ -79,14 +79,14 @@ describe('Google Auth Service', () => {
                 access_token: 'expired-token',
                 expires_at: Date.now() - 1000, // 1 second ago
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
 
             const { isGoogleConnected } = await import('../google-auth');
             expect(isGoogleConnected()).toBe(false);
         });
 
         it('should return false when stored value is invalid JSON', async () => {
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, 'not-valid-json');
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, 'not-valid-json');
 
             const { isGoogleConnected } = await import('../google-auth');
             expect(isGoogleConnected()).toBe(false);
@@ -107,7 +107,7 @@ describe('Google Auth Service', () => {
                 access_token: 'my-valid-token',
                 expires_at: Date.now() + 3600000,
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
 
             const { getAccessToken } = await import('../google-auth');
             expect(getAccessToken()).toBe('my-valid-token');
@@ -118,19 +118,19 @@ describe('Google Auth Service', () => {
                 access_token: 'expired-token',
                 expires_at: Date.now() - 1000,
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
-            localStorageMock.setItem(TOKEN_EXPIRY_KEY, String(token.expires_at));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_EXPIRY_KEY, String(token.expires_at));
 
             const { getAccessToken } = await import('../google-auth');
             const result = getAccessToken();
 
             expect(result).toBeNull();
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_STORAGE_KEY);
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_EXPIRY_KEY);
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_STORAGE_KEY);
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_EXPIRY_KEY);
         });
 
         it('should return null when stored value is invalid JSON', async () => {
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, '{bad json}');
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, '{bad json}');
 
             const { getAccessToken } = await import('../google-auth');
             expect(getAccessToken()).toBeNull();
@@ -172,7 +172,7 @@ describe('Google Auth Service', () => {
                 access_token: 'test-access-token',
                 expires_at: Date.now() + 3600000,
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
 
             const mockFetch = vi.fn().mockResolvedValue({
                 ok: true,
@@ -196,7 +196,7 @@ describe('Google Auth Service', () => {
                 access_token: 'test-access-token',
                 expires_at: Date.now() + 3600000,
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
 
             const mockFetch = vi.fn().mockResolvedValue({
                 ok: true,
@@ -223,8 +223,8 @@ describe('Google Auth Service', () => {
                 access_token: 'revoked-token',
                 expires_at: Date.now() + 3600000,
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
-            localStorageMock.setItem(TOKEN_EXPIRY_KEY, String(token.expires_at));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_EXPIRY_KEY, String(token.expires_at));
 
             const mockFetch = vi.fn().mockResolvedValue({
                 ok: false,
@@ -239,8 +239,8 @@ describe('Google Auth Service', () => {
                 googleFetch('https://www.googleapis.com/test')
             ).rejects.toThrow('Google authentication expired');
 
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_STORAGE_KEY);
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_EXPIRY_KEY);
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_STORAGE_KEY);
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_EXPIRY_KEY);
         });
 
         it('should return the response for non-401 errors', async () => {
@@ -248,7 +248,7 @@ describe('Google Auth Service', () => {
                 access_token: 'test-token',
                 expires_at: Date.now() + 3600000,
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
 
             const mockFetch = vi.fn().mockResolvedValue({
                 ok: false,
@@ -269,7 +269,7 @@ describe('Google Auth Service', () => {
                 access_token: 'test-token',
                 expires_at: Date.now() + 3600000,
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
 
             const expectedData = { items: [{ id: '1' }] };
             const mockFetch = vi.fn().mockResolvedValue({
@@ -292,19 +292,19 @@ describe('Google Auth Service', () => {
     // signOutGoogle
     // ========================================================
     describe('signOutGoogle', () => {
-        it('should clear localStorage token entries', async () => {
+        it('should clear sessionStorage token entries', async () => {
             const token = {
                 access_token: 'test-token',
                 expires_at: Date.now() + 3600000,
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
-            localStorageMock.setItem(TOKEN_EXPIRY_KEY, String(token.expires_at));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_EXPIRY_KEY, String(token.expires_at));
 
             const { signOutGoogle } = await import('../google-auth');
             await signOutGoogle();
 
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_STORAGE_KEY);
-            expect(localStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_EXPIRY_KEY);
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_STORAGE_KEY);
+            expect(sessionStorageMock.removeItem).toHaveBeenCalledWith(TOKEN_EXPIRY_KEY);
         });
 
         it('should call google.accounts.oauth2.revoke if google is available', async () => {
@@ -312,7 +312,7 @@ describe('Google Auth Service', () => {
                 access_token: 'token-to-revoke',
                 expires_at: Date.now() + 3600000,
             };
-            localStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
+            sessionStorageMock.setItem(TOKEN_STORAGE_KEY, JSON.stringify(token));
 
             const mockRevoke = vi.fn();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

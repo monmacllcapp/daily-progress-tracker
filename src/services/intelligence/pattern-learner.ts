@@ -6,11 +6,11 @@ import type { Task, SubTask, Category, AnalyticsEvent, PomodoroSession } from '.
 // Helper: get Monday of current week
 function getCurrentWeekStart(): string {
   const now = new Date();
-  const dayOfWeek = now.getDay();
+  const dayOfWeek = now.getUTCDay();
   const daysToMonday = (dayOfWeek + 6) % 7; // 0 for Monday, 6 for Sunday
   const monday = new Date(now);
-  monday.setDate(now.getDate() - daysToMonday);
-  monday.setHours(0, 0, 0, 0);
+  monday.setUTCDate(now.getUTCDate() - daysToMonday);
+  monday.setUTCHours(0, 0, 0, 0);
   return monday.toISOString().split('T')[0];
 }
 
@@ -209,13 +209,25 @@ export function computeCompletionRate(tasks: Task[]): ProductivityPattern | null
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   const recentCompleted = tasks.filter(t => t.status === 'completed' && t.completed_date && new Date(t.completed_date) >= sevenDaysAgo);
-  const rate = recentCompleted.length / 7;
+
+  // Calculate actual day span (handle users with < 7 days of data)
+  let daySpan = 7;
+  if (recentCompleted.length > 0) {
+    const sortedByDate = recentCompleted.sort((a, b) =>
+      new Date(a.completed_date!).getTime() - new Date(b.completed_date!).getTime()
+    );
+    const earliestDate = sortedByDate[0].completed_date!;
+    const actualSpan = Math.ceil((Date.now() - new Date(earliestDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    daySpan = Math.min(7, actualSpan);
+  }
+
+  const rate = recentCompleted.length / daySpan;
 
   return {
     id: uuid(),
     pattern_type: 'completion_rate',
     description: `Completing ${rate.toFixed(1)} tasks per day (7-day average)`,
-    data: { rate, completed_count: recentCompleted.length, period_days: 7 },
+    data: { rate, completed_count: recentCompleted.length, period_days: daySpan },
     confidence: computeConfidence(recentCompleted.length),
     week_start: getCurrentWeekStart(),
     created_at: new Date().toISOString(),

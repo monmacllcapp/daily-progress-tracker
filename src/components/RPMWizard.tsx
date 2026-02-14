@@ -207,6 +207,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                 value={result}
                 onChange={(e) => setResult(e.target.value)}
                 placeholder="e.g., Launch MVP of my SaaS product"
+                maxLength={500}
                 className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 autoFocus
             />
@@ -264,6 +265,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
                 placeholder="This matters because..."
+                maxLength={500}
                 rows={6}
                 className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all resize-none"
                 autoFocus
@@ -301,16 +303,20 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                             value={st.title}
                             onChange={(e) => updateSubtask(st.id, 'title', e.target.value)}
                             placeholder="Milestone title"
+                            maxLength={300}
                             className="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm"
                         />
                         <input
-                            type="text"
+                            type="number"
                             inputMode="numeric"
                             value={st.time_estimate_minutes}
                             onChange={(e) => {
                                 const value = e.target.value.replace(/^0+/, '') || '0';
-                                updateSubtask(st.id, 'time_estimate_minutes', parseInt(value) || 0);
+                                const numValue = parseInt(value) || 0;
+                                updateSubtask(st.id, 'time_estimate_minutes', Math.min(Math.max(numValue, 1), 10000));
                             }}
+                            min={1}
+                            max={10000}
                             className="w-14 px-2 py-2.5 bg-white/5 border border-white/10 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
                         />
                         <select

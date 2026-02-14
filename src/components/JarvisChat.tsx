@@ -58,12 +58,9 @@ function getSpeechRecognition(): any {
 
 // --- Text-to-Speech ---
 
-// Preload voices (Chrome loads them async)
+// Preload voices (Chrome loads them async) — cleanup handled in component
 if (typeof window !== 'undefined' && window.speechSynthesis) {
     window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices();
-    };
 }
 
 function pickBestVoice(): SpeechSynthesisVoice | null {
@@ -289,6 +286,21 @@ export function JarvisChat() {
             // User must explicitly click the mic button to start voice input.
         }
     }, [messages, voiceEnabled, hasSpeech, startListening]);
+
+    // Set up speech synthesis voices listener with cleanup
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+        const handleVoicesChanged = () => {
+            window.speechSynthesis.getVoices();
+        };
+
+        window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+
+        return () => {
+            window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+        };
+    }, []);
 
     // Cancel speech + mic when chat closes, reset voice tracking
     useEffect(() => {

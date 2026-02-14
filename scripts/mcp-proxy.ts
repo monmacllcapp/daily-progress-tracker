@@ -67,8 +67,19 @@ async function parseBody(req: IncomingMessage): Promise<string> {
 /**
  * Set CORS headers on response
  */
-function setCorsHeaders(res: ServerResponse): void {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:4009',
+  'http://localhost:5173'
+];
+
+function setCorsHeaders(res: ServerResponse, origin?: string): void {
+  const requestOrigin = origin || '';
+  if (ALLOWED_ORIGINS.includes(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
@@ -76,8 +87,8 @@ function setCorsHeaders(res: ServerResponse): void {
 /**
  * Send JSON response
  */
-function sendJson(res: ServerResponse, statusCode: number, data: unknown): void {
-  setCorsHeaders(res);
+function sendJson(res: ServerResponse, statusCode: number, data: unknown, origin?: string): void {
+  setCorsHeaders(res, origin);
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
@@ -89,26 +100,26 @@ function sendJson(res: ServerResponse, statusCode: number, data: unknown): void 
 /**
  * GET /health
  */
-function handleHealth(res: ServerResponse): void {
+function handleHealth(res: ServerResponse, origin?: string): void {
   const response: HealthResponse = {
     status: 'ok',
     version: '2.0.0',
     uptime: process.uptime()
   };
-  sendJson(res, 200, response);
+  sendJson(res, 200, response, origin);
 }
 
 /**
  * POST /api/claude
  * Proxy requests to Anthropic API
  */
-async function handleClaude(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleClaude(req: IncomingMessage, res: ServerResponse, origin?: string): Promise<void> {
   // Check if API key is configured
   if (!CLAUDE_API_KEY) {
     console.log('[MCP Proxy] Claude API request failed: ANTHROPIC_API_KEY not configured');
     sendJson(res, 503, {
       error: 'ANTHROPIC_API_KEY not configured'
-    } as ErrorResponse);
+    } as ErrorResponse, origin);
     return;
   }
 
@@ -152,7 +163,7 @@ async function handleClaude(req: IncomingMessage, res: ServerResponse): Promise<
       console.log('[MCP Proxy] Claude API responded with status:', apiRes.statusCode);
 
       // Set CORS headers and forward status code
-      setCorsHeaders(res);
+      setCorsHeaders(res, origin);
       res.writeHead(apiRes.statusCode || 500, {
         'Content-Type': 'application/json'
       });
@@ -166,7 +177,7 @@ async function handleClaude(req: IncomingMessage, res: ServerResponse): Promise<
       sendJson(res, 502, {
         error: 'Claude API error',
         details: error.message
-      } as ErrorResponse);
+      } as ErrorResponse, origin);
     });
 
     // Send request body
@@ -179,7 +190,7 @@ async function handleClaude(req: IncomingMessage, res: ServerResponse): Promise<
     sendJson(res, 500, {
       error: 'Internal server error',
       details: errorMessage
-    } as ErrorResponse);
+    } as ErrorResponse, origin);
   }
 }
 
@@ -187,8 +198,8 @@ async function handleClaude(req: IncomingMessage, res: ServerResponse): Promise<
  * OPTIONS *
  * Handle CORS preflight
  */
-function handleOptions(res: ServerResponse): void {
-  setCorsHeaders(res);
+function handleOptions(res: ServerResponse, origin?: string): void {
+  setCorsHeaders(res, origin);
   res.writeHead(204);
   res.end();
 }
@@ -196,11 +207,11 @@ function handleOptions(res: ServerResponse): void {
 /**
  * Catch-all 404 handler
  */
-function handleNotFound(res: ServerResponse): void {
+function handleNotFound(res: ServerResponse, origin?: string): void {
   sendJson(res, 404, {
     error: 'Not found',
     routes: ['/health', '/api/claude']
-  } as ErrorResponse);
+  } as ErrorResponse, origin);
 }
 
 // ============================================================================
@@ -210,22 +221,23 @@ function handleNotFound(res: ServerResponse): void {
 async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const method = req.method || 'GET';
   const url = req.url || '/';
+  const origin = req.headers.origin;
 
   console.log(`[MCP Proxy] ${method} ${url}`);
 
   // Handle OPTIONS for CORS preflight
   if (method === 'OPTIONS') {
-    handleOptions(res);
+    handleOptions(res, origin);
     return;
   }
 
   // Route requests
   if (method === 'GET' && url === '/health') {
-    handleHealth(res);
+    handleHealth(res, origin);
   } else if (method === 'POST' && url === '/api/claude') {
-    await handleClaude(req, res);
+    await handleClaude(req, res, origin);
   } else {
-    handleNotFound(res);
+    handleNotFound(res, origin);
   }
 }
 

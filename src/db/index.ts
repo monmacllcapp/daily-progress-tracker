@@ -17,13 +17,13 @@ const taskSchema = {
     type: 'object',
     properties: {
         id: { type: 'string', maxLength: 100 },
-        title: { type: 'string' },
-        description: { type: 'string' },
+        title: { type: 'string', maxLength: 500 },
+        description: { type: 'string', maxLength: 5000 },
         category_id: { type: 'string' },
         goal_id: { type: 'string' },
         time_estimate_minutes: { type: 'integer' },
-        priority: { type: 'string' }, // low | medium | high | urgent
-        status: { type: 'string' },   // active | completed | dismissed | deferred
+        priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
+        status: { type: 'string', enum: ['active', 'completed', 'dismissed', 'deferred'] },
         source: { type: 'string' },   // morning_flow | brain_dump | rpm_wizard | email | calendar | manual
         created_date: { type: 'string' },
         due_date: { type: 'string' },
@@ -36,7 +36,7 @@ const taskSchema = {
         updated_at: { type: 'string' }
     },
     required: ['id', 'title', 'status', 'source', 'created_date', 'category_id'],
-    indexes: ['status', 'created_date', 'category_id']
+    indexes: ['status', 'created_date', 'category_id', 'due_date', 'priority']
 };
 
 const projectSchema = {
@@ -45,7 +45,7 @@ const projectSchema = {
     type: 'object',
     properties: {
         id: { type: 'string', maxLength: 100 },
-        title: { type: 'string' },
+        title: { type: 'string', maxLength: 500 },
         status: { type: 'string' },
         motivation_payload: { type: 'object' },
         metrics: { type: 'object' },
@@ -84,9 +84,9 @@ const dailyJournalSchema = {
     properties: {
         id: { type: 'string', maxLength: 100 },
         date: { type: 'string' },
-        gratitude: { type: 'array', items: { type: 'string' } },
-        non_negotiables: { type: 'array', items: { type: 'string' } },
-        stressors: { type: 'array', items: { type: 'string' } },
+        gratitude: { type: 'array', items: { type: 'string', maxLength: 10000 } },
+        non_negotiables: { type: 'array', items: { type: 'string', maxLength: 10000 } },
+        stressors: { type: 'array', items: { type: 'string', maxLength: 10000 } },
         habits: { type: 'object' },
         created_at: { type: 'string' },
         updated_at: { type: 'string' }
@@ -121,7 +121,7 @@ const categoriesSchema = {
     properties: {
         id: { type: 'string', maxLength: 100 },
         user_id: { type: 'string' },
-        name: { type: 'string' },
+        name: { type: 'string', maxLength: 200 },
         color_theme: { type: 'string' },
         icon: { type: 'string' },
         current_progress: { type: 'number' },
@@ -198,12 +198,12 @@ const emailSchema = {
         id: { type: 'string', maxLength: 100 },
         gmail_id: { type: 'string' },
         thread_id: { type: 'string' },
-        from: { type: 'string' },
-        subject: { type: 'string' },
-        snippet: { type: 'string' },
-        tier: { type: 'string' },   // urgent | important | promotions | unsubscribe
-        tier_override: { type: 'string' },
-        status: { type: 'string' }, // unread | read | drafted | replied | archived | snoozed
+        from: { type: 'string', maxLength: 500 },
+        subject: { type: 'string', maxLength: 500 },
+        snippet: { type: 'string', maxLength: 1000 },
+        tier: { type: 'string', enum: ['reply_urgent', 'reply_needed', 'to_review', 'important_not_urgent', 'unsure', 'unsubscribe', 'social'] },
+        tier_override: { type: 'string', enum: ['reply_urgent', 'reply_needed', 'to_review', 'important_not_urgent', 'unsure', 'unsubscribe', 'social'] },
+        status: { type: 'string', enum: ['unread', 'read', 'drafted', 'replied', 'waiting', 'reviewed', 'archived', 'snoozed'] },
         ai_draft: { type: 'string' },
         received_at: { type: 'string' },
         labels: { type: 'array', items: { type: 'string' } },
@@ -222,7 +222,7 @@ const emailSchema = {
         updated_at: { type: 'string' }
     },
     required: ['id', 'gmail_id', 'from', 'subject', 'tier', 'status', 'received_at'],
-    indexes: ['tier', 'status', 'received_at']
+    indexes: ['tier', 'status', 'received_at', 'gmail_id']
 };
 
 const pomodoroSessionSchema = {

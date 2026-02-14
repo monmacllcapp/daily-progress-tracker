@@ -81,7 +81,7 @@ export const useSignalStore = create<SignalState>((set, get) => ({
     const now = new Date().toISOString();
     return {
       signals: state.signals.filter(s =>
-        !s.expires_at || s.expires_at > now || s.severity === 'urgent' || s.severity === 'critical'
+        !s.expires_at || s.expires_at > now
       )
     };
   }),

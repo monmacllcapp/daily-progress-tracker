@@ -110,7 +110,7 @@ describe('signalStore', () => {
         expect(counts.info).toBe(2);
     });
 
-    it('clearExpired removes expired info signals but keeps urgent', () => {
+    it('clearExpired removes all expired signals regardless of severity', () => {
         const pastDate = new Date(Date.now() - 86400000).toISOString(); // 1 day ago
         useSignalStore.getState().addSignals([
             makeSignal({ id: 'sig-001', severity: 'info', expires_at: pastDate }),
@@ -119,8 +119,9 @@ describe('signalStore', () => {
         ]);
         useSignalStore.getState().clearExpired();
         const remaining = useSignalStore.getState().signals;
-        expect(remaining).toHaveLength(2);
+        expect(remaining).toHaveLength(1); // Only sig-003 (no expiry) should remain
         expect(remaining.find(s => s.id === 'sig-001')).toBeUndefined();
-        expect(remaining.find(s => s.id === 'sig-002')).toBeDefined();
+        expect(remaining.find(s => s.id === 'sig-002')).toBeUndefined(); // Expired urgent is also removed
+        expect(remaining.find(s => s.id === 'sig-003')).toBeDefined();
     });
 });

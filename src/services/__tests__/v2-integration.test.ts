@@ -575,7 +575,7 @@ describe('V2 Integration Tests', () => {
     expect(deduplicated[0].severity).toBe('urgent');
   });
 
-  it('should clear expired signals but preserve urgent ones', () => {
+  it('should clear all expired signals regardless of severity', () => {
     // Reset store first
     useSignalStore.setState({ signals: [] });
     const store = useSignalStore.getState();
@@ -634,9 +634,9 @@ describe('V2 Integration Tests', () => {
 
     const freshStore = useSignalStore.getState();
     const remaining = freshStore.signals;
-    expect(remaining).toHaveLength(2); // Urgent + active, expired info removed
+    expect(remaining).toHaveLength(1); // Only active signal remains, all expired removed regardless of severity
     expect(remaining.find(s => s.id === 'signal-expired-info')).toBeUndefined();
-    expect(remaining.find(s => s.id === 'signal-expired-urgent')).toBeDefined();
+    expect(remaining.find(s => s.id === 'signal-expired-urgent')).toBeUndefined(); // Expired urgent is also removed
     expect(remaining.find(s => s.id === 'signal-active')).toBeDefined();
   });
 

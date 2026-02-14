@@ -3,15 +3,15 @@ import { v4 as uuid } from 'uuid';
 
 export function detectStreakSignals(context: AnticipationContext): Signal[] {
   const signals: Signal[] = [];
-  const today = new Date(context.today);
+  const todayStr = context.today;
 
   for (const category of context.categories) {
     if (category.streak_count <= 0 || !category.last_active_date) {
       continue;
     }
 
-    const lastActive = new Date(category.last_active_date);
-    const daysSince = Math.floor((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
+    const lastActiveStr = category.last_active_date.split('T')[0];
+    const daysSince = Math.round((new Date(todayStr + 'T12:00:00Z').getTime() - new Date(lastActiveStr + 'T12:00:00Z').getTime()) / (1000 * 60 * 60 * 24));
 
     let severity: 'info' | 'attention' | 'urgent' | 'critical' | null = null;
     let contextMessage = '';

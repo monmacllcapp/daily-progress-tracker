@@ -48,6 +48,7 @@ class AnticipationWorker {
       // Dynamically import to avoid circular deps and keep lazy
       const { learnPatterns } = await import('../services/intelligence/pattern-learner');
       const { computeSignalWeights } = await import('../services/intelligence/feedback-loop');
+      const { runRetentionCycle } = await import('../services/data-retention');
 
       // Run pattern learning (Tier 1)
       await learnPatterns(this.db);
@@ -55,6 +56,13 @@ class AnticipationWorker {
       // Run feedback weight computation (Tier 3)
       const weights = await computeSignalWeights(this.db);
       this.cachedWeights = weights;
+
+      // Run data retention cleanup
+      try {
+        await runRetentionCycle(this.db);
+      } catch (err) {
+        console.warn('[Anticipation Worker] Retention cycle failed:', err);
+      }
 
       console.info(`[Anticipation Worker] Learning cycle complete: ${weights.length} weights computed`);
     } catch (err) {
@@ -122,6 +130,7 @@ class AnticipationWorker {
       } else {
         // Build minimal context from defaults
         const defaults = getDefaultContext();
+        const nowDate = new Date();
         context = {
           tasks: [],
           projects: [],
@@ -131,9 +140,9 @@ class AnticipationWorker {
           deals: [],
           signals: useSignalStore.getState().signals,
           mcpData: {},
-          today: defaults.today!,
-          currentTime: defaults.currentTime!,
-          dayOfWeek: defaults.dayOfWeek!,
+          today: defaults.today || nowDate.toISOString().split('T')[0],
+          currentTime: defaults.currentTime || nowDate.toISOString(),
+          dayOfWeek: defaults.dayOfWeek || nowDate.toLocaleDateString('en-US', { weekday: 'long' }),
           historicalPatterns: [],
           signalWeights: this.cachedWeights,
         };

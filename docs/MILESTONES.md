@@ -11,6 +11,7 @@
 | M4 | Testing & Hardening | COMPLETE | Week 3-4 |
 | M5 | Beta Launch | COMPLETE | Week 4 |
 | M6 | V2 Intelligence Layer | COMPLETE | Week 5-6 |
+| M7 | Learning Intelligence + Full Wiring | COMPLETE | Week 6-7 |
 
 ---
 
@@ -272,3 +273,61 @@
 - **0 test failures**
 - **0 TypeScript errors**
 - **Production build: clean**
+
+---
+
+## M7: Learning Intelligence + Full Wiring
+
+**Status:** COMPLETE
+**Success Criteria:** Pattern learner writes to productivity_patterns. Feedback loop adjusts signal weights. Claude insight engine generates proactive suggestions. All pages display domain-relevant signals.
+
+### Wave 1: 3-Tier Learning Layer
+- [x] M7-1: Pattern learner (Tier 1) — computes 6 pattern types (peak_hours, task_estimation, day_of_week, deep_work_ratio, domain_balance, completion_rate) from user data, writes to productivity_patterns collection
+- [x] M7-2: Claude insight engine (Tier 2) — feeds patterns + signals to AI for higher-order insights via askAIJSON(), returns learned_suggestion signals, 3-layer fallback (Claude → Gemini → empty)
+- [x] M7-3: Feedback loop (Tier 3) — analyzes dismissed vs acted-on signals, computes effectiveness weights (0.3x–2.0x multiplier), new signal_weights RxDB collection
+- [x] M7-4: Extended type system — PatternType union (+3), SignalType union (+1 learned_suggestion), SignalWeight interface
+- [x] M7-5: signal_weights RxDB collection schema + replication config
+
+### Wave 2: Integration Wiring
+- [x] M7-6: Priority synthesizer — apply feedback weights to signal scoring
+- [x] M7-7: Anticipation engine — 5th detector (Claude insight engine)
+- [x] M7-8: Anticipation worker — hourly learning cycle (pattern learner + feedback loop), load weights into context
+- [x] M7-9: Morning brief — accept and surface learned_suggestions
+- [x] M7-10: MorningBrief widget — render learned suggestions (Lightbulb icon, purple theme)
+- [x] M7-11: SignalFeed widget — visual treatment for learned_suggestion type
+
+### Wave 3: Critical Bug Fix + Widget Signal Props
+- [x] M7-12: App.tsx — anticipationWorker.setDatabase(database) call (was never called, learning cycle was dead code)
+- [x] M7-13: TradingDashboard — signals prop + "Trading Alerts" section
+- [x] M7-14: DealAnalyzer — signals prop + "Deal Alerts" section
+- [x] M7-15: FinancialOverview — signals prop + "Financial Alerts" section
+
+### Wave 4: Full Page Wiring (14 pages)
+- [x] M7-16: TradingPage — business_trading domain, SignalFeed + widget props
+- [x] M7-17: DealsPage — business_re domain, SignalFeed + DealAnalyzer props
+- [x] M7-18: FinancePage — finance domain, SignalFeed + FinancialOverview props
+- [x] M7-19: FinancialPage — finance domain, SignalFeed
+- [x] M7-20: FamilyPage — family domain, SignalFeed + FamilyHub props
+- [x] M7-21: LifePage — health_fitness + personal_growth domains, dual SignalFeed
+- [x] M7-22: TasksPage — type-filtered inline strip (deadline, follow_up, streak)
+- [x] M7-23: EmailPage — type-filtered inline strip (aging_email)
+- [x] M7-24: DashboardPage — urgent signals banner (critical/urgent severity only)
+- [x] M7-25: CalendarPage — type-filtered inline strip (calendar_conflict, context_switch)
+- [x] M7-26: DevProjectsPage — business_tech domain, SignalFeed
+- [x] M7-27: ProjectsPage — business_tech domain, SignalFeed
+- [x] M7-28: StaffingPage — business_tech domain, SignalFeed
+- [x] M7-29: JournalPage — personal_growth domain, SignalFeed
+
+### Tests
+- [x] M7-T1: Pattern learner — 14 tests (work rhythm, estimation calibration, cadence, deep work ratio, category balance, completion rate)
+- [x] M7-T2: Claude insight engine — 10 tests (AI fallback, prompt structure, response parsing, caps, expiry)
+- [x] M7-T3: Feedback loop — 10 tests (effectiveness scoring, weight range, minimum threshold, grouping)
+- [x] M7-T4: Priority synthesizer — +2 tests (with/without feedback weights)
+- [x] M7-T5: Anticipation engine — +1 test (5th detector called)
+- [x] M7-T6: Morning brief — +1 test (learned_suggestions rendered)
+
+### Test Results
+- **726 tests passing** across 57 test files
+- **1 pre-existing failure** (analytics streak test — unrelated)
+- **0 TypeScript errors**
+- **Production build: clean (4.52s)**

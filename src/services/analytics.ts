@@ -99,7 +99,10 @@ export async function getUsageStats(
 ): Promise<UsageStats> {
     try {
         const now = new Date();
-        const end = endDate || now.toISOString();
+        // When no endDate provided, use end-of-today to include all events from today
+        const endOfToday = new Date(now);
+        endOfToday.setHours(23, 59, 59, 999);
+        const end = endDate || endOfToday.toISOString();
         const start = startDate || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
         const events = await db.analytics_events.find({
