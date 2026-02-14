@@ -12,7 +12,7 @@ addRxPlugin(RxDBMigrationSchemaPlugin);
 // -- RxDB Schema Definitions --
 
 const taskSchema = {
-    version: 0,
+    version: 1,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -802,7 +802,14 @@ async function initDatabase(): Promise<TitanDatabase> {
 
     try {
         await db.addCollections({
-            tasks: { schema: taskSchema },
+            tasks: {
+                schema: taskSchema,
+                migrationStrategies: {
+                    // v0 → v1: removed due_date + priority from indexes (optional fields can't be indexed)
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                    1: function (oldDoc: any) { return oldDoc; }
+                }
+            },
             projects: {
                 schema: projectSchema,
                 migrationStrategies: {
