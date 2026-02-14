@@ -1,6 +1,6 @@
 {
-  "checkpoint_id": "2026-02-14T220000_multi-stage-tracking",
-  "timestamp": "2026-02-14T22:00:00Z",
+  "checkpoint_id": "2026-02-14T221500_multi-stage-tracking-with-fixes",
+  "timestamp": "2026-02-14T22:15:00Z",
   "agent": {
     "model": "claude-opus-4-6",
     "provider": "anthropic",
@@ -8,12 +8,12 @@
   },
   "session": {
     "project": "Daily Progress Tracker (MAPLE Life OS)",
-    "goal": "Multi-stage progress tracking (MVP/V2/V3) with ship-gate alerts",
+    "goal": "Multi-stage progress tracking + runtime bug fixes",
     "branch": "sandbox",
     "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
   },
   "changes": {
-    "summary": "Added multi-stage progress tracking with ship-gate alerts (building/ship_it/ship_and_build/scope_creep). 4 Sonnet agents across 2 waves. 21 new tests, 761 total passing.",
+    "summary": "Multi-stage progress tracking (MVP/V2/V3) with ship-gate alerts. Fixed RxDB DXE1 (optional fields in indexes), bumped task schema to v1, fixed infinite re-render loop in DevProjectsPage. 21 new tests, 761 total passing.",
     "files_modified": [
       "src/services/github-projects.ts",
       "src/services/__tests__/stage-progress.test.ts",
@@ -21,34 +21,36 @@
       "src/components/v2/ProjectStageWidget.tsx",
       "src/config/widgetRegistry.ts",
       "src/store/devProjectsStore.ts",
+      "src/db/index.ts",
+      "src/pages/DevProjectsPage.tsx",
       "docs/MILESTONES.md"
     ],
     "decisions_made": [
-      "Stage column in MILESTONES.md overview table — simple, human-readable, parser-compatible",
-      "Fallback to index-based stage mapping (M0-M5=MVP, M6-M7=V2, M8+=V3) for repos without Stage column",
+      "Stage column in MILESTONES.md overview table — parser-compatible, fallback to index-based mapping",
       "Four ship-gate states: building, ship_it, ship_and_build, scope_creep",
-      "ProjectStageWidget as opt-in dashboard widget (registered in widgetRegistry)",
-      "DevProjectCard falls back to single progress bar when stageProgress is empty"
+      "Removed due_date/priority from task indexes (optional fields can't be indexed in RxDB)",
+      "Bumped task schema to v1 with identity migration to force IndexedDB rebuild",
+      "Moved Zustand selector filtering to useMemo to prevent infinite re-render"
     ]
   },
   "continuation": {
     "status": "complete",
     "next_immediate_step": {
-      "action": "Commit changes to sandbox",
-      "details": "Stage 7 files for commit"
+      "action": "Verify Dev Projects page loads in browser",
+      "details": "Confirm multi-stage bars, ship-gate badges, and ProjectStageWidget render correctly"
     },
     "next_three_steps": [
-      "Commit multi-stage tracking changes",
+      "Verify Dev Projects page loads correctly",
       "Add Stage column to other project MILESTONES.md files",
-      "Add M8 milestone entry for this feature"
+      "Scan other pages for same Zustand selector-filter pattern"
     ],
     "blockers": [],
-    "context_notes": "761 tests (0 failures). TypeScript clean. Build successful (5.25s)."
+    "context_notes": "761 tests (0 failures). TypeScript clean. Build successful. 4 commits on sandbox."
   },
   "metadata": {
     "schema_version": "1.0.0",
     "checkpoint_sequence": 8,
     "parent_checkpoint": "2026-02-14T093000_security-remediation-complete",
-    "tags": ["feature", "multi-stage", "ship-gate", "progress-tracking"]
+    "tags": ["feature", "multi-stage", "ship-gate", "bugfix", "rxdb", "infinite-loop"]
   }
 }
