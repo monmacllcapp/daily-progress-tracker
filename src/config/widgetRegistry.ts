@@ -46,6 +46,9 @@ const StaffingDashboard = lazy(() =>
 const FinancialDashboard = lazy(() =>
     import('../components/FinancialDashboard').then((m) => ({ default: m.FinancialDashboard }))
 );
+const ProjectStageWidget = lazy(() =>
+  import('../components/v2/ProjectStageWidget').then((m) => ({ default: m.ProjectStageWidget }))
+);
 
 export interface WidgetConfig {
     id: string;
@@ -160,5 +163,12 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
         title: 'Finances',
         type: 'interactive',
         defaultLayout: { x: 0, y: 12, w: 3, h: 4, minW: 2, minH: 3 }
+    },
+    {
+        id: 'project-stages',
+        component: ProjectStageWidget,
+        title: 'Project Stages',
+        type: 'metric',
+        defaultLayout: { x: 6, y: 42, w: 6, h: 4, minW: 3, minH: 3 }
     }
 ];

@@ -47,6 +47,8 @@ export const useDevProjectsStore = create<DevProjectsState>((set, get) => ({
             openPRs: [],
             milestones: [],
             progress: { completed: 0, total: 0, percent: 0 },
+            stageProgress: [],
+            shipGate: null,
             northStar: null,
             session: null,
             latestCommit: null,

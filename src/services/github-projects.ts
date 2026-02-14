@@ -45,6 +45,25 @@ export interface MilestoneEntry {
   phase: string;
   name: string;
   status: string;
+  stage?: ProjectStage;
+}
+
+export type ProjectStage = 'MVP' | 'V2' | 'V3' | 'V4';
+
+export interface StageProgressInfo {
+  stage: ProjectStage;
+  completed: number;
+  total: number;
+  percent: number;
+}
+
+export type ShipGateStatus = 'building' | 'ship_it' | 'ship_and_build' | 'scope_creep';
+
+export interface ShipGate {
+  status: ShipGateStatus;
+  currentStage: ProjectStage;
+  stageProgress: StageProgressInfo[];
+  alert?: string;
 }
 
 export interface CommitInfo {
@@ -75,6 +94,8 @@ export interface ProjectStatus {
   openPRs: PRInfo[];
   milestones: MilestoneEntry[];
   progress: ProgressInfo;
+  stageProgress: StageProgressInfo[];
+  shipGate: ShipGate | null;
   northStar: string | null;
   session: SessionStatus | null;
   latestCommit: CommitInfo | null;
@@ -254,6 +275,7 @@ function parseTableFormat(lines: string[]): MilestoneEntry[] {
         const phaseIdx = headerCols.findIndex(h => h === 'phase' || h === 'milestone');
         const nameIdx = headerCols.findIndex(h => h === 'name' || h === 'description');
         const statusIdx = headerCols.findIndex(h => h === 'status');
+        const stageIdx = headerCols.findIndex(h => h === 'stage');
 
         const phase = phaseIdx >= 0 ? cells[phaseIdx] || '' : cells[0] || '';
         const status = statusIdx >= 0 ? cells[statusIdx] || '' : cells[2] || '';
@@ -262,7 +284,10 @@ function parseTableFormat(lines: string[]): MilestoneEntry[] {
         // Clean status (remove emojis)
         const cleanStatus = status.replace(/[✅🚧⬜]/g, '').trim();
 
-        entries.push({ phase, name, status: cleanStatus });
+        const stageRaw = stageIdx >= 0 ? (cells[stageIdx] || '').trim().toUpperCase() : '';
+        const stage = (['MVP', 'V2', 'V3', 'V4'].includes(stageRaw) ? stageRaw : undefined) as ProjectStage | undefined;
+
+        entries.push({ phase, name, status: cleanStatus, stage });
       }
     }
   }
@@ -317,6 +342,152 @@ export function parseProgress(markdown: string, milestones: MilestoneEntry[]): P
   }
 
   return { completed: 0, total: 0, percent: 0 };
+}
+
+/**
+ * Parse per-stage progress from MILESTONES.md.
+ * Uses Stage column from overview table when available, falls back to index-based mapping.
+ */
+export function parseStageProgress(markdown: string): StageProgressInfo[] {
+  const lines = markdown.split('\n');
+
+  // First, parse the overview table to get milestone → stage mapping
+  const milestones = parseTableFormat(lines);
+  const stageMap = new Map<string, ProjectStage>();
+
+  for (let i = 0; i < milestones.length; i++) {
+    const m = milestones[i];
+    const phase = m.phase.trim();
+    if (m.stage) {
+      stageMap.set(phase, m.stage);
+    } else {
+      // Fallback: extract milestone number, M0-M5=MVP, M6-M7=V2, M8+=V3
+      const match = phase.match(/M(\d+)/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num <= 5) stageMap.set(phase, 'MVP');
+        else if (num <= 7) stageMap.set(phase, 'V2');
+        else stageMap.set(phase, 'V3');
+      }
+    }
+  }
+
+  // Split markdown by ## headings to get per-milestone sections
+  const stageCounts = new Map<ProjectStage, { completed: number; total: number }>();
+
+  let currentPhase: string | null = null;
+  for (const line of lines) {
+    const headingMatch = line.match(/^##\s+(M\d+)[\s:]/);
+    if (headingMatch) {
+      currentPhase = headingMatch[1];
+      continue;
+    }
+
+    if (currentPhase) {
+      const stage = stageMap.get(currentPhase);
+      if (!stage) continue;
+
+      if (!stageCounts.has(stage)) {
+        stageCounts.set(stage, { completed: 0, total: 0 });
+      }
+
+      const counts = stageCounts.get(stage)!;
+
+      if (/- \[x\]/i.test(line)) {
+        counts.completed++;
+        counts.total++;
+      } else if (/- \[ \]/.test(line)) {
+        counts.total++;
+      }
+    }
+  }
+
+  // Convert to array, sorted by stage order
+  const stageOrder: ProjectStage[] = ['MVP', 'V2', 'V3', 'V4'];
+  const result: StageProgressInfo[] = [];
+
+  for (const stage of stageOrder) {
+    const counts = stageCounts.get(stage);
+    if (counts && counts.total > 0) {
+      result.push({
+        stage,
+        completed: counts.completed,
+        total: counts.total,
+        percent: Math.round((counts.completed / counts.total) * 100),
+      });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Compute ship-gate status from stage progress.
+ * Detects scope creep (later-stage work before current stage complete)
+ * and ship readiness (current stage 100%).
+ */
+export function computeShipGate(stages: StageProgressInfo[]): ShipGate {
+  const validStages = stages.filter(s => s.total > 0);
+
+  if (validStages.length === 0) {
+    return { status: 'building', currentStage: 'MVP', stageProgress: stages };
+  }
+
+  // Find lowest incomplete stage
+  const currentIdx = validStages.findIndex(s => s.percent < 100);
+
+  // All stages complete
+  if (currentIdx === -1) {
+    const lastStage = validStages[validStages.length - 1];
+    return {
+      status: 'ship_it',
+      currentStage: lastStage.stage,
+      stageProgress: stages,
+      alert: `All stages complete — ship ${lastStage.stage}!`,
+    };
+  }
+
+  const current = validStages[currentIdx];
+
+  // Check if any later stage has completions
+  const laterStagesWithWork = validStages.slice(currentIdx + 1).filter(s => s.completed > 0);
+
+  // If there are completed stages before the first incomplete one
+  if (currentIdx > 0) {
+    const lastCompleted = validStages[currentIdx - 1];
+    // Active work on current or later stages → ship + build
+    if (current.completed > 0 || laterStagesWithWork.length > 0) {
+      return {
+        status: 'ship_and_build',
+        currentStage: lastCompleted.stage,
+        stageProgress: stages,
+        alert: `${lastCompleted.stage} ready to ship — ${current.stage} in progress`,
+      };
+    }
+    // No later work started → just ship
+    return {
+      status: 'ship_it',
+      currentStage: lastCompleted.stage,
+      stageProgress: stages,
+      alert: `${lastCompleted.stage} is ready — ship it!`,
+    };
+  }
+
+  // First stage is incomplete — check for scope creep
+  if (laterStagesWithWork.length > 0) {
+    return {
+      status: 'scope_creep',
+      currentStage: current.stage,
+      stageProgress: stages,
+      alert: `Scope creep: ${laterStagesWithWork[0].stage} work started but ${current.stage} is only ${current.percent}%`,
+    };
+  }
+
+  return {
+    status: 'building',
+    currentStage: current.stage,
+    stageProgress: stages,
+  };
 }
 
 /**
@@ -415,6 +586,10 @@ export async function fetchProjectStatus(project: TrackedProject): Promise<Proje
     ? parseProgress(milestonesMd, milestones)
     : { completed: 0, total: 0, percent: 0 };
 
+  // Parse stage progress and compute ship gate
+  const stageProgress = milestonesMd ? parseStageProgress(milestonesMd) : [];
+  const shipGate = stageProgress.length > 0 ? computeShipGate(stageProgress) : null;
+
   // Parse handoff
   const session = handoffMd ? parseHandoff(handoffMd) : null;
 
@@ -426,6 +601,8 @@ export async function fetchProjectStatus(project: TrackedProject): Promise<Proje
     openPRs,
     milestones,
     progress,
+    stageProgress,
+    shipGate,
     northStar,
     session,
     latestCommit,

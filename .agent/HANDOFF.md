@@ -1,53 +1,29 @@
 # Agent Handoff
-**Last Updated:** 2026-02-14T09:30:00Z
-**Agent:** Claude Opus 4.6 (orchestrator) + 7x Sonnet agents
+**Last Updated:** 2026-02-14T22:00:00Z
 **Branch:** sandbox
 
 ## What Was Done
-
-### Session 16: Security & Calculation Audit + Remediation (COMPLETE)
-
-**Phase 1 — Red Team Audit (4 parallel agents):**
-- Infrastructure, application, data/privacy, calculation correctness
-- **39 findings total:** 5 CRITICAL, 13 HIGH, 15 MEDIUM, 6 LOW
-
-**Phase 2 — Wave 1 Fixes (4 parallel agents):**
-- Analytics streak end-of-day boundary bug (pre-existing test failure resolved)
-- Signal clearExpired OR logic bug
-- Pattern learner UTC/local time mixing
-- Streak guardian DST-vulnerable day boundary
-- Anticipation worker unsafe non-null assertions
-- Completion rate fixed 7-day divisor
-- Prompt sanitization utility + applied to 9 AI service files
-- OAuth tokens → sessionStorage
-- Gmail scope reduction (compose → send)
-- CSP header added to netlify.toml
-- MCP proxy CORS restricted to localhost
-
-**Phase 3 — Wave 2 Fixes (3 parallel agents):**
-- RxDB indexes (gmail_id, due_date, priority)
-- Schema validation (maxLength + enum constraints)
-- Input length limits (BrainDump, RPMWizard)
-- JarvisChat useEffect memory leak fix
-- Data retention service + 13 tests
-- Retention cycle integrated into anticipation worker
-
-**Commits:**
-- `5618a41` — Prompt sanitization (10 files)
-- `aeb42c3` — All remaining remediation (22 files)
+Implemented multi-stage progress tracking (MVP/V2/V3) across all 5 tracked projects:
+- Added `ProjectStage`, `StageProgressInfo`, `ShipGate` types to github-projects.ts
+- `parseStageProgress()` — parses MILESTONES.md by stage, falls back to index-based mapping
+- `computeShipGate()` — detects ship readiness, scope creep, ship+build states
+- Extended `parseTableFormat()` to detect Stage column
+- Multi-stage progress bars in DevProjectCard (replaces single bar, with fallback)
+- Ship-gate badges (SHIP IT / SCOPE CREEP / SHIP+BUILD) in project headers
+- New ProjectStageWidget dashboard widget — cross-project stage overview
+- Added Stage column to MILESTONES.md overview table (M0-M5=MVP, M6-M7=V2)
+- 21 new tests (parseStageProgress + computeShipGate), 761 total passing
 
 ## Current State
-- Tests: **740 passed** (58 files, 0 failures)
-- TypeScript: Clean
-- Build: Successful (4.89s)
+All implementation complete. TypeScript clean. 761/761 tests pass. Production build succeeds.
 
-## Deferred (Needs User)
-- Rotate API keys (Gemini, GitHub PAT, Hubstaff)
-- Remove `.env` from git history
-- Supabase RLS + user auth
-- Backend proxy for API keys
-- GDPR data export
-- IndexedDB encryption
+## Next Step
+Commit all changes to sandbox branch, then update MILESTONES.md with M8 milestone entry.
 
 ## Blockers
 None.
+
+## Context Notes
+- Fixed bug in computeShipGate where `ship_and_build` path was dead code (checked `current.percent === 100` after finding it via `percent < 100`)
+- devProjectsStore.ts needed `stageProgress: []` and `shipGate: null` in error fallback object
+- Files modified: github-projects.ts, DevProjectCard.tsx, ProjectStageWidget.tsx (new), widgetRegistry.ts, devProjectsStore.ts, MILESTONES.md, stage-progress.test.ts (new)

@@ -72,6 +72,17 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
               <h3 className="text-lg font-semibold text-white">{project.displayName}</h3>
             </div>
             <p className="text-xs text-slate-500">{project.description}</p>
+            {project.shipGate && project.shipGate.status !== 'building' && (
+              <div className={`mt-1 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full ${
+                project.shipGate.status === 'ship_it' ? 'bg-emerald-500/20 text-emerald-400' :
+                project.shipGate.status === 'scope_creep' ? 'bg-red-500/20 text-red-400' :
+                'bg-blue-500/20 text-blue-400'  // ship_and_build
+              }`}>
+                {project.shipGate.status === 'ship_it' ? 'SHIP IT' :
+                 project.shipGate.status === 'scope_creep' ? 'SCOPE CREEP' :
+                 'SHIP + BUILD'}
+              </div>
+            )}
           </div>
           <a
             href={`https://github.com/monmacllcapp/${project.repo}`}
@@ -91,8 +102,52 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
         )}
       </div>
 
-      {/* Progress Bar */}
-      {project.progress.total > 0 && (
+      {/* Stage Progress */}
+      {project.stageProgress && project.stageProgress.length > 0 ? (
+        <div className="px-4 py-3 border-b border-white/5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Stage Progress
+            </span>
+            {project.shipGate?.alert && (
+              <span className={`text-xs ${
+                project.shipGate.status === 'scope_creep' ? 'text-red-400' :
+                project.shipGate.status === 'ship_it' ? 'text-emerald-400' :
+                'text-blue-400'
+              }`}>
+                {project.shipGate.alert}
+              </span>
+            )}
+          </div>
+          <div className="space-y-2">
+            {project.stageProgress.filter(s => s.total > 0).map((stage) => {
+              const colors: Record<string, { bar: string; text: string }> = {
+                MVP: { bar: 'bg-emerald-500', text: 'text-emerald-400' },
+                V2: { bar: 'bg-blue-500', text: 'text-blue-400' },
+                V3: { bar: 'bg-purple-500', text: 'text-purple-400' },
+                V4: { bar: 'bg-amber-500', text: 'text-amber-400' },
+              };
+              const color = colors[stage.stage] || colors.MVP;
+              return (
+                <div key={stage.stage}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`text-xs font-medium ${color.text}`}>{stage.stage}</span>
+                    <span className="text-xs text-slate-500">
+                      {stage.completed}/{stage.total} ({stage.percent}%)
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${color.bar}`}
+                      style={{ width: `${stage.percent}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : project.progress.total > 0 ? (
         <div className="px-4 py-3 border-b border-white/5">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -117,7 +172,7 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
             />
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Branch Health */}
       <div className="px-4 py-3 border-b border-white/5">

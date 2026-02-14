@@ -2,16 +2,16 @@
 
 ## Overview
 
-| Phase | Name | Status | Target |
-|-------|------|--------|--------|
-| M0 | Setup & Governance | COMPLETE | Done |
-| M1 | Core Planning Engine | COMPLETE | Week 1 |
-| M2 | Calendar + Email Integration | COMPLETE | Week 2 |
-| M3 | Wheel of Life + Gamification | COMPLETE | Week 3 |
-| M4 | Testing & Hardening | COMPLETE | Week 3-4 |
-| M5 | Beta Launch | COMPLETE | Week 4 |
-| M6 | V2 Intelligence Layer | COMPLETE | Week 5-6 |
-| M7 | Learning Intelligence + Full Wiring | COMPLETE | Week 6-7 |
+| Phase | Name | Status | Target | Stage |
+|-------|------|--------|--------|-------|
+| M0 | Setup & Governance | COMPLETE | Done | MVP |
+| M1 | Core Planning Engine | COMPLETE | Week 1 | MVP |
+| M2 | Calendar + Email Integration | COMPLETE | Week 2 | MVP |
+| M3 | Wheel of Life + Gamification | COMPLETE | Week 3 | MVP |
+| M4 | Testing & Hardening | COMPLETE | Week 3-4 | MVP |
+| M5 | Beta Launch | COMPLETE | Week 4 | MVP |
+| M6 | V2 Intelligence Layer | COMPLETE | Week 5-6 | V2 |
+| M7 | Learning Intelligence + Full Wiring | COMPLETE | Week 6-7 | V2 |
 
 ---
 
