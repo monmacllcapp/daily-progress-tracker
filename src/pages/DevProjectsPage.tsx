@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, GitBranch, AlertTriangle, GitPullRequest, Clock } from 'lucide-react';
 import { useDevProjectsStore } from '../store/devProjectsStore';
 import { DevProjectCard } from '../components/v2/DevProjectCard';
@@ -45,14 +45,15 @@ export default function DevProjectsPage() {
 
   const currentStats = stats();
 
-  const techSignals = useSignalStore(s => {
+  const allSignals = useSignalStore(s => s.signals);
+  const techSignals = useMemo(() => {
     const now = new Date().toISOString();
-    return s.signals.filter(sig =>
+    return allSignals.filter(sig =>
       !sig.is_dismissed &&
       (!sig.expires_at || sig.expires_at > now) &&
       sig.domain === 'business_tech'
     );
-  });
+  }, [allSignals]);
 
   const handleRefresh = useCallback(() => {
     fetchAll();
