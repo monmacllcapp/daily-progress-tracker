@@ -49,6 +49,9 @@ const FinancialDashboard = lazy(() =>
 const ProjectStageWidget = lazy(() =>
   import('../components/v2/ProjectStageWidget').then((m) => ({ default: m.ProjectStageWidget }))
 );
+const AgentStatus = lazy(() =>
+    import('../components/AgentStatus').then((m) => ({ default: m.AgentStatus }))
+);
 
 export interface WidgetConfig {
     id: string;
@@ -170,5 +173,12 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
         title: 'Project Stages',
         type: 'metric',
         defaultLayout: { x: 6, y: 42, w: 6, h: 4, minW: 3, minH: 3 }
+    },
+    {
+        id: 'agent-status',
+        component: AgentStatus,
+        title: 'Agent Status',
+        type: 'interactive',
+        defaultLayout: { x: 9, y: 0, w: 3, h: 4, minW: 2, minH: 3 }
     }
 ];

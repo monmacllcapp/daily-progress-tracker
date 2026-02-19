@@ -1,5 +1,5 @@
-import { useState, lazy, Suspense } from 'react';
-import { Plus, Settings2, AlertTriangle } from 'lucide-react';
+import { useState, useMemo, lazy, Suspense } from 'react';
+import { Plus, Settings2, AlertTriangle, BarChart3, Briefcase, Heart, Wallet } from 'lucide-react';
 import { DashboardGrid } from '../components/dashboard/DashboardGrid';
 import { DailyProgressHeader } from '../components/DailyProgressHeader';
 import { CustomizationSidebar } from '../components/dashboard/CustomizationSidebar';
@@ -7,35 +7,52 @@ import { useDashboardStore } from '../store/dashboardStore';
 import { JarvisIcon } from '../components/JarvisIcon';
 import { useJarvisStore } from '../store/jarvisStore';
 import { useSignalStore } from '../store/signalStore';
+import { PageTabs, type TabConfig } from '../components/layout/PageTabs';
 
 const RPMWizard = lazy(() =>
   import('../components/RPMWizard').then((m) => ({ default: m.RPMWizard }))
 );
 
+const COMMAND_CENTER_TABS: TabConfig[] = [
+  { id: 'overview', label: 'Overview', icon: <BarChart3 className="w-4 h-4" /> },
+  { id: 'business', label: 'Business', icon: <Briefcase className="w-4 h-4" /> },
+  { id: 'life', label: 'Life', icon: <Heart className="w-4 h-4" /> },
+  { id: 'finances', label: 'Finances', icon: <Wallet className="w-4 h-4" /> },
+];
+
+const TAB_WIDGET_MAP: Record<string, string[]> = {
+  overview: ['morning-brief', 'daily-agenda', 'signal-feed', 'pomodoro', 'one-percent-tracker'],
+  business: ['task-dashboard', 'projects-list', 'project-stages', 'staffing-kpi', 'agent-status'],
+  life: ['habit-tracker', 'journal-history', 'wheel-of-life', 'vision-board', 'category-manager'],
+  finances: ['financial-dashboard', 'email-dashboard'],
+};
+
 export default function DashboardPage() {
   const [showRPM, setShowRPM] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
   const { setSidebarOpen } = useDashboardStore();
   const { isOpen: jarvisOpen, toggleOpen: jarvisToggle, latestNudge } = useJarvisStore();
 
-  const urgentSignals = useSignalStore(s => {
+  const allSignals = useSignalStore(s => s.signals);
+  const urgentSignals = useMemo(() => {
     const now = new Date().toISOString();
-    return s.signals.filter(sig =>
+    return allSignals.filter(sig =>
       !sig.is_dismissed &&
       (!sig.expires_at || sig.expires_at > now) &&
       (sig.severity === 'critical' || sig.severity === 'urgent')
     );
-  });
+  }, [allSignals]);
 
   return (
-    <div className="animate-fade-up">
+    <div className="space-y-6 animate-fade-up">
       {/* ANDIE AI — top of dashboard, AI-first */}
-      <div className="flex justify-center mb-3">
+      <div className="flex justify-center">
         <JarvisIcon onClick={jarvisToggle} nudge={latestNudge} isActive={jarvisOpen} />
       </div>
 
       {/* Urgent Signals Banner */}
       {urgentSignals.length > 0 && (
-        <div className="mb-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-red-400" />
             <span className="text-xs font-semibold uppercase tracking-wider text-red-300">
@@ -59,9 +76,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Header row */}
-      <div className="flex items-center justify-between mb-3">
-        <div />
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-white">Command Center</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -80,13 +97,23 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Progress summary */}
-      <div className="mb-6">
-        <DailyProgressHeader />
-      </div>
+      {/* Progress summary — show on Overview tab */}
+      {activeTab === 'overview' && (
+        <div>
+          <DailyProgressHeader />
+        </div>
+      )}
 
-      {/* Widget grid */}
-      <DashboardGrid />
+      {/* Tabs */}
+      <PageTabs
+        pageId="command-center"
+        tabs={COMMAND_CENTER_TABS}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+
+      {/* Tab content — filtered widget grid */}
+      <DashboardGrid filterWidgets={TAB_WIDGET_MAP[activeTab]} />
 
       {/* Customization sidebar overlay */}
       <CustomizationSidebar />

@@ -47,6 +47,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/ollama/, ''),
       },
+      '/api/openclaw': {
+        target: 'http://10.0.0.204:18789',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/openclaw/, ''),
+      },
     },
   },
   define: {
