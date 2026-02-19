@@ -1,16 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateContent, isOllamaConfigured } from './ollama-client';
 import type { Task, Category, Project } from '../types/schema';
 import { sanitizeForPrompt } from '../utils/sanitize-prompt';
-
-let genAI: GoogleGenerativeAI | null = null;
-
-function getGenAI(): GoogleGenerativeAI | null {
-    if (genAI) return genAI;
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) return null;
-    genAI = new GoogleGenerativeAI(apiKey);
-    return genAI;
-}
 
 /**
  * AI Task Categorization
@@ -22,11 +12,9 @@ export async function categorizeTask(
     taskTitle: string,
     categories: Category[]
 ): Promise<string | null> {
-    const ai = getGenAI();
-    if (!ai || categories.length === 0) return null;
+    if (!isOllamaConfigured() || categories.length === 0) return null;
 
     try {
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
         const categoryList = categories.map(c => `- "${c.name}" (id: ${c.id})`).join('\n');
 
         const prompt = `You are a life planning assistant. Categorize this task into one of the user's life categories.
@@ -38,8 +26,7 @@ ${categoryList}
 
 Respond with ONLY the category id (the string in parentheses after "id:"). If no category is a good fit, respond with "none".`;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text().trim();
+        const text = await generateContent(prompt);
 
         if (text === 'none') return null;
 
@@ -68,12 +55,9 @@ export async function suggestFocus(
     projects: Project[],
     categories: Category[]
 ): Promise<FocusSuggestion | null> {
-    const ai = getGenAI();
-    if (!ai || activeTasks.length === 0) return null;
+    if (!isOllamaConfigured() || activeTasks.length === 0) return null;
 
     try {
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
         const taskDescriptions = activeTasks.slice(0, 10).map(t => {
             const cat = categories.find(c => c.id === t.category_id);
             const proj = projects.find(p => p.id === t.goal_id);
@@ -90,8 +74,7 @@ Based on leverage (highest impact, vision-aligned, urgency), recommend ONE task 
 Respond as JSON:
 {"taskId": "<task id>", "reason": "<one sentence explaining why this has the most leverage>"}`;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text().trim();
+        const text = await generateContent(prompt);
 
         // Extract JSON from response (handle markdown code blocks)
         const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -114,5 +97,5 @@ Respond as JSON:
  * Checks if AI features are available (API key configured)
  */
 export function isAIAvailable(): boolean {
-    return !!import.meta.env.VITE_GEMINI_API_KEY;
+    return isOllamaConfigured();
 }

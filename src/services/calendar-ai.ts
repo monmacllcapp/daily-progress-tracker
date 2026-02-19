@@ -6,19 +6,9 @@
  * Follows the same pattern as ai-advisor.ts.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateContent, isOllamaConfigured } from './ollama-client';
 import type { CalendarEvent, Task } from '../types/schema';
 import type { MeetingLoadStats, EventConflict } from './calendar-monitor';
-
-let genAI: GoogleGenerativeAI | null = null;
-
-function getGenAI(): GoogleGenerativeAI | null {
-    if (genAI) return genAI;
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) return null;
-    genAI = new GoogleGenerativeAI(apiKey);
-    return genAI;
-}
 
 export interface FreeSlot {
     startTime: string;
@@ -116,12 +106,9 @@ export async function generateCalendarBriefing(
     meetingLoad: MeetingLoadStats,
     conflicts: EventConflict[]
 ): Promise<CalendarBriefing | null> {
-    const ai = getGenAI();
-    if (!ai) return null;
+    if (!isOllamaConfigured()) return null;
 
     try {
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
         const freeSlots = computeFreeSlots(events, new Date());
 
         const eventSummaries = events
@@ -174,8 +161,7 @@ Respond as JSON with this exact structure:
 
 Keep each field concise. If no conflicts exist, use an empty array. Focus on actionable advice.`;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text().trim();
+        const text = await generateContent(prompt);
 
         // Extract JSON from response (handle markdown code blocks)
         const jsonMatch = text.match(/\{[\s\S]*\}/);

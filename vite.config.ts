@@ -40,6 +40,15 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      '/api/ollama': {
+        target: 'http://10.0.0.204:11434',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ollama/, ''),
+      },
+    },
+  },
   define: {
     // Some libraries look for global or process. This fixes "process is not defined" errors.
     global: 'globalThis',
@@ -53,7 +62,6 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-ui': ['framer-motion', 'lucide-react', 'recharts'],
           'vendor-data': ['rxdb', 'rxjs', 'zustand'],
-          'vendor-google': ['@google/generative-ai'],
           'vendor-grid': ['react-grid-layout', 'react-resizable'],
         },
       },

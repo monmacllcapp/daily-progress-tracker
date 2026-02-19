@@ -2,10 +2,10 @@
  * Jarvis AI — Central Intelligence
  *
  * Full-context AI assistant: calendar CRUD, task/habit/email advice,
- * briefings, and proactive suggestions. Powered by Gemini.
+ * briefings, and proactive suggestions. Powered by Ollama.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateContent, isOllamaConfigured } from './ollama-client';
 import { isGoogleConnected } from './google-auth';
 import {
     fetchGoogleEvents,
@@ -16,18 +16,6 @@ import {
 } from './google-calendar';
 import { gatherJarvisContext, formatContextForPrompt } from './jarvis-context';
 import { sanitizeForPrompt } from '../utils/sanitize-prompt';
-
-// --- Singleton Gemini client (same pattern as ai-advisor.ts) ---
-
-let genAI: GoogleGenerativeAI | null = null;
-
-function getGenAI(): GoogleGenerativeAI | null {
-    if (genAI) return genAI;
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) return null;
-    genAI = new GoogleGenerativeAI(apiKey);
-    return genAI;
-}
 
 // --- Types ---
 
@@ -124,12 +112,10 @@ export async function parseCalendarIntent(
     userMessage: string,
     conversationHistory: JarvisMessage[]
 ): Promise<CalendarIntent> {
-    const ai = getGenAI();
-
-    if (!ai) {
+    if (!isOllamaConfigured()) {
         return {
             action: 'unclear',
-            response: 'AI is not configured. Please set the VITE_GEMINI_API_KEY environment variable.',
+            response: 'AI is not configured. Please set the VITE_OLLAMA_BASE_URL environment variable.',
         };
     }
 
@@ -143,8 +129,6 @@ export async function parseCalendarIntent(
     const events = await getUpcomingEvents();
     const eventsContext = formatEventsForPrompt(events);
     const conversationContext = formatConversationHistory(conversationHistory);
-
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `You are Maple, a calendar assistant. The current date/time in Pacific Time is: ${nowPT()}.
 Today's date is ${todayISO()}.
@@ -181,8 +165,7 @@ Rules:
 - If the request is ambiguous, set action="unclear" and ask for clarification in "response"`;
 
     try {
-        const result = await model.generateContent(prompt);
-        const text = result.response.text().trim();
+        const text = await generateContent(prompt);
 
         // Strip markdown code fences if present
         const jsonStr = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '');
@@ -266,8 +249,8 @@ export async function executeCalendarAction(intent: CalendarIntent): Promise<str
 }
 
 export function isJarvisAvailable(): boolean {
-    // Jarvis works with just a Gemini key — calendar is optional
-    return !!import.meta.env.VITE_GEMINI_API_KEY;
+    // Jarvis works with just an Ollama server — calendar is optional
+    return isOllamaConfigured();
 }
 
 // --- Full-Context Intelligence ---
@@ -276,12 +259,10 @@ export async function processJarvisMessage(
     userMessage: string,
     conversationHistory: JarvisMessage[]
 ): Promise<JarvisIntent> {
-    const ai = getGenAI();
-
-    if (!ai) {
+    if (!isOllamaConfigured()) {
         return {
             action: 'unclear',
-            response: 'AI is not configured. Please set the VITE_GEMINI_API_KEY environment variable.',
+            response: 'AI is not configured. Please set the VITE_OLLAMA_BASE_URL environment variable.',
         };
     }
 
@@ -304,8 +285,6 @@ export async function processJarvisMessage(
             const events = await getUpcomingEvents();
             eventsContext = formatEventsForPrompt(events);
         }
-
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const prompt = `You are Maple, a proactive AI life assistant for Maple.
 You see the user's COMPLETE data — tasks, calendar, emails, habits, projects, streaks, and more.
@@ -346,8 +325,7 @@ CONVERSATION STYLE — CRITICAL:
 - Keep responses to 1-3 sentences. Use the "suggestions" array for follow-up options instead of asking questions in the response text.
 - If you already have the data to answer, ANSWER. Don't ask for permission to show data you already have.`;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text().trim();
+        const text = await generateContent(prompt);
 
         // Try to extract JSON from the response (handle markdown fences, extra text)
         let jsonStr = text;
@@ -370,10 +348,8 @@ CONVERSATION STYLE — CRITICAL:
         console.error('[Maple] Message processing failed:', err);
         // Fallback: try a simpler non-JSON approach
         try {
-            const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
             const fallbackPrompt = `You are Maple, a helpful AI assistant. The user said: "${sanitizeForPrompt(userMessage, 500)}". Reply conversationally in 1-3 sentences.`;
-            const fallbackResult = await model.generateContent(fallbackPrompt);
-            const fallbackText = fallbackResult.response.text().trim();
+            const fallbackText = await generateContent(fallbackPrompt);
             return {
                 action: 'advice',
                 response: fallbackText,
@@ -390,14 +366,11 @@ CONVERSATION STYLE — CRITICAL:
 }
 
 export async function generateBriefing(): Promise<string> {
-    const ai = getGenAI();
-    if (!ai) return "Hey! I'm Maple, your AI assistant. Set up your Gemini API key to unlock full intelligence.";
+    if (!isOllamaConfigured()) return "Hey! I'm Maple, your AI assistant. Set up your Ollama server to unlock full intelligence.";
 
     try {
         const ctx = await gatherJarvisContext();
         const contextBlock = formatContextForPrompt(ctx);
-
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const prompt = `You are Maple, a proactive AI life assistant. Generate a brief, friendly greeting and status briefing based on this user's data. Keep it to 2-4 sentences. Be specific — reference their actual data (use REAL email subjects and senders from the context, REAL task names, REAL habit names). If something needs attention (overdue tasks, urgent emails, streaks at risk), mention it. End with a question or suggestion.
 
@@ -409,8 +382,8 @@ Current time: ${nowPT()}
 
 Respond with plain text only (no JSON, no markdown).`;
 
-        const result = await model.generateContent(prompt);
-        return result.response.text().trim();
+        const text = await generateContent(prompt);
+        return text;
     } catch (err) {
         console.error('[Maple] Briefing generation failed:', err);
         return "Hey! I'm Maple, your AI assistant. I can help with tasks, calendar, habits, and more. What's on your mind?";

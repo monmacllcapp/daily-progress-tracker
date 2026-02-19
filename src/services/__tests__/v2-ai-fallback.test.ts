@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 /**
  * V2 AI Fallback Tests
  *
- * Tests the AI provider fallback chain: Claude → Gemini → Rules-based
+ * Tests the AI provider fallback chain: Claude → Ollama → Rules-based
  * Verifies correct provider detection and graceful degradation.
  */
 
@@ -21,22 +21,16 @@ vi.mock('../ai-advisor', () => ({
   isAIAvailable: vi.fn(),
 }));
 
-// Mock Google Generative AI
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-    getGenerativeModel: vi.fn().mockReturnValue({
-      generateContent: vi.fn().mockResolvedValue({
-        response: {
-          text: vi.fn().mockReturnValue('Mocked Gemini response'),
-        },
-      }),
-    }),
-  })),
+// Mock Ollama client
+const mockOllamaGenerateContent = vi.fn().mockResolvedValue('Mocked Ollama response');
+vi.mock('../ollama-client', () => ({
+  generateContent: mockOllamaGenerateContent,
+  isOllamaConfigured: vi.fn(() => false),
 }));
 
 import { claudeClient } from '../ai/claude-client';
 import { isAIAvailable } from '../ai-advisor';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import * as ollamaClient from '../ollama-client';
 
 describe('V2 AI Fallback Tests', () => {
   beforeEach(() => {
@@ -46,17 +40,17 @@ describe('V2 AI Fallback Tests', () => {
   /**
    * Simple provider detection logic for testing
    */
-  async function detectProvider(): Promise<'claude' | 'gemini' | 'rules'> {
+  async function detectProvider(): Promise<'claude' | 'ollama' | 'rules'> {
     // Check Claude first
     const claudeAvailable = await claudeClient.isAvailable();
     if (claudeAvailable) {
       return 'claude';
     }
 
-    // Check Gemini
-    const geminiAvailable = isAIAvailable();
-    if (geminiAvailable) {
-      return 'gemini';
+    // Check Ollama
+    const ollamaAvailable = isAIAvailable();
+    if (ollamaAvailable) {
+      return 'ollama';
     }
 
     // Fallback to rules
@@ -77,12 +71,9 @@ describe('V2 AI Fallback Tests', () => {
       }
     }
 
-    if (provider === 'gemini') {
+    if (provider === 'ollama') {
       try {
-        const genAI = new GoogleGenerativeAI('fake-key');
-        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-        const result = await model.generateContent(prompt);
-        return result.response.text();
+        return await ollamaClient.generateContent(prompt);
       } catch {
         return null;
       }
@@ -106,7 +97,7 @@ describe('V2 AI Fallback Tests', () => {
       }
     }
 
-    if (provider === 'gemini') {
+    if (provider === 'ollama') {
       try {
         const text = await askAI(prompt);
         if (!text) return null;
@@ -128,13 +119,13 @@ describe('V2 AI Fallback Tests', () => {
     expect(claudeClient.isAvailable).toHaveBeenCalled();
   });
 
-  it('should detect provider as gemini when Claude unavailable but Gemini key exists', async () => {
+  it('should detect provider as ollama when Claude unavailable but Ollama configured', async () => {
     vi.mocked(claudeClient.isAvailable).mockResolvedValue(false);
     vi.mocked(isAIAvailable).mockReturnValue(true);
 
     const provider = await detectProvider();
 
-    expect(provider).toBe('gemini');
+    expect(provider).toBe('ollama');
     expect(claudeClient.isAvailable).toHaveBeenCalled();
     expect(isAIAvailable).toHaveBeenCalled();
   });
@@ -218,13 +209,13 @@ describe('V2 AI Fallback Tests', () => {
     expect(response).toBeNull();
   });
 
-  it('should fall back to Gemini when Claude unavailable', async () => {
+  it('should fall back to Ollama when Claude unavailable', async () => {
     vi.mocked(claudeClient.isAvailable).mockResolvedValue(false);
     vi.mocked(isAIAvailable).mockReturnValue(true);
 
     const provider = await detectProvider();
 
-    expect(provider).toBe('gemini');
+    expect(provider).toBe('ollama');
   });
 
   it('should handle JSON parse failure gracefully', async () => {
@@ -247,7 +238,7 @@ describe('V2 AI Fallback Tests', () => {
     expect(provider).toBe('rules');
   });
 
-  it('should prioritize Claude over Gemini when both available', async () => {
+  it('should prioritize Claude over Ollama when both available', async () => {
     vi.mocked(claudeClient.isAvailable).mockResolvedValue(true);
     vi.mocked(isAIAvailable).mockReturnValue(true);
     vi.mocked(claudeClient.ask).mockResolvedValue('Claude response');
@@ -257,8 +248,8 @@ describe('V2 AI Fallback Tests', () => {
 
     expect(provider).toBe('claude');
     expect(response).toBe('Claude response');
-    // Gemini should not be called
-    expect(GoogleGenerativeAI).not.toHaveBeenCalled();
+    // Ollama should not be called
+    expect(mockOllamaGenerateContent).not.toHaveBeenCalled();
   });
 
   it('should handle empty response from Claude gracefully', async () => {

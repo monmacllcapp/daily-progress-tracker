@@ -12,8 +12,9 @@ vi.mock('../../ai-advisor', () => ({
   isAIAvailable: vi.fn(),
 }));
 
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(),
+vi.mock('../../ollama-client', () => ({
+  generateContent: vi.fn(),
+  isOllamaConfigured: vi.fn(() => false),
 }));
 
 import { detectProvider, askAI, aiService } from '../ai-service';
@@ -35,12 +36,12 @@ describe('ai-service', () => {
     expect(provider).toBe('claude');
   });
 
-  it('detectProvider returns gemini when Claude unavailable and Gemini key set', async () => {
+  it('detectProvider returns ollama when Claude unavailable and Ollama configured', async () => {
     mockedClaudeClient.isAvailable.mockResolvedValueOnce(false);
     mockedIsGeminiAvailable.mockReturnValueOnce(true);
 
     const provider = await detectProvider();
-    expect(provider).toBe('gemini');
+    expect(provider).toBe('ollama');
   });
 
   it('detectProvider returns rules when nothing available', async () => {

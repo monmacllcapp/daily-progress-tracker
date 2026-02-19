@@ -1,16 +1,16 @@
 import { claudeClient } from './claude-client';
-import { isAIAvailable as isGeminiAvailable } from '../ai-advisor';
+import { generateContent, isOllamaConfigured } from '../ollama-client';
 
 /**
  * Unified AI Service
  *
  * Provides 3-layer fallback for AI features:
  * 1. Claude (via MCP proxy) - preferred
- * 2. Gemini (direct API) - fallback
+ * 2. Ollama (local LLM) - fallback
  * 3. Rule-based logic - last resort
  */
 
-export type AIProvider = 'claude' | 'gemini' | 'rules';
+export type AIProvider = 'claude' | 'ollama' | 'rules';
 
 /**
  * Detect which AI provider is currently available
@@ -22,9 +22,9 @@ export async function detectProvider(): Promise<AIProvider> {
     return 'claude';
   }
 
-  // Try Gemini (check if API key is configured)
-  if (isGeminiAvailable()) {
-    return 'gemini';
+  // Try Ollama (check if local LLM is configured)
+  if (isOllamaConfigured()) {
+    return 'ollama';
   }
 
   // Fall back to rule-based logic
@@ -33,7 +33,7 @@ export async function detectProvider(): Promise<AIProvider> {
 
 /**
  * Ask AI a question and get text response
- * Falls back through providers: Claude -> Gemini -> null
+ * Falls back through providers: Claude -> Ollama -> null
  */
 export async function askAI(
   prompt: string,
@@ -48,28 +48,22 @@ export async function askAI(
       return response;
     }
   } catch (error) {
-    console.warn('[AI Service] Claude failed, trying Gemini:', error);
+    console.warn('[AI Service] Claude failed, trying Ollama:', error);
   }
 
-  // Try Gemini fallback
+  // Try Ollama fallback
   try {
-    if (isGeminiAvailable()) {
-      console.info('[AI Service] Using provider: gemini');
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
+    if (isOllamaConfigured()) {
+      console.info('[AI Service] Using provider: ollama');
       const fullPrompt = systemPrompt
         ? `${systemPrompt}\n\n${prompt}`
         : prompt;
 
-      const result = await model.generateContent(fullPrompt);
-      const text = result.response.text();
+      const text = await generateContent(fullPrompt);
       return text;
     }
   } catch (error) {
-    console.warn('[AI Service] Gemini failed:', error);
+    console.warn('[AI Service] Ollama failed:', error);
   }
 
   // No AI available
@@ -79,7 +73,7 @@ export async function askAI(
 
 /**
  * Ask AI and parse response as JSON
- * Falls back through providers: Claude -> Gemini -> null
+ * Falls back through providers: Claude -> Ollama -> null
  */
 export async function askAIJSON<T>(
   prompt: string,
@@ -94,27 +88,21 @@ export async function askAIJSON<T>(
       return response;
     }
   } catch (error) {
-    console.warn('[AI Service] Claude failed, trying Gemini:', error);
+    console.warn('[AI Service] Claude failed, trying Ollama:', error);
   }
 
-  // Try Gemini fallback
+  // Try Ollama fallback
   try {
-    if (isGeminiAvailable()) {
-      console.info('[AI Service] Using provider: gemini');
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
+    if (isOllamaConfigured()) {
+      console.info('[AI Service] Using provider: ollama');
       const fullPrompt = systemPrompt
         ? `${systemPrompt}\n\n${prompt}`
         : prompt;
 
-      const result = await model.generateContent(fullPrompt);
-      const text = result.response.text().trim();
+      const text = await generateContent(fullPrompt);
 
       // Try to extract JSON from response (handle markdown code blocks)
-      let jsonText = text;
+      let jsonText = text.trim();
       const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
       if (codeBlockMatch) {
         jsonText = codeBlockMatch[1].trim();
@@ -129,7 +117,7 @@ export async function askAIJSON<T>(
       return parsed as T;
     }
   } catch (error) {
-    console.warn('[AI Service] Gemini failed:', error);
+    console.warn('[AI Service] Ollama failed:', error);
   }
 
   // No AI available

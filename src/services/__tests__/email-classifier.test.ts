@@ -1,17 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { classifyEmail, draftResponse, isClassifierAvailable, _resetForTesting } from '../email-classifier';
 
-const { mockGenerateContent } = vi.hoisted(() => ({
+const { mockGenerateContent, mockIsConfiguredForTest } = vi.hoisted(() => ({
     mockGenerateContent: vi.fn(),
+    mockIsConfiguredForTest: vi.fn(() => false),
 }));
 
-vi.mock('@google/generative-ai', () => ({
-    GoogleGenerativeAI: class MockGoogleGenerativeAI {
-        constructor() {}
-        getGenerativeModel() {
-            return { generateContent: mockGenerateContent };
-        }
-    },
+vi.mock('../ollama-client', () => ({
+    generateContent: mockGenerateContent,
+    isOllamaConfigured: () => false,
+    _setTestBaseUrl: vi.fn(),
+    _isConfiguredForTest: mockIsConfiguredForTest,
 }));
 
 // Test the rule-based email classification (AI classification requires Gemini key)
@@ -239,13 +238,12 @@ describe('Email Classifier (Rule-based)', () => {
 describe('Email Classifier (AI-powered)', () => {
     beforeEach(() => {
         mockGenerateContent.mockReset();
+        mockIsConfiguredForTest.mockReturnValue(true);
         _resetForTesting('test-key');
     });
 
     it('should classify email as urgent via AI', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: { text: () => 'reply_urgent' },
-        });
+        mockGenerateContent.mockResolvedValue('reply_urgent');
 
         const tier = await classifyEmail(
             'boss@company.com',
@@ -259,9 +257,7 @@ describe('Email Classifier (AI-powered)', () => {
     });
 
     it('should classify email as to_review via AI', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: { text: () => 'to_review' },
-        });
+        mockGenerateContent.mockResolvedValue('to_review');
 
         const tier = await classifyEmail(
             'colleague@company.com',
@@ -274,9 +270,7 @@ describe('Email Classifier (AI-powered)', () => {
     });
 
     it('should classify email as social via AI', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: { text: () => 'social' },
-        });
+        mockGenerateContent.mockResolvedValue('social');
 
         const tier = await classifyEmail(
             'deals@retailer.com',
@@ -289,9 +283,7 @@ describe('Email Classifier (AI-powered)', () => {
     });
 
     it('should classify email as unsubscribe via AI', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: { text: () => 'unsubscribe' },
-        });
+        mockGenerateContent.mockResolvedValue('unsubscribe');
 
         const tier = await classifyEmail(
             'spam@sketchy.com',
@@ -304,11 +296,7 @@ describe('Email Classifier (AI-powered)', () => {
     });
 
     it('should extract tier from verbose AI response', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: {
-                text: () => 'I would classify this as reply_urgent because it requires immediate attention.',
-            },
-        });
+        mockGenerateContent.mockResolvedValue('I would classify this as reply_urgent because it requires immediate attention.');
 
         const tier = await classifyEmail(
             'alert@service.com',
@@ -321,11 +309,7 @@ describe('Email Classifier (AI-powered)', () => {
     });
 
     it('should default to unsure when AI returns unrecognized tier', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: {
-                text: () => 'I cannot determine the category of this email.',
-            },
-        });
+        mockGenerateContent.mockResolvedValue('I cannot determine the category of this email.');
 
         const tier = await classifyEmail(
             'test@example.com',
@@ -416,6 +400,7 @@ describe('Email Classifier — New tiers', () => {
 describe('Email Classifier — draftResponse', () => {
     beforeEach(() => {
         mockGenerateContent.mockReset();
+        mockIsConfiguredForTest.mockReturnValue(false);
     });
 
     it('should return null when no API key is set', async () => {
@@ -429,12 +414,9 @@ describe('Email Classifier — draftResponse', () => {
     });
 
     it('should return AI-generated draft when API key is set', async () => {
+        mockIsConfiguredForTest.mockReturnValue(true);
         _resetForTesting('test-key');
-        mockGenerateContent.mockResolvedValue({
-            response: {
-                text: () => 'Thanks for reaching out. I am available next Tuesday or Wednesday afternoon. Let me know what works for you.',
-            },
-        });
+        mockGenerateContent.mockResolvedValue('Thanks for reaching out. I am available next Tuesday or Wednesday afternoon. Let me know what works for you.');
 
         const result = await draftResponse(
             'client@company.com',
@@ -448,10 +430,9 @@ describe('Email Classifier — draftResponse', () => {
     });
 
     it('should include user context in the prompt when provided', async () => {
+        mockIsConfiguredForTest.mockReturnValue(true);
         _resetForTesting('test-key');
-        mockGenerateContent.mockResolvedValue({
-            response: { text: () => 'I am free next week. Let me know.' },
-        });
+        mockGenerateContent.mockResolvedValue('I am free next week. Let me know.');
 
         const result = await draftResponse(
             'colleague@work.com',
@@ -468,6 +449,7 @@ describe('Email Classifier — draftResponse', () => {
     });
 
     it('should return null when AI draft generation fails', async () => {
+        mockIsConfiguredForTest.mockReturnValue(true);
         _resetForTesting('test-key');
         mockGenerateContent.mockRejectedValue(new Error('Service unavailable'));
 
@@ -481,12 +463,9 @@ describe('Email Classifier — draftResponse', () => {
     });
 
     it('should trim whitespace from AI draft response', async () => {
+        mockIsConfiguredForTest.mockReturnValue(true);
         _resetForTesting('test-key');
-        mockGenerateContent.mockResolvedValue({
-            response: {
-                text: () => '  Thank you for the update. I will review it shortly.  \n',
-            },
-        });
+        mockGenerateContent.mockResolvedValue('  Thank you for the update. I will review it shortly.  \n');
 
         const result = await draftResponse(
             'team@company.com',

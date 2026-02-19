@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateContent, isOllamaConfigured } from './ollama-client';
 import type { TitanDatabase } from '../db';
 import type {
   FinancialTransaction,
@@ -9,17 +9,6 @@ import type {
   SubscriptionFrequency,
 } from '../types/schema';
 import { sanitizeForPrompt } from '../utils/sanitize-prompt';
-
-// Gemini singleton (same pattern as ai-advisor.ts)
-let genAI: GoogleGenerativeAI | null = null;
-
-function getGenAI(): GoogleGenerativeAI | null {
-  if (genAI) return genAI;
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) return null;
-  genAI = new GoogleGenerativeAI(apiKey);
-  return genAI;
-}
 
 // --- Subscription Detection ---
 
@@ -158,12 +147,9 @@ export async function analyzeSpending(
   subscriptions: FinancialSubscription[],
   recentTransactions: FinancialTransaction[]
 ): Promise<SpendingInsight[]> {
-  const ai = getGenAI();
-  if (!ai || !currentMonth) return [];
+  if (!isOllamaConfigured() || !currentMonth) return [];
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
     const unusedSubs = subscriptions.filter(s => s.flagged_unused);
     const monthHistory = previousMonths.slice(0, 5).map(m => ({
       month: m.month,
@@ -202,8 +188,7 @@ Provide 3-5 actionable insights. For each, specify:
 
 Respond ONLY with a JSON array of insights. No markdown, no code blocks.`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+    const text = await generateContent(prompt);
 
     // Parse JSON (handle possible markdown code blocks)
     const jsonMatch = text.match(/\[[\s\S]*\]/);

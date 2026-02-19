@@ -1,7 +1,7 @@
 /**
  * AI Email Classifier
  *
- * Uses Gemini to classify emails into 7 tiers:
+ * Uses Ollama to classify emails into 7 tiers:
  * - reply_urgent: time-sensitive, requires immediate reply TODAY
  * - reply_needed: deserves a reply but not time-critical
  * - to_review: needs to be read and a decision made
@@ -13,29 +13,12 @@
  * Also drafts AI responses for reply-urgent emails.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateContent, isOllamaConfigured, _setTestBaseUrl, _isConfiguredForTest } from './ollama-client';
 import type { EmailTier } from '../types/schema';
 import { sanitizeForPrompt } from '../utils/sanitize-prompt';
 
-const GEMINI_KEY = typeof import.meta !== 'undefined'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Vite import.meta type narrowing
-    ? (import.meta as any).env?.VITE_GEMINI_API_KEY
-    : undefined;
-
-let genAI: GoogleGenerativeAI | null = null;
-let keyOverride: string | undefined;
-let testingModeActive = false;
-
-function getGenAI(): GoogleGenerativeAI | null {
-    const key = testingModeActive ? keyOverride : (keyOverride ?? GEMINI_KEY);
-    if (!key) return null;
-    if (!genAI) genAI = new GoogleGenerativeAI(key);
-    return genAI;
-}
-
 export function isClassifierAvailable(): boolean {
-    const key = testingModeActive ? keyOverride : (keyOverride ?? GEMINI_KEY);
-    return !!key;
+    return _isConfiguredForTest();
 }
 
 /**
@@ -48,11 +31,9 @@ export async function classifyEmail(
     snippet: string,
     labels: string[]
 ): Promise<EmailTier> {
-    const ai = getGenAI();
-
-    if (ai) {
+    if (_isConfiguredForTest()) {
         try {
-            return await classifyWithAI(ai, from, subject, snippet);
+            return await classifyWithAI(from, subject, snippet);
         } catch (err) {
             console.warn('[EmailClassifier] AI classification failed, using rules:', err);
         }
@@ -62,13 +43,10 @@ export async function classifyEmail(
 }
 
 async function classifyWithAI(
-    ai: GoogleGenerativeAI,
     from: string,
     subject: string,
     snippet: string
 ): Promise<EmailTier> {
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
     const prompt = `Classify this email into exactly one category. Respond with ONLY the category name, nothing else.
 
 Categories:
@@ -87,9 +65,7 @@ Preview: ${sanitizeForPrompt(snippet, 200)}
 
 Category:`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text().trim().toLowerCase();
+    const text = (await generateContent(prompt)).toLowerCase();
 
     const validTiers: EmailTier[] = [
         'reply_urgent', 'reply_needed', 'to_review',
@@ -180,9 +156,7 @@ function classifyWithRules(
 
 /** @internal Reset cached AI instance and optionally override the key (for testing). */
 export function _resetForTesting(key?: string): void {
-    genAI = null;
-    keyOverride = key;
-    testingModeActive = true;
+    _setTestBaseUrl(key ? 'test://mock' : undefined);
 }
 
 /**
@@ -194,12 +168,9 @@ export async function draftResponse(
     snippet: string,
     userContext?: string
 ): Promise<string | null> {
-    const ai = getGenAI();
-    if (!ai) return null;
+    if (!_isConfiguredForTest()) return null;
 
     try {
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
         const prompt = `Draft a brief, professional email reply. Be concise and friendly. Do NOT include subject line or "Dear/Hi" greeting — start with the content directly.
 
 Original email:
@@ -211,9 +182,8 @@ ${userContext ? `Additional context from user: ${sanitizeForPrompt(userContext, 
 
 Reply:`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text().trim();
+        const text = await generateContent(prompt);
+        return text;
     } catch (err) {
         console.error('[EmailClassifier] Draft generation failed:', err);
         return null;

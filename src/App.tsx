@@ -13,7 +13,7 @@ if (typeof window !== 'undefined') {
   const env = import.meta.env;
   console.log('[Maple] Active integrations:', {
     google: !!env.VITE_GOOGLE_CLIENT_ID,
-    gemini: !!env.VITE_GEMINI_API_KEY,
+    ollama: !!env.VITE_OLLAMA_BASE_URL,
     supabase: !!(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_ANON_KEY),
   });
 }
@@ -32,7 +32,6 @@ const LifePage = lazy(() => import('./pages/LifePage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 const MorningFlowPage = lazy(() => import('./pages/MorningFlowPage'));
-const CommandCenterPage = lazy(() => import('./pages/CommandCenterPage'));
 const DealsPage = lazy(() => import('./pages/DealsPage'));
 const TradingPage = lazy(() => import('./pages/TradingPage'));
 const FamilyPage = lazy(() => import('./pages/FamilyPage'));
@@ -42,6 +41,7 @@ const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
 const VisionPage = lazy(() => import('./pages/VisionPage'));
 const FinancialPage = lazy(() => import('./pages/FinancialPage'));
 const DevProjectsPage = lazy(() => import('./pages/DevProjectsPage'));
+const PlanningPage = lazy(() => import('./pages/PlanningPage'));
 function LoadingSpinner() {
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-white flex items-center justify-center">
@@ -112,9 +112,6 @@ function App() {
       <BrowserRouter>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
-            {/* Full-screen (no shell) */}
-            <Route path="/morning" element={<PageErrorBoundary pageName="Morning Flow"><MorningFlowPage /></PageErrorBoundary>} />
-
             {/* Shell-wrapped routes */}
             <Route element={<AppShell />}>
               <Route path="/" element={<PageErrorBoundary pageName="Dashboard"><DashboardPage /></PageErrorBoundary>} />
@@ -124,7 +121,8 @@ function App() {
               <Route path="/life" element={<PageErrorBoundary pageName="Life"><LifePage /></PageErrorBoundary>} />
               <Route path="/journal" element={<PageErrorBoundary pageName="Journal"><JournalPage /></PageErrorBoundary>} />
               <Route path="/projects" element={<PageErrorBoundary pageName="Projects"><ProjectsPage /></PageErrorBoundary>} />
-              <Route path="/command-center" element={<PageErrorBoundary pageName="Command Center"><CommandCenterPage /></PageErrorBoundary>} />
+              <Route path="/morning" element={<PageErrorBoundary pageName="Morning Flow"><MorningFlowPage /></PageErrorBoundary>} />
+              <Route path="/planning" element={<PageErrorBoundary pageName="Planning"><PlanningPage /></PageErrorBoundary>} />
               <Route path="/deals" element={<PageErrorBoundary pageName="Deals"><DealsPage /></PageErrorBoundary>} />
               <Route path="/trading" element={<PageErrorBoundary pageName="Trading"><TradingPage /></PageErrorBoundary>} />
               <Route path="/family" element={<PageErrorBoundary pageName="Family"><FamilyPage /></PageErrorBoundary>} />

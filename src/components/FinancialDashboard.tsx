@@ -680,8 +680,8 @@ export function FinancialDashboard({ pageMode = false }: FinancialDashboardProps
         <button onClick={handleAnalyze} disabled={isAnalyzing} className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 text-white rounded transition-colors">
           <Sparkles className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} /> {isAnalyzing ? 'Analyzing...' : 'Generate Insights'}
         </button>
-        {!import.meta.env.VITE_GEMINI_API_KEY && (
-          <span className="text-xs text-amber-400/80">Set VITE_GEMINI_API_KEY in .env for AI insights</span>
+        {!import.meta.env.VITE_OLLAMA_BASE_URL && (
+          <span className="text-xs text-amber-400/80">Set VITE_OLLAMA_BASE_URL in .env for AI insights</span>
         )}
       </div>
       {insights.length === 0 ? (

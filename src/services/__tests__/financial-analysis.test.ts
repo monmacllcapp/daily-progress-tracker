@@ -589,7 +589,7 @@ describe('financial-analysis service', () => {
 
   describe('analyzeSpending', () => {
     it('should return empty array when no API key', async () => {
-      vi.stubEnv('VITE_GEMINI_API_KEY', '');
+      vi.stubEnv('VITE_OLLAMA_BASE_URL', '');
 
       const { analyzeSpending } = await import('../financial-analysis');
 
@@ -599,7 +599,7 @@ describe('financial-analysis service', () => {
     });
 
     it('should return empty array when currentMonth is null', async () => {
-      vi.stubEnv('VITE_GEMINI_API_KEY', 'test-api-key');
+      vi.stubEnv('VITE_OLLAMA_BASE_URL', 'http://test:11434');
 
       const { analyzeSpending } = await import('../financial-analysis');
 

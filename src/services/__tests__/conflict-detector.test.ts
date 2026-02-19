@@ -337,27 +337,17 @@ describe('ConflictDetector', () => {
             vi.resetModules();
             mockGenerateContent.mockReset();
 
-            vi.doMock('@google/generative-ai', () => {
-                return {
-                    GoogleGenerativeAI: class MockGoogleGenerativeAI {
-                        constructor() {}
-                        getGenerativeModel() {
-                            return { generateContent: mockGenerateContent };
-                        }
-                    },
-                };
-            });
+            vi.doMock('../ollama-client', () => ({
+                generateContent: mockGenerateContent,
+                isOllamaConfigured: () => true,
+            }));
         });
 
         it('should use AI suggestions when API key is provided', async () => {
-            mockGenerateContent.mockResolvedValue({
-                response: {
-                    text: () => JSON.stringify({
-                        suggestion: 'Reschedule to afternoon',
-                        explanation: 'The afternoon slot aligns better with your energy levels.',
-                    }),
-                },
-            });
+            mockGenerateContent.mockResolvedValue(JSON.stringify({
+                suggestion: 'Reschedule to afternoon',
+                explanation: 'The afternoon slot aligns better with your energy levels.',
+            }));
 
             const { ConflictDetector } = await import('../conflict-detector');
             const detector = new ConflictDetector('test-api-key');
