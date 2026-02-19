@@ -34,6 +34,9 @@ export interface Task {
   defer_reason?: string;          // Why deferred
   sort_order: number;
   tags?: string[];                // e.g. ['relief', 'quick-win']
+  assigned_agent?: string;        // OpenClaw agent id (e.g. 'manager', 'sales')
+  agent_status?: 'pending' | 'in_progress' | 'completed' | 'failed';
+  agent_notes?: string;           // Agent's progress notes / output
   created_at?: string;
   updated_at?: string;
 }

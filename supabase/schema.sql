@@ -378,3 +378,23 @@ ALTER PUBLICATION supabase_realtime ADD TABLE financial_accounts;
 ALTER PUBLICATION supabase_realtime ADD TABLE financial_transactions;
 ALTER PUBLICATION supabase_realtime ADD TABLE financial_subscriptions;
 ALTER PUBLICATION supabase_realtime ADD TABLE financial_monthly_summaries;
+
+-- ============================================================
+-- Agent Status Tracking (Alpha AI — OpenClaw agents)
+-- ============================================================
+
+CREATE TABLE agent_status (
+  id TEXT PRIMARY KEY,                -- matches OpenClaw agent id
+  agent_name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'idle', -- idle, working, error, offline
+  current_task TEXT,
+  last_activity TIMESTAMPTZ DEFAULT now(),
+  model TEXT,
+  metadata JSONB DEFAULT '{}'::JSONB,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- No RLS — this is an admin/agent-only table
+-- Enable realtime for dashboard polling
+ALTER PUBLICATION supabase_realtime ADD TABLE agent_status;

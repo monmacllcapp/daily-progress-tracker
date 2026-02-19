@@ -12,7 +12,7 @@ addRxPlugin(RxDBMigrationSchemaPlugin);
 // -- RxDB Schema Definitions --
 
 const taskSchema = {
-    version: 1,
+    version: 2,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -33,7 +33,10 @@ const taskSchema = {
         sort_order: { type: 'integer' },
         tags: { type: 'array', items: { type: 'string' } },
         created_at: { type: 'string' },
-        updated_at: { type: 'string' }
+        updated_at: { type: 'string' },
+        assigned_agent: { type: 'string' },
+        agent_status: { type: 'string' },  // pending | in_progress | completed | failed
+        agent_notes: { type: 'string' }
     },
     required: ['id', 'title', 'status', 'source', 'created_date', 'category_id'],
     indexes: ['status', 'created_date', 'category_id']
@@ -807,7 +810,10 @@ async function initDatabase(): Promise<TitanDatabase> {
                 migrationStrategies: {
                     // v0 → v1: removed due_date + priority from indexes (optional fields can't be indexed)
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    1: function (oldDoc: any) { return oldDoc; }
+                    1: function (oldDoc: any) { return oldDoc; },
+                    // v1 → v2: add agent assignment fields
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                    2: function (oldDoc: any) { return oldDoc; }
                 }
             },
             projects: {
