@@ -11,6 +11,13 @@ import {
   Users,
   Briefcase,
   Wallet,
+  Zap,
+  Building2,
+  BarChart3,
+  Heart,
+  GitBranch,
+  ClipboardList,
+  Bot,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -27,6 +34,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Users,
   Briefcase,
   Wallet,
+  Zap,
+  Building2,
+  BarChart3,
+  Heart,
+  GitBranch,
+  ClipboardList,
+  Bot,
 };
 
 export function getIconComponent(iconName: string): LucideIcon {
