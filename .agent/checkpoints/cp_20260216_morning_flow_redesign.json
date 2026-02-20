@@ -1,0 +1,39 @@
+{
+  "checkpoint_id": "cp_20260216_morning_flow_redesign",
+  "timestamp": "2026-02-16T19:15:00.000Z",
+  "session": {
+    "goal": "Redesign MorningFlow component from full-screen 5-step wizard to in-AppShell 3-step sequential stepper",
+    "branch": "sandbox"
+  },
+  "changes_summary": "Completely redesigned MorningFlow.tsx: reduced from 5 steps to 3 steps, removed habits functionality, combined gratitude/non_negotiables/stressors into a single 'Set Intentions' step with color-coded subsections, added EmailTriageCard as step 3, replaced full-screen layout with in-page AppShell-compatible layout, added horizontal stepper bar with clickable pills",
+  "files_modified": [
+    "src/components/MorningFlow.tsx"
+  ],
+  "decisions_made": [
+    "Reduced from 5 steps to 3 steps: 'Set Intentions', 'Calendar Check', 'Email Triage'",
+    "Removed habits step entirely: deleted DEFAULT_HABITS constant, toggleHabit function, habits from formData state, habit persistence logic from igniteDay (lines 210-220), Habit type import, toggleHabitCompletion/syncHabitCategoryStreak imports, dbHabits state and useEffect",
+    "Step 1 'Set Intentions' combines three subsections with color-coded left borders: Gratitude (blue-500), 3 Must-Do's (rose-500), Ground (orange-500)",
+    "Each subsection has its own heading, description, and 3 auto-growing input fields",
+    "Step 2 'Calendar Check' preserved ALL existing calendar logic: useEffect for loading calendar data, meeting load bar, conflict alerts, AI briefing, free slots, Connect Google Calendar button",
+    "Step 3 'Email Triage' imports and renders EmailTriageCard component",
+    "Added horizontal stepper bar with clickable pills: completed steps show green checkmark and are clickable to go back, current step is blue-highlighted, future steps are gray/disabled",
+    "Connector lines between pills turn green when step is completed",
+    "Layout changes: replaced min-h-screen full-screen wrapper with max-w-4xl mx-auto, removed ambient blur background element",
+    "Step content wrapped in glass card: bg-slate-900/50 border border-white/10 rounded-2xl p-8",
+    "Softened framer-motion animations: opacity 0→1, x: 20→0 on enter, x: 0→-20 on exit, duration 0.25s (removed scale+translate)",
+    "Updated igniteDay function to remove habits persistence section but kept all other logic (Daily Journal creation, task creation from non_negotiables and stressors, XP award, analytics tracking)",
+    "Updated analytics trackEvent to remove habits_checked parameter",
+    "Kept all existing functionality: updateArrayField, useDatabase hook, onComplete prop, calendar data loading, navigation buttons",
+    "Navigation buttons remain at bottom with border-top separator",
+    "TypeScript compilation verified successfully with no errors"
+  ],
+  "continuation": {
+    "next_immediate_step": "Test the redesigned MorningFlow in browser to verify 3-step flow, stepper bar navigation, EmailTriageCard integration, and verify morning flow completion still creates DailyJournal and tasks correctly",
+    "next_three_steps": [
+      "Verify Step 1 'Set Intentions' renders all 3 subsections with correct color accents and auto-growing inputs",
+      "Verify Step 2 'Calendar Check' still loads calendar data, shows meeting load, conflicts, AI briefing, and free slots",
+      "Verify Step 3 'Email Triage' renders EmailTriageCard and 'Ignite Day' button creates journal entry and tasks without errors"
+    ],
+    "blockers": []
+  }
+}

@@ -111,7 +111,7 @@ function SortableWidgetCard({
             </button>
             <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-slate-200 truncate">{title}</p>
-                <p className="text-[10px] text-slate-500 capitalize">{type}</p>
+                <p className="text-xs text-slate-500 capitalize">{type}</p>
             </div>
             <button
                 onClick={onHide}
@@ -133,7 +133,7 @@ function WidgetCardOverlay({ id }: { id: string }) {
             <GripVertical className="w-4 h-4 text-white/50" />
             <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-slate-100 truncate">{widget.title}</p>
-                <p className="text-[10px] text-slate-400 capitalize">{widget.type}</p>
+                <p className="text-xs text-slate-400 capitalize">{widget.type}</p>
             </div>
         </div>
     );
@@ -163,7 +163,7 @@ function KanbanColumn({
             ref={setNodeRef}
             className="flex-1 min-w-[120px] flex flex-col"
         >
-            <div className="text-[10px] font-bold text-white/25 uppercase tracking-wider mb-2 text-center">
+            <div className="text-xs font-bold text-white/25 uppercase tracking-wider mb-2 text-center">
                 Col {columnIndex + 1}
             </div>
             <SortableContext items={widgetIds} strategy={verticalListSortingStrategy}>
@@ -182,7 +182,7 @@ function KanbanColumn({
                         );
                     })}
                     {widgetIds.length === 0 && (
-                        <p className="text-[10px] text-slate-600 italic text-center py-4">
+                        <p className="text-xs text-slate-600 italic text-center py-4">
                             Drop here
                         </p>
                     )}
@@ -448,7 +448,7 @@ function HiddenWidgetsList({
                         <p className="text-sm font-medium text-slate-500 truncate">{widget.title}</p>
                         <p className="text-xs text-slate-600 capitalize">{widget.type} Widget</p>
                     </div>
-                    <span className="text-[10px] text-slate-600 uppercase tracking-wider">Click to show</span>
+                    <span className="text-xs text-slate-600 uppercase tracking-wider">Click to show</span>
                 </div>
             ))}
         </div>
@@ -575,7 +575,7 @@ export function CustomizationSidebar() {
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs text-slate-400">Opacity</span>
-                                        <span className="text-[10px] font-mono text-slate-500">
+                                        <span className="text-xs font-mono text-slate-500">
                                             {Math.round(glassOpacity * 100)}%
                                         </span>
                                     </div>
@@ -587,7 +587,7 @@ export function CustomizationSidebar() {
                                         onChange={(e) => setGlassOpacity(Number(e.target.value) / 100)}
                                         className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-slate-700 accent-blue-500"
                                     />
-                                    <div className="flex justify-between text-[10px] text-slate-600">
+                                    <div className="flex justify-between text-xs text-slate-600">
                                         <span>Clear</span>
                                         <span>Solid</span>
                                     </div>

@@ -1,5 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, Wifi, WifiOff, Activity } from 'lucide-react';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+// Lazy singleton — only created once, only when env vars are present
+let _supabase: SupabaseClient | null = null;
+function getSupabase(): SupabaseClient | null {
+  if (_supabase) return _supabase;
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  if (!url || !key) return null;
+  _supabase = createClient(url, key);
+  return _supabase;
+}
 
 interface AgentInfo {
   id: string;
@@ -12,6 +24,7 @@ interface AgentInfo {
 }
 
 const KNOWN_AGENTS: AgentInfo[] = [
+  { id: 'main',      name: 'Main (Default)', emoji: '🦞', status: 'offline' },
   { id: 'manager',   name: 'Manager',    emoji: '🎯', status: 'offline' },
   { id: 'sales',     name: 'Sales',      emoji: '💰', status: 'offline' },
   { id: 'marketing', name: 'Marketing',  emoji: '📣', status: 'offline' },
@@ -66,22 +79,40 @@ export function AgentStatus() {
   const fetchAgents = useCallback(async () => {
     setRefreshing(true);
     try {
-      const res = await fetch('/api/openclaw/agents', { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: AgentInfo[] = await res.json();
-      // Merge live data with known agents so all 8 always appear
+      const supabase = getSupabase();
+      if (!supabase) throw new Error('Supabase env vars missing');
+
+      const { data, error } = await supabase
+        .from('agent_status')
+        .select('id, agent_name, status, current_task, last_activity, model');
+
+      if (error) throw error;
+
+      // Map Supabase rows to AgentInfo shape
+      const live: AgentInfo[] = (data ?? []).map((row) => ({
+        id: row.id as string,
+        name: row.agent_name as string,
+        status: (row.status as AgentInfo['status']) ?? 'offline',
+        currentTask: (row.current_task as string | null) ?? undefined,
+        lastActivity: (row.last_activity as string | null) ?? undefined,
+        model: (row.model as string | null) ?? undefined,
+        // emoji will be filled in from KNOWN_AGENTS during merge
+        emoji: '',
+      }));
+
+      // Merge with KNOWN_AGENTS so all 9 always appear
       const merged = KNOWN_AGENTS.map((known) => {
-        const live = data.find((a) => a.id === known.id);
-        return live ? { ...known, ...live } : { ...known, status: 'offline' as const };
+        const row = live.find((a) => a.id === known.id);
+        return row ? { ...known, ...row, emoji: known.emoji } : { ...known, status: 'offline' as const };
       });
+
       setAgents(merged);
-      setConnected(true);
+      // Connected = valid data received AND at least one agent is not offline
+      setConnected(merged.some((a) => a.status !== 'offline'));
     } catch {
-      // Graceful degradation: keep existing state, mark gateway unreachable
+      // Graceful degradation: show all KNOWN_AGENTS as offline
       setConnected(false);
-      setAgents((prev) =>
-        prev.map((a) => (a.status === 'working' ? { ...a, status: 'offline' as const } : a))
-      );
+      setAgents(KNOWN_AGENTS.map((a) => ({ ...a, status: 'offline' as const })));
     } finally {
       setRefreshing(false);
       setCountdown(POLL_INTERVAL_MS / 1000);

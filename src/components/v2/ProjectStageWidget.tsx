@@ -19,25 +19,25 @@ export const ProjectStageWidget: React.FC = () => {
     switch (status) {
       case 'ship_it':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-400">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-400">
             <Rocket className="w-3 h-3" /> SHIP
           </span>
         );
       case 'scope_creep':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-red-500/20 text-red-400">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-bold rounded-full bg-red-500/20 text-red-400">
             <AlertTriangle className="w-3 h-3" /> CREEP
           </span>
         );
       case 'ship_and_build':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-blue-500/20 text-blue-400">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-bold rounded-full bg-blue-500/20 text-blue-400">
             <Rocket className="w-3 h-3" /> SHIP+BUILD
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-slate-700/50 text-slate-500">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded-full bg-slate-700/50 text-slate-500">
             <Wrench className="w-3 h-3" /> BUILDING
           </span>
         );
@@ -84,14 +84,14 @@ export const ProjectStageWidget: React.FC = () => {
               </div>
               {currentStageProgress && currentStageProgress.total > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-slate-500 w-6">{currentStageProgress.stage}</span>
+                  <span className="text-xs text-slate-500 w-6">{currentStageProgress.stage}</span>
                   <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${stageColor(currentStageProgress.stage)}`}
                       style={{ width: `${currentStageProgress.percent}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-slate-500 w-8 text-right">{currentStageProgress.percent}%</span>
+                  <span className="text-xs text-slate-500 w-8 text-right">{currentStageProgress.percent}%</span>
                 </div>
               )}
             </div>

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { EmailDashboard } from '../components/EmailDashboard';
 import { useDatabase } from '../hooks/useDatabase';
 import { useSnoozedEmailTimer } from '../hooks/useSnoozedEmailTimer';
@@ -8,11 +9,13 @@ export default function EmailPage() {
   useSnoozedEmailTimer(db);
 
   const signals = useSignalStore(s => s.signals);
-  const now = new Date().toISOString();
-  const emailSignals = signals.filter(s =>
-    !s.is_dismissed && (!s.expires_at || s.expires_at > now) &&
-    s.type === 'aging_email'
-  );
+  const emailSignals = useMemo(() => {
+    const now = new Date().toISOString();
+    return signals.filter(s =>
+      !s.is_dismissed && (!s.expires_at || s.expires_at > now) &&
+      s.type === 'aging_email'
+    );
+  }, [signals]);
 
   return (
     <div className="animate-fade-up space-y-6">

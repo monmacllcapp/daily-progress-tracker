@@ -1,0 +1,51 @@
+{
+  "checkpoint_id": "2026-02-15T013000_rerender_fixes",
+  "timestamp": "2026-02-15T01:30:00Z",
+  "agent": {
+    "model": "claude-opus-4-6",
+    "provider": "anthropic",
+    "session_id": "70dd80cb-9fdd-487f-a1d4-85765ee892da"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "Fix infinite re-render crashes across all pages",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Fixed Maximum update depth exceeded errors on 5 pages (DashboardPage, ProjectsPage, JournalPage, StaffingPage, EmailPage) plus useRxQuery hook. Zustand selector bug: moved .filter() to useMemo. Email bug: stabilized render-time Date computation and added shallow array comparison in useRxQuery.",
+    "files_modified": [
+      "src/pages/DashboardPage.tsx",
+      "src/pages/ProjectsPage.tsx",
+      "src/pages/JournalPage.tsx",
+      "src/pages/StaffingPage.tsx",
+      "src/pages/EmailPage.tsx",
+      "src/hooks/useRxQuery.ts"
+    ],
+    "decisions_made": [
+      "Used useMemo pattern (not Zustand shallow equality) for filtered signal arrays — consistent with DevProjectsPage fix",
+      "Added shallow array comparison in useRxQuery to prevent cascading re-renders from RxDB subscriptions",
+      "Wrapped EmailPage signal filtering in useMemo to stabilize render-time Date computation"
+    ]
+  },
+  "continuation": {
+    "status": "completed",
+    "next_immediate_step": {
+      "action": "Browser verification",
+      "details": "Load each page in the browser and verify no console errors or infinite re-render crashes"
+    },
+    "next_three_steps": [
+      "Verify all pages render correctly in browser",
+      "Fix pre-existing analytics streak test (expected 3, got 2)",
+      "Continue with any remaining wiring/integration tasks"
+    ],
+    "blockers": [],
+    "context_notes": "All 5 pages with the DevProjectsPage pattern are now fixed. The useRxQuery shallow comparison is a bonus optimization for any component using RxDB queries."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 14,
+    "parent_checkpoint": "2026-02-15T011449_autocompact",
+    "tags": ["bug-fix", "infinite-rerender", "zustand", "rxdb"]
+  }
+}

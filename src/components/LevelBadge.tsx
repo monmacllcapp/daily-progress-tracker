@@ -42,7 +42,7 @@ export function LevelBadge() {
                         className="transition-all duration-500"
                     />
                 </svg>
-                <span className="text-[10px] font-bold text-blue-400 z-10">
+                <span className="text-xs font-bold text-blue-400 z-10">
                     {profile.level}
                 </span>
             </div>
@@ -55,7 +55,7 @@ export function LevelBadge() {
                         {profile.xp} XP
                     </span>
                 </div>
-                <span className="text-[10px] text-amber-400 mt-0.5">
+                <span className="text-xs text-amber-400 mt-0.5">
                     {profile.gold}g
                 </span>
             </div>

@@ -90,7 +90,7 @@ export function JournalHistory() {
                                         : <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
                                     }
                                     <span className="text-sm font-medium text-white">{formatDate(journal.date)}</span>
-                                    <span className="text-[10px] text-slate-600 ml-auto">
+                                    <span className="text-xs text-slate-600 ml-auto">
                                         {journal.gratitude?.length || 0}G / {journal.non_negotiables?.length || 0}W / {habitsCompleted}/{habitsTotal}H
                                     </span>
                                 </button>
@@ -108,7 +108,7 @@ export function JournalHistory() {
                                                 <div>
                                                     <div className="flex items-center gap-1.5 mb-1">
                                                         <Heart className="w-3 h-3 text-pink-400" />
-                                                        <span className="text-[10px] text-pink-400 uppercase tracking-wider font-bold">Gratitude</span>
+                                                        <span className="text-xs text-pink-400 uppercase tracking-wider font-bold">Gratitude</span>
                                                     </div>
                                                     {journal.gratitude.map((item, i) => (
                                                         <p key={i} className="text-xs text-slate-400 pl-4 py-0.5">{item}</p>
@@ -121,7 +121,7 @@ export function JournalHistory() {
                                                 <div>
                                                     <div className="flex items-center gap-1.5 mb-1">
                                                         <Target className="w-3 h-3 text-rose-400" />
-                                                        <span className="text-[10px] text-rose-400 uppercase tracking-wider font-bold">Non-Negotiable Wins</span>
+                                                        <span className="text-xs text-rose-400 uppercase tracking-wider font-bold">Non-Negotiable Wins</span>
                                                     </div>
                                                     {journal.non_negotiables.map((item, i) => (
                                                         <p key={i} className="text-xs text-slate-400 pl-4 py-0.5">{item}</p>
@@ -134,7 +134,7 @@ export function JournalHistory() {
                                                 <div>
                                                     <div className="flex items-center gap-1.5 mb-1">
                                                         <Flame className="w-3 h-3 text-orange-400" />
-                                                        <span className="text-[10px] text-orange-400 uppercase tracking-wider font-bold">Stressors</span>
+                                                        <span className="text-xs text-orange-400 uppercase tracking-wider font-bold">Stressors</span>
                                                     </div>
                                                     {journal.stressors.map((item, i) => (
                                                         <p key={i} className="text-xs text-slate-400 pl-4 py-0.5">{item}</p>
@@ -147,13 +147,13 @@ export function JournalHistory() {
                                                 <div>
                                                     <div className="flex items-center gap-1.5 mb-1">
                                                         <CheckSquare className="w-3 h-3 text-blue-400" />
-                                                        <span className="text-[10px] text-blue-400 uppercase tracking-wider font-bold">Habits</span>
+                                                        <span className="text-xs text-blue-400 uppercase tracking-wider font-bold">Habits</span>
                                                     </div>
                                                     <div className="flex flex-wrap gap-1.5 pl-4">
                                                         {Object.entries(journal.habits).map(([habit, done]) => (
                                                             <span
                                                                 key={habit}
-                                                                className={`text-[10px] px-2 py-0.5 rounded ${ done ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-slate-600 line-through' }`}
+                                                                className={`text-xs px-2 py-0.5 rounded ${ done ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-slate-600 line-through' }`}
                                                             >
                                                                 {habit}
                                                             </span>

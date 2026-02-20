@@ -180,8 +180,8 @@ export async function fetchOpenPRs(repo: string): Promise<PRInfo[]> {
  * Fetch file content from repo.
  * Returns null on 404 (file not found).
  */
-export async function fetchFileContent(repo: string, path: string): Promise<string | null> {
-  const url = `https://api.github.com/repos/${GITHUB_ORG}/${repo}/contents/${path}`;
+export async function fetchFileContent(repo: string, path: string, ref = 'sandbox'): Promise<string | null> {
+  const url = `https://api.github.com/repos/${GITHUB_ORG}/${repo}/contents/${path}?ref=${ref}`;
   const response = await fetch(url, { headers: getHeaders() });
 
   if (response.status === 404) {
@@ -206,7 +206,7 @@ export async function fetchFileContent(repo: string, path: string): Promise<stri
  * Fetch latest commit for a repo.
  */
 export async function fetchLatestCommit(repo: string): Promise<CommitInfo | null> {
-  const url = `https://api.github.com/repos/${GITHUB_ORG}/${repo}/commits?per_page=1`;
+  const url = `https://api.github.com/repos/${GITHUB_ORG}/${repo}/commits?sha=sandbox&per_page=1`;
   const response = await fetch(url, { headers: getHeaders() });
 
   if (!response.ok) {

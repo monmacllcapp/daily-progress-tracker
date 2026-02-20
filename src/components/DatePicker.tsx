@@ -157,7 +157,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                                         if (day) handleDateSelect(day);
                                     }}
                                     disabled={!day}
-                                    className={`aspect-square rounded text-[10px] transition-all ${!day ? 'invisible' : selectedDate?.getDate() === day && selectedDate?.getMonth() === currentMonth.getMonth() ? 'bg-emerald-500 text-white font-bold' : 'hover:bg-white/10' }`}
+                                    className={`aspect-square rounded text-xs transition-all ${!day ? 'invisible' : selectedDate?.getDate() === day && selectedDate?.getMonth() === currentMonth.getMonth() ? 'bg-emerald-500 text-white font-bold' : 'hover:bg-white/10' }`}
                                 >
                                     {day}
                                 </button>
@@ -174,7 +174,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
                                     e.stopPropagation();
                                     handleTimeChange(e.target.value);
                                 }}
-                                className="flex-1 px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                className="flex-1 px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             />
                             {selectedDate && (
                                 <button

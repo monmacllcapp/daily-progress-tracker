@@ -1,0 +1,31 @@
+{
+  "checkpoint_id": "cp_20260216_tab_system",
+  "timestamp": "2026-02-16T00:00:00.000Z",
+  "session": {
+    "goal": "Create reusable drag-and-drop tab system components",
+    "branch": "sandbox"
+  },
+  "changes_summary": "Created two new files implementing a reusable tab system with drag-and-drop reordering and localStorage persistence",
+  "files_modified": [
+    "src/store/tabConfigStore.ts",
+    "src/components/layout/PageTabs.tsx"
+  ],
+  "decisions_made": [
+    "Followed existing Zustand + persist pattern from SidebarStore.ts for tab order persistence",
+    "Used @dnd-kit library (already in project) for drag-and-drop functionality matching Sidebar implementation",
+    "Implemented smart tab order merging: preserves stored order while appending new tabs",
+    "Created SortableTab sub-component following SortableNavItem pattern",
+    "Added reorderable prop to allow opt-in drag-and-drop behavior",
+    "Used horizontal scrolling with scrollbar-thin for responsive mobile layout",
+    "Applied glass-morphism dark theme styling consistent with app design"
+  ],
+  "continuation": {
+    "next_immediate_step": "Both files are complete and type-check successfully. Ready for integration into pages.",
+    "next_three_steps": [
+      "Integrate PageTabs into relevant page components (e.g., Dashboard, Reports, Profile)",
+      "Test drag-and-drop functionality and localStorage persistence",
+      "Consider adding visual feedback for reorderable mode (e.g., hover state or toggle button)"
+    ],
+    "blockers": []
+  }
+}

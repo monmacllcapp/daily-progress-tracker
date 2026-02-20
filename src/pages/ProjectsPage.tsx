@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { Plus } from 'lucide-react';
 import { ProjectsList } from '../components/ProjectsList';
 import { SignalFeed } from '../components/v2/SignalFeed';
@@ -11,14 +11,15 @@ const RPMWizard = lazy(() =>
 export default function ProjectsPage() {
   const [showRPM, setShowRPM] = useState(false);
 
-  const techSignals = useSignalStore(s => {
+  const allSignals = useSignalStore(s => s.signals);
+  const techSignals = useMemo(() => {
     const now = new Date().toISOString();
-    return s.signals.filter(sig =>
+    return allSignals.filter(sig =>
       !sig.is_dismissed &&
       (!sig.expires_at || sig.expires_at > now) &&
       sig.domain === 'business_tech'
     );
-  });
+  }, [allSignals]);
 
   return (
     <div className="animate-fade-up space-y-6">

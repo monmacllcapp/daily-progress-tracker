@@ -12,7 +12,7 @@ import type { CalendarEvent } from '../types/schema';
 import type { Task } from '../types/schema';
 
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6 AM to 10 PM
-const HOUR_HEIGHT = 48; // pixels per hour
+const HOUR_HEIGHT = 56; // pixels per hour
 
 function formatHour(hour: number): string {
     if (hour === 0) return '12 AM';
@@ -39,6 +39,66 @@ interface TimeBlock {
     color: string;
     isFocusBlock?: boolean;
     linkedTaskId?: string;
+}
+
+type PositionedTimeBlock = TimeBlock & { column: number; totalColumns: number };
+
+function assignColumns(blocks: TimeBlock[]): PositionedTimeBlock[] {
+    if (blocks.length === 0) return [];
+
+    // Sort by start time, then longest duration first
+    const sorted = [...blocks].sort((a, b) => {
+        const aStart = a.startHour * 60 + a.startMinute;
+        const bStart = b.startHour * 60 + b.startMinute;
+        if (aStart !== bStart) return aStart - bStart;
+        return b.durationMinutes - a.durationMinutes;
+    });
+
+    // For each block, find its column by checking which columns are occupied at its start time
+    const result: PositionedTimeBlock[] = [];
+    const columnEnds: number[] = []; // tracks when each column becomes free (in minutes from midnight)
+
+    for (const block of sorted) {
+        const blockStart = block.startHour * 60 + block.startMinute;
+        const blockEnd = blockStart + block.durationMinutes;
+
+        // Find first available column
+        let col = 0;
+        while (col < columnEnds.length && columnEnds[col] > blockStart) {
+            col++;
+        }
+
+        // Assign column
+        if (col >= columnEnds.length) {
+            columnEnds.push(blockEnd);
+        } else {
+            columnEnds[col] = blockEnd;
+        }
+
+        result.push({ ...block, column: col, totalColumns: 0 }); // totalColumns set later
+    }
+
+    // Calculate totalColumns for each event based on all events it overlaps with
+    for (let i = 0; i < result.length; i++) {
+        const iStart = result[i].startHour * 60 + result[i].startMinute;
+        const iEnd = iStart + result[i].durationMinutes;
+        let maxCol = result[i].column;
+
+        for (let j = 0; j < result.length; j++) {
+            if (i === j) continue;
+            const jStart = result[j].startHour * 60 + result[j].startMinute;
+            const jEnd = jStart + result[j].durationMinutes;
+
+            // Check overlap
+            if (iStart < jEnd && jStart < iEnd) {
+                maxCol = Math.max(maxCol, result[j].column);
+            }
+        }
+
+        result[i].totalColumns = maxCol + 1;
+    }
+
+    return result;
 }
 
 function parseTimeBlocks(events: CalendarEvent[]): TimeBlock[] {
@@ -118,6 +178,29 @@ export function DailyAgenda() {
             if (mounted) {
                 setTasks(taskDocs.map(d => d.toJSON() as Task));
             }
+
+            // Auto-sync from Google Calendar on mount if connected
+            if (isGoogleConnected()) {
+                setIsSyncing(true);
+                try {
+                    await syncCalendarEvents(db, dayStart, dayEnd);
+                    // Reload events after sync
+                    const syncedEventDocs = await db.calendar_events.find({
+                        selector: {
+                            start_time: { $gte: dayStart.toISOString(), $lte: dayEnd.toISOString() }
+                        }
+                    }).exec();
+                    if (mounted) {
+                        setEvents(syncedEventDocs.map(d => d.toJSON() as CalendarEvent));
+                    }
+                } catch (err) {
+                    console.error('[DailyAgenda] Auto-sync on mount failed:', err);
+                } finally {
+                    if (mounted) {
+                        setIsSyncing(false);
+                    }
+                }
+            }
         }
 
         load();
@@ -143,7 +226,7 @@ export function DailyAgenda() {
         return () => { mounted = false; };
     }, [selectedDate]);
 
-    const timeBlocks = useMemo(() => parseTimeBlocks(events), [events]);
+    const timeBlocks = useMemo(() => assignColumns(parseTimeBlocks(events)), [events]);
 
     const currentHour = new Date().getHours();
     const currentMinute = new Date().getMinutes();
@@ -212,7 +295,7 @@ export function DailyAgenda() {
             <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm font-bold">Daily Agenda</span>
+                    <span className="text-base font-bold">Daily Agenda</span>
                 </div>
                 <div className="flex items-center gap-1">
                     <button
@@ -223,7 +306,7 @@ export function DailyAgenda() {
                     </button>
                     <button
                         onClick={() => setSelectedDate(new Date())}
-                        className="px-2 py-0.5 text-xs hover:bg-white/10 rounded transition-colors"
+                        className="px-2 py-0.5 text-sm hover:bg-white/10 rounded transition-colors"
                     >
                         {formatDate(selectedDate)}
                     </button>
@@ -249,11 +332,11 @@ export function DailyAgenda() {
             {/* All-day events */}
             {allDayEvents.length > 0 && (
                 <div className="px-3 py-1.5 border-b border-white/5">
-                    <span className="text-[10px] uppercase tracking-wider text-slate-500">All Day</span>
+                    <span className="text-xs uppercase tracking-wider text-slate-500">All Day</span>
                     {allDayEvents.map(event => (
                         <div
                             key={event.id}
-                            className="mt-1 px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-300"
+                            className="mt-1 px-2 py-1 rounded text-sm bg-blue-500/20 text-blue-300"
                         >
                             {event.summary}
                         </div>
@@ -265,8 +348,8 @@ export function DailyAgenda() {
             {meetingLoad && meetingLoad.meetingCount > 0 && (
                 <div className="px-3 py-2 border-b border-white/5">
                     <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] uppercase tracking-wider text-slate-500">Meeting Load</span>
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-xs uppercase tracking-wider text-slate-500">Meeting Load</span>
+                        <span className="text-xs text-slate-400 font-mono">
                             {Math.round(meetingLoad.totalMeetingMinutes / 60 * 10) / 10}h / {Math.round(meetingLoad.totalFreeMinutes / 60 * 10) / 10}h free
                         </span>
                     </div>
@@ -276,7 +359,7 @@ export function DailyAgenda() {
                             style={{ width: `${Math.min(meetingLoad.percentBooked, 100)}%` }}
                         />
                     </div>
-                    <div className="flex gap-3 text-[10px] text-slate-600">
+                    <div className="flex gap-3 text-xs text-slate-600">
                         <span>{meetingLoad.meetingCount} meetings</span>
                         {meetingLoad.backToBackCount > 0 && (
                             <span className="text-amber-500">{meetingLoad.backToBackCount} back-to-back</span>
@@ -294,10 +377,30 @@ export function DailyAgenda() {
                 <div className="px-3 py-2 border-b border-red-500/20 bg-red-500/5">
                     <div className="flex items-center gap-1.5">
                         <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />
-                        <span className="text-[10px] text-red-400 font-medium">
+                        <span className="text-xs text-red-400 font-medium">
                             {conflicts.length} conflict{conflicts.length > 1 ? 's' : ''}: {conflicts[0].message}
                             {conflicts.length > 1 && ` (+${conflicts.length - 1} more)`}
                         </span>
+                    </div>
+                </div>
+            )}
+
+            {/* Connect Google Calendar CTA */}
+            {!isGoogleConnected() && events.length === 0 && (
+                <div className="px-3 py-4 border-b border-white/10">
+                    <div className="flex flex-col items-center justify-center text-center gap-2">
+                        <Calendar className="w-8 h-8 text-slate-600" />
+                        <div>
+                            <p className="text-sm text-slate-400 mb-1">No events scheduled</p>
+                            {isGoogleAuthAvailable() && (
+                                <button
+                                    onClick={handleSync}
+                                    className="px-3 py-1.5 text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded transition-colors"
+                                >
+                                    Connect Google Calendar
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
@@ -312,7 +415,7 @@ export function DailyAgenda() {
                             className="absolute left-0 right-0 border-t border-white/5 flex items-start"
                             style={{ top: (hour - 6) * HOUR_HEIGHT }}
                         >
-                            <span className="text-[10px] text-slate-600 w-12 text-right pr-2 pt-0.5 flex-shrink-0">
+                            <span className="text-xs text-slate-600 w-12 text-right pr-2 pt-0.5 flex-shrink-0">
                                 {formatHour(hour)}
                             </span>
                             <div className="flex-1" />
@@ -338,6 +441,7 @@ export function DailyAgenda() {
                             const top = (block.startHour - 6) * HOUR_HEIGHT + (block.startMinute / 60) * HOUR_HEIGHT;
                             const height = Math.max((block.durationMinutes / 60) * HOUR_HEIGHT, 20);
                             const hasConflict = conflicts.some(c => c.eventA.id === block.id || c.eventB.id === block.id);
+                            const isNarrow = block.totalColumns > 1;
 
                             return (
                                 <motion.div
@@ -345,10 +449,12 @@ export function DailyAgenda() {
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0 }}
-                                    className={`absolute left-14 right-2 rounded-md px-2 py-1 overflow-hidden cursor-pointer hover:brightness-110 transition-all group ${hasConflict ? 'ring-1 ring-red-500/40' : ''}`}
+                                    className={`absolute rounded-md px-2 py-1 overflow-hidden cursor-pointer hover:brightness-110 transition-all group ${hasConflict ? 'ring-1 ring-red-500/40' : ''}`}
                                     style={{
                                         top,
                                         height,
+                                        left: `calc(56px + (100% - 64px) * ${block.column / block.totalColumns})`,
+                                        width: `calc((100% - 64px) / ${block.totalColumns} - 2px)`,
                                         backgroundColor: hasConflict ? 'rgba(239, 68, 68, 0.15)' : block.color + '33',
                                         borderLeft: `3px solid ${hasConflict ? '#ef4444' : block.color}`,
                                     }}
@@ -356,7 +462,7 @@ export function DailyAgenda() {
                                 >
                                     <div className="flex items-center gap-1 min-w-0">
                                         {block.isFocusBlock && <Focus className="w-3 h-3 text-purple-400 flex-shrink-0" />}
-                                        <span className="text-sm font-medium truncate flex-1" style={{ color: block.color }}>
+                                        <span className={`${isNarrow ? 'text-sm' : 'text-base'} font-medium truncate flex-1`} style={{ color: block.color }}>
                                             {block.title}
                                         </span>
                                         {block.linkedTaskId && (
@@ -370,7 +476,7 @@ export function DailyAgenda() {
                                         )}
                                     </div>
                                     {height > 30 && (
-                                        <span className="text-[10px] text-slate-400">
+                                        <span className="text-xs text-slate-400 truncate block">
                                             {block.durationMinutes}min
                                         </span>
                                     )}
@@ -386,7 +492,7 @@ export function DailyAgenda() {
                 <div className="border-t border-white/10 px-3 py-2">
                     <div className="flex items-center gap-1.5 mb-1">
                         <Zap className="w-3 h-3 text-yellow-400" />
-                        <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                        <span className="text-xs uppercase tracking-wider text-slate-500">
                             Unscheduled ({unscheduledTasks.length})
                         </span>
                     </div>
@@ -396,7 +502,7 @@ export function DailyAgenda() {
                             className="flex items-center justify-between py-0.5"
                         >
                             <span className="text-sm text-slate-400 truncate">{task.title}</span>
-                            <span className="text-[10px] text-slate-600 flex-shrink-0 ml-2">
+                            <span className="text-xs text-slate-600 flex-shrink-0 ml-2">
                                 {task.time_estimate_minutes}m
                             </span>
                         </div>

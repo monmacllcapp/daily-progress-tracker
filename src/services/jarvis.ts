@@ -6,6 +6,7 @@
  */
 
 import { generateContent, isOllamaConfigured } from './ollama-client';
+import { buildSystemPrompt, BRIEFING_TEMPLATE } from './agent-prompts';
 import { isGoogleConnected } from './google-auth';
 import {
     fetchGoogleEvents,
@@ -286,15 +287,15 @@ export async function processJarvisMessage(
             eventsContext = formatEventsForPrompt(events);
         }
 
-        const prompt = `You are Maple, a proactive AI life assistant for Maple.
-You see the user's COMPLETE data — tasks, calendar, emails, habits, projects, streaks, and more.
-The current date/time in Pacific Time is: ${nowPT()}.
-Today's date is ${todayISO()}.
-Timezone: ${TIMEZONE}
+        // Build elite system prompt with full user context
+        const eliteIdentity = buildSystemPrompt(`${contextBlock}
 
-${contextBlock}
+Current date/time (Pacific): ${nowPT()}
+Today: ${todayISO()} | Timezone: ${TIMEZONE}
+${eventsContext ? `\nCALENDAR EVENTS (for scheduling actions):\n${eventsContext}` : ''}`);
 
-${eventsContext ? `CALENDAR EVENTS (for scheduling actions):\n${eventsContext}\n` : ''}
+        const prompt = `${eliteIdentity}
+
 ${conversationContext ? `Recent conversation:\n${conversationContext}\n` : ''}
 The user says: "${sanitizeForPrompt(userMessage, 500)}"
 
@@ -314,16 +315,8 @@ Rules:
 - action="briefing" for daily summaries or status requests
 - action="create"/"move"/"delete" ONLY for calendar operations
 - Always include 1-3 actionable suggestions in "suggestions" array
-- Be conversational, concise, and proactive
 - All calendar times: ISO 8601 with Pacific timezone offset
-- CRITICAL: NEVER fabricate or invent email content, subjects, senders, or any data. ONLY reference data that appears in the context above. If asked about an email, quote the real subject and sender from the context. If the data is not in the context, say you don't have that detail.
-
-CONVERSATION STYLE — CRITICAL:
-- DO NOT keep asking "Do you want me to...?" or "Should I...?" over and over. If the user confirms or says "yes"/"okay"/"sure", ACT immediately — perform the action and report the result.
-- Give DIRECT, complete answers. If asked about an email, show the key details (sender, subject, summary) in ONE response rather than asking if the user wants to see it.
-- NEVER repeat the same information the user already confirmed. Move the conversation FORWARD.
-- Keep responses to 1-3 sentences. Use the "suggestions" array for follow-up options instead of asking questions in the response text.
-- If you already have the data to answer, ANSWER. Don't ask for permission to show data you already have.`;
+- CRITICAL: NEVER fabricate or invent data. ONLY reference data from the context above.`;
 
         const text = await generateContent(prompt);
 
@@ -372,9 +365,9 @@ export async function generateBriefing(): Promise<string> {
         const ctx = await gatherJarvisContext();
         const contextBlock = formatContextForPrompt(ctx);
 
-        const prompt = `You are Maple, a proactive AI life assistant. Generate a brief, friendly greeting and status briefing based on this user's data. Keep it to 2-4 sentences. Be specific — reference their actual data (use REAL email subjects and senders from the context, REAL task names, REAL habit names). If something needs attention (overdue tasks, urgent emails, streaks at risk), mention it. End with a question or suggestion.
+        const prompt = `${BRIEFING_TEMPLATE}
 
-CRITICAL: NEVER fabricate or invent email content, subjects, senders, or any data. ONLY reference what appears in the context below.
+CRITICAL: NEVER fabricate data. ONLY reference what appears in the context below.
 
 ${contextBlock}
 

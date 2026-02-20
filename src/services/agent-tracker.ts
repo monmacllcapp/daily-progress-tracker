@@ -1,9 +1,23 @@
 /**
  * Agent Tracker Service
  *
- * Fetches agent status from OpenClaw gateway and agent-assigned tasks from RxDB.
+ * Fetches agent status from the Supabase `agent_status` table and merges with
+ * the hardcoded AGENTS array. Falls back to all-offline if Supabase is unreachable.
  * Used by AgentsPage for the full operations dashboard.
  */
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+let _supabase: SupabaseClient | null = null;
+
+function getSupabaseClient(): SupabaseClient | null {
+  if (_supabase) return _supabase;
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  if (!url || !key) return null;
+  _supabase = createClient(url, key);
+  return _supabase;
+}
 
 export interface AgentInfo {
   id: string;
@@ -32,36 +46,65 @@ export interface AgentTask {
 }
 
 export const AGENTS: AgentInfo[] = [
-  { id: 'manager',   name: 'Manager',     emoji: '🎯', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'sales',     name: 'Sales',       emoji: '💰', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'marketing', name: 'Marketing',   emoji: '📣', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'finance',   name: 'Finance',     emoji: '📊', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'support',   name: 'Support',     emoji: '🛟', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'ea-user',   name: 'EA (Quan)',   emoji: '🧑‍💼', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'ea-wife',   name: 'EA (Wife)',   emoji: '👩‍💼', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'reasoner',  name: 'Reasoner',    emoji: '🧠', status: 'offline', model: 'deepseek-r1:8b' },
+  { id: 'main',      name: 'Main (Default)', emoji: '🦞', status: 'offline', model: 'llama3.3' },
+  { id: 'manager',   name: 'Manager',        emoji: '🎯', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'sales',     name: 'Sales',          emoji: '💰', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'marketing', name: 'Marketing',      emoji: '📣', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'finance',   name: 'Finance',        emoji: '📊', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'support',   name: 'Support',        emoji: '🛟', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'ea-user',   name: 'EA (Quan)',      emoji: '🧑‍💼', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'ea-wife',   name: 'EA (Wife)',      emoji: '👩‍💼', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'reasoner',  name: 'Reasoner',       emoji: '🧠', status: 'offline', model: 'deepseek-r1:8b' },
 ];
 
-/** Fetch live agent status from OpenClaw gateway */
+/** Fetch live agent status from Supabase `agent_status` table */
 export async function fetchAgentStatus(): Promise<AgentInfo[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return AGENTS; // env vars not set — all offline
+
   try {
-    const res = await fetch('/api/openclaw/agents', { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data: AgentInfo[] = await res.json();
+    const { data, error } = await supabase
+      .from('agent_status')
+      .select('id, agent_name, status, current_task, last_activity, model, metadata');
+
+    if (error) throw error;
+    if (!data) return AGENTS;
+
     return AGENTS.map((known) => {
-      const live = data.find((a) => a.id === known.id);
-      return live ? { ...known, ...live } : known;
+      const row = data.find((r) => r.id === known.id);
+      if (!row) return known;
+
+      const meta = (row.metadata as Record<string, unknown>) ?? {};
+      return {
+        ...known,
+        name: row.agent_name ?? known.name,
+        status: (row.status as AgentInfo['status']) ?? known.status,
+        currentTask: row.current_task ?? undefined,
+        lastActivity: row.last_activity ?? undefined,
+        model: row.model ?? known.model,
+        tokensToday: typeof meta.tokensToday === 'number' ? meta.tokensToday : undefined,
+        tasksCompleted: typeof meta.tasksCompleted === 'number' ? meta.tasksCompleted : undefined,
+        avgResponseMs: typeof meta.avgResponseMs === 'number' ? meta.avgResponseMs : undefined,
+      };
     });
   } catch {
     return AGENTS; // graceful fallback — all show as offline
   }
 }
 
-/** Check if OpenClaw gateway is reachable */
+/** Check if Supabase is reachable and at least one agent is not offline */
 export async function checkGatewayConnection(): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
   try {
-    const res = await fetch('/api/openclaw/agents', { signal: AbortSignal.timeout(5000) });
-    return res.ok;
+    const { count, error } = await supabase
+      .from('agent_status')
+      .select('*', { count: 'exact', head: true })
+      .neq('status', 'offline');
+
+    if (error) return false;
+    return (count ?? 0) > 0;
   } catch {
     return false;
   }

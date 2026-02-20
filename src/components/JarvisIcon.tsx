@@ -4,10 +4,12 @@
  * Big, unmissable circle at the very top of the dashboard.
  * AI-first design: the first thing users see and tap.
  * Shows soundwave animation when active, nudge preview below.
+ * Voice-mode aware: shows current voice state.
  */
 
+import { useCallback, useRef } from 'react';
 import { SoundwaveAnimation } from './SoundwaveAnimation';
-import type { JarvisNudge } from '../store/jarvisStore';
+import { useJarvisStore, type JarvisNudge } from '../store/jarvisStore';
 import { AlertTriangle, Lightbulb, Bell } from 'lucide-react';
 
 interface JarvisIconProps {
@@ -24,37 +26,72 @@ const nudgeIcons = {
 
 export function JarvisIcon({ onClick, nudge, isActive }: JarvisIconProps) {
   const NudgeIcon = nudge && !nudge.dismissed ? nudgeIcons[nudge.type] : null;
+  const voiceMode = useJarvisStore((s) => s.voiceMode);
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleClick = useCallback(() => {
+    if (clickTimer.current) {
+      // Double-click: force start voice
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+      import('../services/voice-mode').then((vm) => vm.forceStartListening());
+    } else {
+      clickTimer.current = setTimeout(() => {
+        clickTimer.current = null;
+        onClick();
+      }, 250);
+    }
+  }, [onClick]);
+
+  const isVoiceActive = voiceMode !== 'idle';
+  const showActive = isActive || isVoiceActive;
+
+  const voiceLabel =
+    voiceMode === 'listening'
+      ? 'Listening...'
+      : voiceMode === 'processing'
+        ? 'Thinking...'
+        : voiceMode === 'speaking'
+          ? 'Speaking...'
+          : isActive
+            ? 'Chat open'
+            : 'Tap to talk';
 
   return (
     <div className="flex flex-col items-center gap-2">
       {/* Big circle button */}
       <button
-        onClick={onClick}
+        onClick={handleClick}
         className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer group ${
-          isActive
+          showActive
             ? 'bg-gradient-to-br from-cyan-500 to-blue-600 shadow-[0_0_40px_rgba(34,211,238,0.3)]'
             : 'bg-gradient-to-br from-cyan-600/80 to-blue-700/80 hover:from-cyan-500 hover:to-blue-600 shadow-lg shadow-cyan-500/20 hover:shadow-[0_0_30px_rgba(34,211,238,0.25)]'
         }`}
       >
         {/* Outer pulse ring */}
-        {!isActive && (
+        {!showActive && (
           <span className="absolute inset-0 rounded-full bg-cyan-400/20 animate-ping" style={{ animationDuration: '3s' }} />
+        )}
+
+        {/* Listening pulse rings */}
+        {voiceMode === 'listening' && (
+          <span className="absolute inset-0 rounded-full animate-maple-ring border border-cyan-400/40" />
         )}
 
         {/* Inner glow ring */}
         <span className={`absolute inset-1 rounded-full border-2 transition-colors ${
-          isActive ? 'border-white/30' : 'border-white/10 group-hover:border-white/20'
+          showActive ? 'border-white/30' : 'border-white/10 group-hover:border-white/20'
         }`} />
 
         {/* Soundwave animation */}
-        <SoundwaveAnimation active={isActive} size="md" />
+        <SoundwaveAnimation active={showActive} size="md" />
       </button>
 
       {/* Label */}
       <div className="text-center">
         <p className="text-sm font-bold text-white tracking-widest uppercase">Maple</p>
-        <p className="text-[11px] text-slate-400 mt-0.5">
-          {isActive ? 'Chat open' : 'Tap to talk'}
+        <p className={`text-[11px] mt-0.5 ${isVoiceActive ? 'text-cyan-400' : 'text-slate-400'}`}>
+          {voiceLabel}
         </p>
       </div>
 

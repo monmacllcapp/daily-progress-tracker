@@ -1,0 +1,117 @@
+{
+  "checkpoint_id": "2026-02-19T120000_full_state_audit",
+  "timestamp": "2026-02-19T12:00:00Z",
+  "agent": {
+    "model": "claude-opus-4-6",
+    "provider": "anthropic",
+    "session_id": "session-15-state-audit"
+  },
+  "session": {
+    "project": "Daily Progress Tracker (MAPLE Life OS)",
+    "goal": "Full state audit — reconcile stale checkpoint with actual codebase state",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "State audit session. Discovered 3 days of uncheckpointed work (Feb 16-19) across 5+ feature areas. Last commit: 01abf93 (Agent Operations page, Feb 18, pushed). Massive uncommitted diff: 45 modified + 13 new files covering voice mode (MapleOrb), email agent intelligence, Jarvis prompt refactor, Google Calendar multi-sync, sidebar reorg, morning flow redesign, command center tabs, agent status Supabase migration, DB HMR fix, E2E test setup, and UI tweaks.",
+    "files_modified": [
+      "src/components/layout/AppShell.tsx",
+      "src/components/layout/TopBar.tsx",
+      "src/components/JarvisChat.tsx",
+      "src/components/DailyAgenda.tsx",
+      "src/components/MorningFlow.tsx",
+      "src/components/AgentStatus.tsx",
+      "src/components/TaskDashboard.tsx",
+      "src/components/EmailDashboard.tsx",
+      "src/components/BrainDump.tsx",
+      "src/components/PomodoroTimer.tsx",
+      "src/components/SessionReviewModal.tsx",
+      "src/components/JournalHistory.tsx",
+      "src/components/LevelBadge.tsx",
+      "src/components/ShortcutHelp.tsx",
+      "src/components/StaffingDashboard.tsx",
+      "src/components/UnsubscribeSweep.tsx",
+      "src/components/UnsubscribeSweepSummary.tsx",
+      "src/components/PendingActionsBar.tsx",
+      "src/components/DatePicker.tsx",
+      "src/components/JarvisIcon.tsx",
+      "src/components/dashboard/DashboardGrid.tsx",
+      "src/components/dashboard/CustomizationSidebar.tsx",
+      "src/components/layout/DynamicNavSection.tsx",
+      "src/components/ui/ColorPicker.tsx",
+      "src/components/v2/ProjectStageWidget.tsx",
+      "src/services/jarvis.ts",
+      "src/services/google-calendar.ts",
+      "src/services/google-auth.ts",
+      "src/services/agent-tracker.ts",
+      "src/services/github-projects.ts",
+      "src/store/jarvisStore.ts",
+      "src/db/index.ts",
+      "src/hooks/useAppLifecycle.ts",
+      "src/hooks/useRxQuery.ts",
+      "src/pages/EmailPage.tsx",
+      "src/pages/JournalPage.tsx",
+      "src/pages/ProjectsPage.tsx",
+      "src/pages/StaffingPage.tsx",
+      "src/types/sidebar.ts",
+      "src/index.css",
+      "vite.config.ts",
+      "package.json",
+      "package-lock.json"
+    ],
+    "files_created": [
+      "src/components/MapleOrb.tsx",
+      "src/components/EmailTriageCard.tsx",
+      "src/components/layout/PageTabs.tsx",
+      "src/services/voice-mode.ts",
+      "src/services/speech-tts.ts",
+      "src/services/wake-word.ts",
+      "src/services/agent-prompts.ts",
+      "src/services/email-agent.ts",
+      "src/services/platform-email-detector.ts",
+      "src/store/tabConfigStore.ts",
+      "src/pages/PlanningPage.tsx",
+      "e2e/smoke-test.spec.ts",
+      "playwright.config.ts"
+    ],
+    "decisions_made": [
+      "Voice mode extracted into dedicated services (voice-mode.ts, speech-tts.ts, wake-word.ts) with MapleOrb UI",
+      "JarvisStore expanded to full voice state machine (idle/listening/processing/speaking)",
+      "Email agent runs as background intelligence in AppShell",
+      "AI prompts extracted from jarvis.ts to agent-prompts.ts",
+      "Google Calendar now fetches ALL selected calendars via calendarList API",
+      "Per-event error handling in calendar sync (one failure doesn't kill batch)",
+      "Morning flow reduced from 5 steps to 3 (Set Intentions / Calendar / Email)",
+      "Agent status migrated from HTTP polling to Supabase client",
+      "DB promise persisted across Vite HMR via globalThis",
+      "Playwright added for E2E smoke tests"
+    ]
+  },
+  "continuation": {
+    "status": "in_progress",
+    "next_immediate_step": {
+      "action": "Fix 10 failing tests",
+      "details": "6 google-calendar tests need mock updates for fetchAllCalendars(). 4 other tests have minor behavioral drifts (whitespace trimming, AI provider detection, conflict suggestion text)."
+    },
+    "next_three_steps": [
+      "Fix 10 failing tests (6 calendar mock updates, 4 minor fixes)",
+      "Commit all uncommitted work in logical chunks (voice mode, email agent, calendar sync, sidebar/flow, E2E, misc)",
+      "Push to origin/sandbox and update scorecard"
+    ],
+    "blockers": [
+      {
+        "id": "B-07",
+        "description": "10 test failures — 6 from calendar refactor (tests mock old single-calendar API), 4 minor behavioral drifts",
+        "severity": "MEDIUM",
+        "blocking": "Clean commit"
+      }
+    ],
+    "context_notes": "Build is clean (0 TS errors). 736/746 tests pass. Uncommitted diff is very large — 45 modified + 13 new files. All work is on sandbox branch which is in sync with origin/sandbox for committed code. Last push was 01abf93 (Agent Operations page). Voice mode (MapleOrb) is the newest feature — wired into AppShell and TopBar but untested. Email agent intelligence runs in background."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 9,
+    "parent_checkpoint": "2026-02-16T191500_calendar_sync_fix",
+    "tags": ["state-audit", "voice-mode", "email-agent", "calendar-multi-sync", "test-failures"]
+  }
+}

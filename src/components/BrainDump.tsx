@@ -70,7 +70,7 @@ export function BrainDump({ onTasksCreated }: BrainDumpProps) {
                                 {' · '}
                                 {input.length}/2500 chars
                                 {' · '}
-                                <kbd className="px-1 py-0.5 bg-white/5 rounded text-[10px]">Cmd+Enter</kbd> to add
+                                <kbd className="px-1 py-0.5 bg-white/5 rounded text-xs">Cmd+Enter</kbd> to add
                             </span>
                             <div className="flex gap-2">
                                 <button

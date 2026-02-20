@@ -19,7 +19,7 @@ export interface SidebarConfig {
 }
 
 export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
-  version: 3,
+  version: 4,
   sections: [
     {
       id: 'section-command',

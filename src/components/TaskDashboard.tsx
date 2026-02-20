@@ -246,7 +246,7 @@ export function TaskDashboard() {
             {(activeTasks.length + completedToday.length) > 0 && (
                 <div className="mb-4">
                     <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] text-slate-500 uppercase tracking-wider font-medium">Today's Progress</span>
+                        <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">Today's Progress</span>
                         <span className="text-xs text-slate-400 font-mono">
                             {completedToday.length}/{activeTasks.length + completedToday.length}
                         </span>
@@ -273,7 +273,7 @@ export function TaskDashboard() {
                         <span className="text-xs text-slate-300">
                             {tasks.find(t => t.id === focusSuggestion.taskId)?.title}
                         </span>
-                        <p className="text-[10px] text-slate-500 mt-0.5">{focusSuggestion.reason}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{focusSuggestion.reason}</p>
                     </div>
                 </div>
             )}
@@ -306,7 +306,7 @@ export function TaskDashboard() {
                                         Power Batch
                                     </span>
                                     <span className="text-xs text-slate-600">({quickWins.length})</span>
-                                    <span className="text-[10px] text-slate-600 ml-auto mr-2">
+                                    <span className="text-xs text-slate-600 ml-auto mr-2">
                                         {quickWins.reduce((sum, t) => sum + (t.time_estimate_minutes || 0), 0)}m total
                                     </span>
                                     {showBatchPicker ? (
@@ -315,19 +315,19 @@ export function TaskDashboard() {
                                                 type="time"
                                                 value={batchScheduleTime}
                                                 onChange={e => setBatchScheduleTime(e.target.value)}
-                                                className="bg-white/5 border border-yellow-500/30 rounded px-1.5 py-0.5 text-[10px] text-white w-20 focus:outline-none"
+                                                className="bg-white/5 border border-yellow-500/30 rounded px-1.5 py-0.5 text-xs text-white w-20 focus:outline-none"
                                                 autoFocus
                                             />
                                             <button
                                                 onClick={handleBatchSchedule}
                                                 disabled={!batchScheduleTime}
-                                                className="px-2 py-0.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-[10px] font-bold rounded transition-colors disabled:opacity-40"
+                                                className="px-2 py-0.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs font-bold rounded transition-colors disabled:opacity-40"
                                             >
                                                 Go
                                             </button>
                                             <button
                                                 onClick={() => setShowBatchPicker(false)}
-                                                className="text-slate-500 hover:text-white text-[10px] px-1"
+                                                className="text-slate-500 hover:text-white text-xs px-1"
                                             >
                                                 Cancel
                                             </button>
@@ -335,7 +335,7 @@ export function TaskDashboard() {
                                     ) : (
                                         <button
                                             onClick={() => { setShowBatchPicker(true); setBatchScheduleTime('09:00'); }}
-                                            className="flex items-center gap-1 px-2 py-0.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 text-[10px] font-bold rounded transition-colors"
+                                            className="flex items-center gap-1 px-2 py-0.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded transition-colors"
                                             title="Schedule all quick wins as a power batch"
                                         >
                                             <CalendarPlus className="w-3 h-3" />
@@ -348,7 +348,7 @@ export function TaskDashboard() {
                                         <div className="flex items-center gap-3 py-1.5 px-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10 hover:bg-yellow-500/10 transition-all group">
                                             <Zap className="w-3 h-3 text-yellow-400 flex-shrink-0" />
                                             <span className="flex-1 text-sm text-white truncate">{task.title}</span>
-                                            <span className="text-[10px] text-yellow-400 font-mono">{task.time_estimate_minutes}m</span>
+                                            <span className="text-xs text-yellow-400 font-mono">{task.time_estimate_minutes}m</span>
                                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={() => handleComplete(task.id)}
@@ -423,7 +423,7 @@ export function TaskDashboard() {
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         {/* Rolled badge */}
                                                         {task.rolled_from_date && (
-                                                            <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                                            <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
                                                                 <RotateCcw className="w-2.5 h-2.5" />
                                                                 from {task.rolled_from_date}
                                                             </span>
@@ -433,20 +433,20 @@ export function TaskDashboard() {
                                                             const badge = getSourceBadge(task.source);
                                                             if (!badge) return null;
                                                             return (
-                                                                <span className={`text-[10px] ${badge.bgLight} text-white px-1.5 py-0.5 rounded`}>
+                                                                <span className={`text-xs ${badge.bgLight} text-white px-1.5 py-0.5 rounded`}>
                                                                     {badge.label}
                                                                 </span>
                                                             );
                                                         })()}
                                                         {/* Tags */}
                                                         {task.tags?.map(tag => (
-                                                            <span key={tag} className="text-[10px] text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">
+                                                            <span key={tag} className="text-xs text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">
                                                                 {tag}
                                                             </span>
                                                         ))}
                                                         {/* Time estimate */}
                                                         {task.time_estimate_minutes && (
-                                                            <span className="text-[10px] text-slate-600">
+                                                            <span className="text-xs text-slate-600">
                                                                 {task.time_estimate_minutes}m
                                                             </span>
                                                         )}

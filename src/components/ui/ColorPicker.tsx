@@ -41,7 +41,7 @@ export function ColorPicker({
         />
       </button>
       <span className="text-xs font-medium text-slate-300 flex-1 truncate">{label}</span>
-      <span className="text-[10px] font-mono text-slate-500 uppercase">{value}</span>
+      <span className="text-xs font-mono text-slate-500 uppercase">{value}</span>
       {onClear && (
         <button
           onClick={onClear}

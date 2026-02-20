@@ -10,7 +10,11 @@ import { WidgetErrorBoundary } from '../WidgetErrorBoundary';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-export function DashboardGrid() {
+interface DashboardGridProps {
+    filterWidgets?: string[];
+}
+
+export function DashboardGrid({ filterWidgets }: DashboardGridProps) {
     const { layouts, updateLayout, loadLayout, hiddenWidgets } = useDashboardStore();
     const containerRef = useRef<HTMLDivElement>(null);
     const [width, setWidth] = useState(0);
@@ -39,7 +43,14 @@ export function DashboardGrid() {
         return () => observer.disconnect();
     }, []);
 
-    const activeLayout = layouts.filter(l => !hiddenWidgets.includes(l.i));
+    // Apply both hiddenWidgets and filterWidgets
+    const activeLayout = layouts.filter(l => {
+        // First check if widget is hidden
+        if (hiddenWidgets.includes(l.i)) return false;
+        // Then check if we have a filter and widget is in the filter
+        if (filterWidgets && !filterWidgets.includes(l.i)) return false;
+        return true;
+    });
 
     // Save layout only on user interactions — NOT on onLayoutChange —
     // to prevent infinite re-render loops between Responsive's internal

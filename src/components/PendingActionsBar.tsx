@@ -50,7 +50,7 @@ export function PendingActionsBar({
           <button
             onClick={onApplyAll}
             disabled={isApplying}
-            className="flex items-center gap-1 px-2 py-1 bg-purple-500/20 hover:bg-purple-500/30 rounded text-[10px] text-purple-300 font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 px-2 py-1 bg-purple-500/20 hover:bg-purple-500/30 rounded text-xs text-purple-300 font-medium transition-colors disabled:opacity-50"
           >
             {isApplying ? (
               <Loader2 className="w-3 h-3 animate-spin" />
@@ -61,7 +61,7 @@ export function PendingActionsBar({
           </button>
           <button
             onClick={onDismissAll}
-            className="flex items-center gap-1 px-2 py-1 hover:bg-white/10 rounded text-[10px] text-slate-500 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 hover:bg-white/10 rounded text-xs text-slate-500 transition-colors"
           >
             <X className="w-3 h-3" />
             Dismiss
@@ -104,7 +104,7 @@ export function PendingActionsBar({
                         {action.from.split('<')[0].trim()}
                       </span>
                       <span className="text-[9px] text-slate-600">—</span>
-                      <span className="text-[10px] text-slate-500 truncate">
+                      <span className="text-xs text-slate-500 truncate">
                         {action.subject}
                       </span>
                     </div>

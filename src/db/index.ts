@@ -774,8 +774,10 @@ async function startReplication(db: TitanDatabase, url: string, key: string) {
 }
 
 // -- Initialization --
-
-let dbPromise: Promise<TitanDatabase> | null = null;
+// Persist across Vite HMR reloads so we don't recreate the database
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- HMR persistence
+const _g = globalThis as any;
+let dbPromise: Promise<TitanDatabase> | null = _g.__titanDbPromise || null;
 
 async function initDatabase(): Promise<TitanDatabase> {
     // ?resetdb in URL → wipe IndexedDB then hard reload
@@ -803,188 +805,194 @@ async function initDatabase(): Promise<TitanDatabase> {
         storage: getRxStorageDexie(),
     });
 
-    try {
-        await db.addCollections({
-            tasks: {
-                schema: taskSchema,
-                migrationStrategies: {
-                    // v0 → v1: removed due_date + priority from indexes (optional fields can't be indexed)
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    1: function (oldDoc: any) { return oldDoc; },
-                    // v1 → v2: add agent assignment fields
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    2: function (oldDoc: any) { return oldDoc; }
+    const allCollections = {
+        tasks: {
+            schema: taskSchema,
+            migrationStrategies: {
+                // v0 → v1: removed due_date + priority from indexes (optional fields can't be indexed)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                1: function (oldDoc: any) { return oldDoc; },
+                // v1 → v2: add agent assignment fields
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                2: function (oldDoc: any) { return oldDoc; }
+            }
+        },
+        projects: {
+            schema: projectSchema,
+            migrationStrategies: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                1: function (oldDoc: any) {
+                    oldDoc.linked_vision_id = oldDoc.linked_vision_id || undefined;
+                    oldDoc.category_id = oldDoc.category_id || undefined;
+                    return oldDoc;
+                },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                2: function (oldDoc: any) {
+                    oldDoc.due_date = oldDoc.due_date || undefined;
+                    oldDoc.calendar_event_id = oldDoc.calendar_event_id || undefined;
+                    oldDoc.priority = oldDoc.priority || 'medium';
+                    return oldDoc;
                 }
-            },
-            projects: {
-                schema: projectSchema,
-                migrationStrategies: {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    1: function (oldDoc: any) {
-                        oldDoc.linked_vision_id = oldDoc.linked_vision_id || undefined;
-                        oldDoc.category_id = oldDoc.category_id || undefined;
-                        return oldDoc;
-                    },
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    2: function (oldDoc: any) {
-                        oldDoc.due_date = oldDoc.due_date || undefined;
-                        oldDoc.calendar_event_id = oldDoc.calendar_event_id || undefined;
-                        oldDoc.priority = oldDoc.priority || 'medium';
-                        return oldDoc;
+            }
+        },
+        sub_tasks: {
+            schema: subTaskSchema,
+            migrationStrategies: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                1: function (oldDoc: any) {
+                    oldDoc.completed_date = oldDoc.completed_date || undefined;
+                    return oldDoc;
+                }
+            }
+        },
+        daily_journal: {
+            schema: dailyJournalSchema,
+            migrationStrategies: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                1: function (oldDoc: any) {
+                    oldDoc.non_negotiables = oldDoc.non_negotiables || [];
+                    oldDoc.created_at = oldDoc.created_at || undefined;
+                    return oldDoc;
+                }
+            }
+        },
+        vision_board: {
+            schema: visionBoardSchema,
+            migrationStrategies: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                1: function (oldDoc: any) { return oldDoc; }
+            }
+        },
+        categories: {
+            schema: categoriesSchema,
+            migrationStrategies: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                1: function (oldDoc: any) {
+                    oldDoc.current_progress = oldDoc.current_inflation ?? oldDoc.current_progress ?? 0;
+                    oldDoc.streak_count = oldDoc.streak_count ?? 0;
+                    oldDoc.last_active_date = oldDoc.last_active_date || oldDoc.last_1_percent_date || undefined;
+                    oldDoc.sort_order = oldDoc.sort_order ?? 0;
+                    // Remove old fields
+                    delete oldDoc.current_inflation;
+                    delete oldDoc.last_1_percent_date;
+                    return oldDoc;
+                },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                2: function (oldDoc: any) {
+                    oldDoc.icon = oldDoc.icon || undefined;
+                    return oldDoc;
+                }
+            }
+        },
+        stressors: { schema: stressorSchema },
+        stressor_milestones: { schema: stressorMilestoneSchema },
+        calendar_events: { schema: calendarEventSchema },
+        emails: {
+            schema: emailSchema,
+            migrationStrategies: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                1: function (oldDoc: any) {
+                    oldDoc.score = undefined;
+                    oldDoc.list_id = undefined;
+                    oldDoc.unsubscribe_url = undefined;
+                    oldDoc.unsubscribe_mailto = undefined;
+                    oldDoc.is_newsletter = false;
+                    oldDoc.snooze_until = undefined;
+                    oldDoc.snoozed_at = undefined;
+                    return oldDoc;
+                },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                2: function (oldDoc: any) {
+                    oldDoc.unsubscribe_one_click = false;
+                    return oldDoc;
+                },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                3: function (oldDoc: any) {
+                    // Map old 4-tier system to new 7-tier pipeline
+                    const tierMap: Record<string, string> = {
+                        urgent: 'reply_urgent',
+                        important: 'to_review',
+                        promotions: 'social',
+                        unsubscribe: 'unsubscribe',
+                    };
+                    oldDoc.tier = tierMap[oldDoc.tier] || oldDoc.tier;
+                    if (oldDoc.tier_override) {
+                        oldDoc.tier_override = tierMap[oldDoc.tier_override] || oldDoc.tier_override;
                     }
+                    oldDoc.reply_checked_at = undefined;
+                    oldDoc.unsubscribe_status = undefined;
+                    oldDoc.unsubscribe_attempted_at = undefined;
+                    return oldDoc;
                 }
-            },
-            sub_tasks: {
-                schema: subTaskSchema,
-                migrationStrategies: {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    1: function (oldDoc: any) {
-                        oldDoc.completed_date = oldDoc.completed_date || undefined;
-                        return oldDoc;
-                    }
-                }
-            },
-            daily_journal: {
-                schema: dailyJournalSchema,
-                migrationStrategies: {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    1: function (oldDoc: any) {
-                        oldDoc.non_negotiables = oldDoc.non_negotiables || [];
-                        oldDoc.created_at = oldDoc.created_at || undefined;
-                        return oldDoc;
-                    }
-                }
-            },
-            vision_board: {
-                schema: visionBoardSchema,
-                migrationStrategies: {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    1: function (oldDoc: any) { return oldDoc; }
-                }
-            },
-            categories: {
-                schema: categoriesSchema,
-                migrationStrategies: {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    1: function (oldDoc: any) {
-                        oldDoc.current_progress = oldDoc.current_inflation ?? oldDoc.current_progress ?? 0;
-                        oldDoc.streak_count = oldDoc.streak_count ?? 0;
-                        oldDoc.last_active_date = oldDoc.last_active_date || oldDoc.last_1_percent_date || undefined;
-                        oldDoc.sort_order = oldDoc.sort_order ?? 0;
-                        // Remove old fields
-                        delete oldDoc.current_inflation;
-                        delete oldDoc.last_1_percent_date;
-                        return oldDoc;
-                    },
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    2: function (oldDoc: any) {
-                        oldDoc.icon = oldDoc.icon || undefined;
-                        return oldDoc;
-                    }
-                }
-            },
-            stressors: { schema: stressorSchema },
-            stressor_milestones: { schema: stressorMilestoneSchema },
-            calendar_events: { schema: calendarEventSchema },
-            emails: {
-                schema: emailSchema,
-                migrationStrategies: {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    1: function (oldDoc: any) {
-                        oldDoc.score = undefined;
-                        oldDoc.list_id = undefined;
-                        oldDoc.unsubscribe_url = undefined;
-                        oldDoc.unsubscribe_mailto = undefined;
-                        oldDoc.is_newsletter = false;
-                        oldDoc.snooze_until = undefined;
-                        oldDoc.snoozed_at = undefined;
-                        return oldDoc;
-                    },
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    2: function (oldDoc: any) {
-                        oldDoc.unsubscribe_one_click = false;
-                        return oldDoc;
-                    },
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    3: function (oldDoc: any) {
-                        // Map old 4-tier system to new 7-tier pipeline
-                        const tierMap: Record<string, string> = {
-                            urgent: 'reply_urgent',
-                            important: 'to_review',
-                            promotions: 'social',
-                            unsubscribe: 'unsubscribe',
-                        };
-                        oldDoc.tier = tierMap[oldDoc.tier] || oldDoc.tier;
-                        if (oldDoc.tier_override) {
-                            oldDoc.tier_override = tierMap[oldDoc.tier_override] || oldDoc.tier_override;
-                        }
-                        oldDoc.reply_checked_at = undefined;
-                        oldDoc.unsubscribe_status = undefined;
-                        oldDoc.unsubscribe_attempted_at = undefined;
-                        return oldDoc;
-                    }
-                }
-            },
-            pomodoro_sessions: { schema: pomodoroSessionSchema },
-            habits: {
-                schema: habitSchema,
-                migrationStrategies: {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                    1: function (oldDoc: any) { return oldDoc; }
-                }
-            },
-            habit_completions: { schema: habitCompletionSchema },
-            user_profile: { schema: userProfileSchema },
-            analytics_events: { schema: analyticsEventSchema },
-            // V2 Collections
-            signals: { schema: signalSchema },
-            deals: { schema: dealSchema },
-            portfolio_snapshots: { schema: portfolioSnapshotSchema },
-            family_events: { schema: familyEventSchema },
-            morning_briefs: { schema: morningBriefSchema },
-            productivity_patterns: { schema: productivityPatternSchema },
-            signal_weights: { schema: signalWeightSchema },
-            // Staffing + Financial Collections
-            staff_members: { schema: staffMemberSchema },
-            staff_pay_periods: { schema: staffPayPeriodSchema },
-            staff_expenses: { schema: staffExpenseSchema },
-            staff_kpi_summaries: { schema: staffKpiSummarySchema },
-            financial_accounts: { schema: financialAccountSchema },
-            financial_transactions: { schema: financialTransactionSchema },
-            financial_subscriptions: { schema: financialSubscriptionSchema },
-            financial_monthly_summaries: { schema: financialMonthlySummarySchema },
-        });
+            }
+        },
+        pomodoro_sessions: { schema: pomodoroSessionSchema },
+        habits: {
+            schema: habitSchema,
+            migrationStrategies: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                1: function (oldDoc: any) { return oldDoc; }
+            }
+        },
+        habit_completions: { schema: habitCompletionSchema },
+        user_profile: { schema: userProfileSchema },
+        analytics_events: { schema: analyticsEventSchema },
+        // V2 Collections
+        signals: { schema: signalSchema },
+        deals: { schema: dealSchema },
+        portfolio_snapshots: { schema: portfolioSnapshotSchema },
+        family_events: { schema: familyEventSchema },
+        morning_briefs: { schema: morningBriefSchema },
+        productivity_patterns: { schema: productivityPatternSchema },
+        signal_weights: { schema: signalWeightSchema },
+        // Staffing + Financial Collections
+        staff_members: { schema: staffMemberSchema },
+        staff_pay_periods: { schema: staffPayPeriodSchema },
+        staff_expenses: { schema: staffExpenseSchema },
+        staff_kpi_summaries: { schema: staffKpiSummarySchema },
+        financial_accounts: { schema: financialAccountSchema },
+        financial_transactions: { schema: financialTransactionSchema },
+        financial_subscriptions: { schema: financialSubscriptionSchema },
+        financial_monthly_summaries: { schema: financialMonthlySummarySchema },
+    };
 
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-        if (supabaseUrl && supabaseKey) {
-            console.log('Starting Supabase replication...');
-            await startReplication(db, supabaseUrl, supabaseKey);
-        } else {
-            console.warn('Supabase credentials not found, running in offline-local-only mode.');
+    // Add collections one-by-one so HMR/duplicate errors don't block other collections
+    let addedCount = 0;
+    for (const [name, config] of Object.entries(allCollections)) {
+        try {
+            // Skip if already attached (HMR re-init)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic collection access
+            if ((db as any)[name]) continue;
+            await db.addCollections({ [name]: config });
+            addedCount++;
+        } catch (colErr) {
+            const code = (colErr as { code?: string })?.code;
+            if (code === 'DB6' || code === 'DXE1') {
+                // Schema mismatch — nuke entire DB and restart fresh
+                console.warn(`[DB] Schema conflict on ${name} (${code}), clearing database...`);
+                await db.remove();
+                dbPromise = null;
+                return initDatabase();
+            }
+            // COL23 (already exists) or other — skip, collection may already be attached
         }
-
-        return db;
-    } catch (err) {
-        const code = (err as { code?: string })?.code;
-        // COL23 = collection already exists (Vite HMR re-init) — db is usable as-is
-        if (code === 'COL23') {
-            return db;
-        }
-        // DB6 = schema mismatch, DXE1 = Dexie index error — nuke and retry
-        if (code === 'DB6' || code === 'DXE1') {
-            console.warn(`[DB] Schema conflict (${code}), clearing database and retrying...`);
-            await db.remove();
-            dbPromise = null;
-            return initDatabase();
-        }
-        throw err;
     }
+    console.log(`[DB] ${addedCount} collections initialized`);
+
+    // Supabase replication disabled — tables not yet created in Supabase.
+    // Re-enable when Supabase schema is set up.
+    // const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    // const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    // if (supabaseUrl && supabaseKey) {
+    //     await startReplication(db, supabaseUrl, supabaseKey);
+    // }
+
+    return db;
 }
 
 export const createDatabase = async (): Promise<TitanDatabase> => {
     if (dbPromise) return dbPromise;
     dbPromise = initDatabase();
+    _g.__titanDbPromise = dbPromise;
     return dbPromise;
 };

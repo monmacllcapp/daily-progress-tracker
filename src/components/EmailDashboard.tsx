@@ -586,14 +586,14 @@ export function EmailDashboard() {
                                     {email.score}
                                 </span>
                             )}
-                            <span className="text-[10px] text-slate-600">
+                            <span className="text-xs text-slate-600">
                                 {new Date(email.received_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </span>
                         </div>
                         <p className={`text-xs truncate mt-0.5 ${email.status === 'unread' ? 'text-slate-300' : 'text-slate-500'}`}>
                             {email.subject}
                         </p>
-                        <p className="text-[10px] text-slate-600 truncate">{email.snippet}</p>
+                        <p className="text-xs text-slate-600 truncate">{email.snippet}</p>
                     </div>
                     {/* Quick Actions — tier reclassify + archive */}
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
@@ -630,7 +630,7 @@ export function EmailDashboard() {
                         onClick={e => e.stopPropagation()}
                     >
                         <Brain className="w-3 h-3 text-purple-400 flex-shrink-0" />
-                        <span className="text-[10px] text-purple-300 flex-1 truncate">
+                        <span className="text-xs text-purple-300 flex-1 truncate">
                             {suggestion.description}
                         </span>
                         <button
@@ -659,7 +659,7 @@ export function EmailDashboard() {
                     <Mail className="w-4 h-4 text-blue-400" />
                     <span className="text-sm font-bold">Email Triage</span>
                     {totalActive > 0 && (
-                        <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] font-bold rounded-full">
+                        <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs font-bold rounded-full">
                             {totalActive}
                         </span>
                     )}
@@ -695,10 +695,10 @@ export function EmailDashboard() {
                             {showUndoHistory && (
                                 <div className="absolute right-0 top-full mt-1 w-72 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
                                     <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
-                                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Recent Actions</span>
+                                        <span className="text-xs text-slate-400 uppercase tracking-wider font-bold">Recent Actions</span>
                                         <button
                                             onClick={() => { setUndoStack([]); setShowUndoHistory(false); }}
-                                            className="text-[10px] text-slate-600 hover:text-slate-400 transition-colors"
+                                            className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
                                         >
                                             Clear All
                                         </button>
@@ -716,13 +716,13 @@ export function EmailDashboard() {
                                                 <span className="text-[11px] text-slate-300 truncate block">
                                                     {entry.emailFrom.split('<')[0].trim()}
                                                 </span>
-                                                <span className="text-[10px] text-slate-500 truncate block">
+                                                <span className="text-xs text-slate-500 truncate block">
                                                     {entry.emailSubject}
                                                 </span>
                                             </div>
                                             <button
                                                 onClick={() => handleUndo(entry)}
-                                                className="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 rounded text-[10px] text-amber-300 font-medium transition-colors flex-shrink-0"
+                                                className="px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 rounded text-xs text-amber-300 font-medium transition-colors flex-shrink-0"
                                             >
                                                 Undo
                                             </button>
@@ -763,9 +763,9 @@ export function EmailDashboard() {
                     <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5">
                             <Trophy className="w-3 h-3 text-yellow-400" />
-                            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Inbox Zero</span>
+                            <span className="text-xs text-slate-500 uppercase tracking-wider">Inbox Zero</span>
                         </div>
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-xs text-slate-400 font-mono">
                             {processedCount}/{emails.length}
                         </span>
                     </div>
@@ -777,7 +777,7 @@ export function EmailDashboard() {
                         />
                     </div>
                     {inboxZeroProgress >= 100 && (
-                        <p className="text-[10px] text-emerald-400 mt-1 text-center font-bold">Inbox Zero achieved!</p>
+                        <p className="text-xs text-emerald-400 mt-1 text-center font-bold">Inbox Zero achieved!</p>
                     )}
                 </div>
             )}
@@ -794,13 +794,13 @@ export function EmailDashboard() {
                     <div className="flex items-center gap-1.5">
                         <button
                             onClick={handleAcceptAllSuggestions}
-                            className="flex items-center gap-1 px-2 py-1 bg-purple-500/20 hover:bg-purple-500/30 rounded text-[10px] text-purple-300 font-medium transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 bg-purple-500/20 hover:bg-purple-500/30 rounded text-xs text-purple-300 font-medium transition-colors"
                         >
                             <Check className="w-3 h-3" /> Accept All
                         </button>
                         <button
                             onClick={handleDismissAllSuggestions}
-                            className="flex items-center gap-1 px-2 py-1 hover:bg-white/10 rounded text-[10px] text-slate-500 transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 hover:bg-white/10 rounded text-xs text-slate-500 transition-colors"
                         >
                             <X className="w-3 h-3" /> Dismiss
                         </button>
@@ -856,7 +856,7 @@ export function EmailDashboard() {
                                     <span className={`text-xs font-bold uppercase tracking-wider ${config.color}`}>
                                         {config.label}
                                     </span>
-                                    <span className={`text-[10px] px-1.5 py-0.5 ${config.bgLight} ${config.color} rounded-full font-bold`}>
+                                    <span className={`text-xs px-1.5 py-0.5 ${config.bgLight} ${config.color} rounded-full font-bold`}>
                                         {tierEmails.length}
                                     </span>
                                 </button>
@@ -893,7 +893,7 @@ export function EmailDashboard() {
                         {showNewsletters ? <ChevronDown className="w-3 h-3 text-slate-500" /> : <ChevronRight className="w-3 h-3 text-slate-500" />}
                         <Newspaper className="w-3.5 h-3.5 text-purple-400" />
                         <span className="text-xs font-bold uppercase tracking-wider text-purple-400">Newsletters</span>
-                        <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded-full font-bold">
+                        <span className="text-xs px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded-full font-bold">
                             {newsletterSenders.length}
                         </span>
                     </button>
@@ -911,7 +911,7 @@ export function EmailDashboard() {
                                     <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-white/5 transition-all">
                                         <div className="flex-1 min-w-0">
                                             <span className="text-xs font-medium text-slate-300 truncate block">{sender.displayName}</span>
-                                            <span className="text-[10px] text-slate-600">
+                                            <span className="text-xs text-slate-600">
                                                 {sender.emailCount} emails · Last: {new Date(sender.lastReceived).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                             </span>
                                         </div>
@@ -921,7 +921,7 @@ export function EmailDashboard() {
                                                     href={action.target}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="p-1 hover:bg-purple-500/20 rounded text-purple-400 text-[10px] flex items-center gap-0.5"
+                                                    className="p-1 hover:bg-purple-500/20 rounded text-purple-400 text-xs flex items-center gap-0.5"
                                                     title="Unsubscribe"
                                                 >
                                                     <ExternalLink className="w-3 h-3" /> Unsub
@@ -929,7 +929,7 @@ export function EmailDashboard() {
                                             )}
                                             <button
                                                 onClick={() => handleBulkArchive(sender.address)}
-                                                className="p-1 hover:bg-white/10 rounded text-slate-400 text-[10px] flex items-center gap-0.5"
+                                                className="p-1 hover:bg-white/10 rounded text-slate-400 text-xs flex items-center gap-0.5"
                                                 title="Archive all from this sender"
                                             >
                                                 <Archive className="w-3 h-3" /> All
@@ -953,7 +953,7 @@ export function EmailDashboard() {
                         {showSnoozed ? <ChevronDown className="w-3 h-3 text-slate-500" /> : <ChevronRight className="w-3 h-3 text-slate-500" />}
                         <Clock className="w-3.5 h-3.5 text-amber-400" />
                         <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Snoozed</span>
-                        <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded-full font-bold">
+                        <span className="text-xs px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded-full font-bold">
                             {snoozedEmails.length}
                         </span>
                     </button>
@@ -971,14 +971,14 @@ export function EmailDashboard() {
                                         <span className="text-xs font-medium text-slate-300 truncate block">
                                             {email.from.split('<')[0].trim()} — {email.subject}
                                         </span>
-                                        <span className="text-[10px] text-amber-500 flex items-center gap-1">
+                                        <span className="text-xs text-amber-500 flex items-center gap-1">
                                             <Bell className="w-2.5 h-2.5" />
                                             {email.snooze_until ? new Date(email.snooze_until).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Snoozed'}
                                         </span>
                                     </div>
                                     <button
                                         onClick={() => handleUnsnooze(email)}
-                                        className="p-1 hover:bg-amber-500/20 rounded text-amber-400 text-[10px] flex-shrink-0"
+                                        className="p-1 hover:bg-amber-500/20 rounded text-amber-400 text-xs flex-shrink-0"
                                         title="Unsnooze"
                                     >
                                         Unsnooze
@@ -1017,7 +1017,7 @@ export function EmailDashboard() {
                                         <div className="min-w-0 flex-1">
                                             <h3 className="text-sm font-bold text-white truncate">{selectedEmail.subject}</h3>
                                             <p className="text-xs text-slate-500 mt-0.5">{selectedEmail.from}</p>
-                                            <p className="text-[10px] text-slate-600">
+                                            <p className="text-xs text-slate-600">
                                                 {new Date(selectedEmail.received_at).toLocaleString()}
                                             </p>
                                         </div>
@@ -1062,7 +1062,7 @@ export function EmailDashboard() {
 
                                         {(draftText || selectedEmail.ai_draft) && (
                                             <>
-                                                <label className="block text-[10px] text-slate-500 uppercase tracking-wider">
+                                                <label className="block text-xs text-slate-500 uppercase tracking-wider">
                                                     {selectedEmail.ai_draft && !draftText ? 'AI Draft' : 'Reply'}
                                                 </label>
                                                 <textarea

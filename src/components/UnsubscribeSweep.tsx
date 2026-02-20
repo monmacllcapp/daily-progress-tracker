@@ -287,7 +287,7 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
           <div>
             <h2 className="text-sm font-bold text-white">Unsubscribe Sweep</h2>
             {!isComplete && activeSenderCount > 0 && (
-              <p className="text-[10px] text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 {reviewedCount + 1} / {activeSenderCount}
                 {notificationCount > 0 && (
                   <span className="text-slate-600 ml-1">
@@ -381,14 +381,14 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
                   <h3 className="text-sm font-bold text-white truncate">
                     {currentSender.displayName}
                   </h3>
-                  <p className="text-[10px] text-slate-500 truncate">
+                  <p className="text-xs text-slate-500 truncate">
                     {currentSender.address}
                   </p>
                   <div className="flex items-center gap-3 mt-2">
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-xs text-slate-400">
                       {currentSender.emailCount} {currentSender.emailCount === 1 ? 'email' : 'emails'}
                     </span>
-                    <span className="text-[10px] text-slate-600">
+                    <span className="text-xs text-slate-600">
                       Last: {new Date(currentSender.lastReceived).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
                     {currentAction && (
@@ -408,7 +408,7 @@ export function UnsubscribeSweep({ db, senders: rawSenders, onClose }: Props) {
                 {/* Sample Subjects */}
                 {subjects.length > 0 && (
                   <div className="bg-white/5 rounded-lg p-3 mb-5">
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">
+                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">
                       Recent emails
                     </p>
                     {subjects.map((subj, i) => (

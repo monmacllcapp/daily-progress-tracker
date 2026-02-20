@@ -1,0 +1,58 @@
+{
+  "checkpoint_id": "2026-02-16T094500_sidebar_flow_redesign",
+  "timestamp": "2026-02-16T09:45:00Z",
+  "agent": {
+    "model": "claude-opus-4-6",
+    "provider": "anthropic",
+    "session_id": "70dd80cb-9fdd-487f-a1d4-85765ee892da"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "Reorganize sidebar, redesign Morning Flow, create Command Center tabs",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Major UX restructure: sidebar reorg (Command Center first, Flow section with Planning/Calendar/Email), Morning Flow redesign (full-screen 5-step → in-AppShell 3-step stepper), Dashboard → Command Center with 4 domain tabs, new Planning page, reusable PageTabs component",
+    "files_modified": [
+      "src/types/sidebar.ts",
+      "src/config/iconRegistry.ts",
+      "src/App.tsx",
+      "src/components/MorningFlow.tsx",
+      "src/pages/DashboardPage.tsx",
+      "src/components/dashboard/DashboardGrid.tsx",
+      "src/components/layout/PageTabs.tsx",
+      "src/store/tabConfigStore.ts",
+      "src/components/EmailTriageCard.tsx",
+      "src/pages/PlanningPage.tsx"
+    ],
+    "decisions_made": [
+      "Morning Flow stays as sequential stepper (not free-form tabs) per user preference",
+      "Dashboard widgets grouped into 4 domain tabs: Overview, Business, Life, Finances",
+      "Tab reordering uses same @dnd-kit library as sidebar",
+      "Sidebar config version bumped to force reset to new defaults",
+      "Old CommandCenterPage merged into main Command Center at /",
+      "Habits step removed from Morning Flow (user didn't specify it)"
+    ]
+  },
+  "continuation": {
+    "status": "completed",
+    "next_immediate_step": {
+      "action": "Browser verification",
+      "details": "Load app and verify: sidebar order, Command Center tabs, Morning Flow stepper, Planning page"
+    },
+    "next_three_steps": [
+      "Browser-verify all pages render correctly",
+      "Test drag-and-drop tab reordering on Command Center",
+      "Test Morning Flow end-to-end (Ignite Day)"
+    ],
+    "blockers": [],
+    "context_notes": "761/761 tests passing. All TypeScript clean. Sidebar will auto-reset for existing users due to version bump."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 15,
+    "parent_checkpoint": "2026-02-15T013000_rerender_fixes",
+    "tags": ["sidebar-reorg", "morning-flow", "command-center", "tabs", "planning-page"]
+  }
+}

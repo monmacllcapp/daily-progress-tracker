@@ -1,16 +1,18 @@
+import { useMemo } from 'react';
 import { StaffingDashboard } from '../components/StaffingDashboard';
 import { SignalFeed } from '../components/v2/SignalFeed';
 import { useSignalStore } from '../store/signalStore';
 
 export default function StaffingPage() {
-  const techSignals = useSignalStore(s => {
+  const allSignals = useSignalStore(s => s.signals);
+  const techSignals = useMemo(() => {
     const now = new Date().toISOString();
-    return s.signals.filter(sig =>
+    return allSignals.filter(sig =>
       !sig.is_dismissed &&
       (!sig.expires_at || sig.expires_at > now) &&
       sig.domain === 'business_tech'
     );
-  });
+  }, [allSignals]);
 
   return (
     <div className="animate-fade-up space-y-6">

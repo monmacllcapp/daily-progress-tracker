@@ -90,11 +90,11 @@ export function DynamicNavSection({ section, items, collapsed, editMode, onNavig
                 setIsEditing(false);
               }
             }}
-            className="flex-1 bg-transparent text-[10px] uppercase tracking-widest text-slate-300 font-semibold border-b border-blue-400 outline-none px-1 py-0"
+            className="flex-1 bg-transparent text-xs uppercase tracking-widest text-slate-300 font-semibold border-b border-blue-400 outline-none px-1 py-0"
           />
         ) : (
           <span
-            className="flex-1 text-[10px] uppercase tracking-widest text-slate-500 font-semibold px-1 cursor-default"
+            className="flex-1 text-xs uppercase tracking-widest text-slate-500 font-semibold px-1 cursor-default"
             onDoubleClick={() => {
               if (editMode) {
                 setTitleDraft(section.title);

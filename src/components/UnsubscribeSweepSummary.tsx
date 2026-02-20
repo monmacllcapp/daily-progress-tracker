@@ -47,7 +47,7 @@ export function UnsubscribeSweepSummary({ stats, totalSenders, onClose }: Props)
         >
           <Trash2 className="w-4 h-4 text-red-400" />
           <span className="text-xl font-bold text-red-400">{stats.unsubscribed}</span>
-          <span className="text-[10px] text-slate-500 uppercase tracking-wider">Unsubscribed</span>
+          <span className="text-xs text-slate-500 uppercase tracking-wider">Unsubscribed</span>
         </motion.div>
 
         <motion.div
@@ -58,7 +58,7 @@ export function UnsubscribeSweepSummary({ stats, totalSenders, onClose }: Props)
         >
           <Archive className="w-4 h-4 text-blue-400" />
           <span className="text-xl font-bold text-blue-400">{stats.archived}</span>
-          <span className="text-[10px] text-slate-500 uppercase tracking-wider">Archived</span>
+          <span className="text-xs text-slate-500 uppercase tracking-wider">Archived</span>
         </motion.div>
 
         <motion.div
@@ -69,7 +69,7 @@ export function UnsubscribeSweepSummary({ stats, totalSenders, onClose }: Props)
         >
           <Shield className="w-4 h-4 text-emerald-400" />
           <span className="text-xl font-bold text-emerald-400">{stats.kept}</span>
-          <span className="text-[10px] text-slate-500 uppercase tracking-wider">Kept</span>
+          <span className="text-xs text-slate-500 uppercase tracking-wider">Kept</span>
         </motion.div>
       </div>
 

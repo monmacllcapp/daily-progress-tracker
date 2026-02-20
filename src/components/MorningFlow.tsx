@@ -2,40 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { createTask } from '../services/task-rollover';
-import { toggleHabitCompletion, syncHabitCategoryStreak } from '../services/habit-service';
 import { onMorningFlowComplete } from '../services/gamification';
 import { trackEvent } from '../services/analytics';
 import { useDatabase } from '../hooks/useDatabase';
-import type { Habit } from '../types/schema';
+import { EmailTriageCard } from './EmailTriageCard';
 import type { CalendarEvent } from '../types/schema';
 import type { MeetingLoadStats, EventConflict } from '../services/calendar-monitor';
 import type { CalendarBriefing, FreeSlot } from '../services/calendar-ai';
 
-const steps = [
-    { id: 'gratitude', title: 'Gratitude Stack', prompt: 'What are 3 things you are grateful for?' },
-    { id: 'non_negotiables', title: '3 Non-Negotiable Wins', prompt: 'What are 3 things that if you did today, you\'d feel like it\'s a big win?' },
-    { id: 'calendar', title: 'Calendar Check', prompt: 'Here\'s what your day looks like.' },
-    { id: 'stressors', title: 'Stress Relief', prompt: 'What stressors, if knocked off your plate, would bring you relief?' },
-    { id: 'habits', title: 'Daily Habits', prompt: 'Check off your non-negotiable habits.' },
+const STEPS = [
+    { id: 'intentions', title: 'Set Intentions', description: 'Gratitude, priorities, and grounding' },
+    { id: 'calendar', title: 'Calendar Check', description: 'Review your day' },
+    { id: 'email', title: 'Email Triage', description: 'Scan your inbox' },
 ];
 
 interface MorningFlowProps {
     onComplete?: () => void;
 }
 
-const DEFAULT_HABITS = ['Hydrate', 'Meditate', 'Movement', 'Deep Work Block'];
-
 export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const navigate = useNavigate();
     const [db] = useDatabase();
-    const [dbHabits, setDbHabits] = useState<Habit[]>([]);
 
     const [formData, setFormData] = useState({
         gratitude: [''],
         non_negotiables: [''],
         stressors: [''],
-        habits: {} as Record<string, boolean>
     });
 
     const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
@@ -47,26 +40,9 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
     const [isCalendarConnected, setIsCalendarConnected] = useState(false);
     const [calendarLoadKey, setCalendarLoadKey] = useState(0);
 
-    // Load dynamic habits from DB
-    useEffect(() => {
-        const load = async () => {
-            if (!db) return;
-            try {
-                const docs = await db.habits.find({
-                    selector: { is_archived: false },
-                    sort: [{ sort_order: 'asc' }],
-                }).exec();
-                setDbHabits(docs.map(d => d.toJSON() as Habit));
-            } catch {
-                // Fallback to defaults handled below
-            }
-        };
-        load();
-    }, [db]);
-
     // Load calendar data when entering the calendar step
     useEffect(() => {
-        if (steps[currentStepIndex]?.id !== 'calendar') return;
+        if (STEPS[currentStepIndex]?.id !== 'calendar') return;
         if (!db) return;
 
         const loadCalendarData = async () => {
@@ -144,13 +120,6 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
         });
     };
 
-    const toggleHabit = (habitId: string) => {
-        setFormData(prev => ({
-            ...prev,
-            habits: { ...prev.habits, [habitId]: !prev.habits[habitId] }
-        }));
-    };
-
     const igniteDay = async () => {
         if (!db) {
             console.error('[MorningFlow] Database not initialized');
@@ -173,7 +142,7 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                 gratitude: validGratitude,
                 non_negotiables: validNonNegotiables,
                 stressors: validStressors,
-                habits: formData.habits,
+                habits: {},
                 created_at: timestamp,
                 updated_at: timestamp,
             });
@@ -207,23 +176,10 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                 });
             }));
 
-            // 4. Persist habit completions to habit_completions collection
-            if (dbHabits.length > 0) {
-                const checkedHabitIds = Object.keys(formData.habits).filter(k => formData.habits[k]);
-                await Promise.all(checkedHabitIds.map(async (habitId) => {
-                    const completed = await toggleHabitCompletion(db, habitId, today);
-                    if (completed) {
-                        const habit = dbHabits.find(h => h.id === habitId);
-                        if (habit) await syncHabitCategoryStreak(db, habit);
-                    }
-                }));
-            }
-
             console.log('[MorningFlow] Day ignited:', {
                 gratitude: validGratitude.length,
                 nonNegotiables: validNonNegotiables.length,
                 stressors: validStressors.length,
-                habits: Object.keys(formData.habits).filter(k => formData.habits[k]).length,
             });
 
             // Award XP for completing morning flow
@@ -236,7 +192,6 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                 gratitude_count: validGratitude.length,
                 non_negotiables_count: validNonNegotiables.length,
                 stressors_count: validStressors.length,
-                habits_checked: Object.keys(formData.habits).filter(k => formData.habits[k]).length,
             }).catch(err =>
                 console.warn('[Analytics] Failed to track morning flow completion:', err)
             );
@@ -252,9 +207,9 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
         }
     };
 
-    const currentStep = steps[currentStepIndex];
+    const currentStep = STEPS[currentStepIndex];
     const isFirst = currentStepIndex === 0;
-    const isLast = currentStepIndex === steps.length - 1;
+    const isLast = currentStepIndex === STEPS.length - 1;
 
     const handleNext = () => {
         if (isLast) {
@@ -272,37 +227,63 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
 
     const renderStepContent = () => {
         switch (currentStep.id) {
-            case 'gratitude':
+            case 'intentions':
                 return (
-                    <div className="space-y-4">
-                        {formData.gratitude.map((item, i) => (
-                            <input
-                                key={i}
-                                type="text"
-                                autoFocus={i === 0}
-                                placeholder={`I am grateful for...`}
-                                value={item}
-                                onChange={(e) => updateArrayField('gratitude', i, e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-                            />
-                        ))}
-                    </div>
-                );
-            case 'non_negotiables':
-                return (
-                    <div className="space-y-4">
-                        <p className="text-sm text-slate-500 mb-2">These become today's high-priority tasks.</p>
-                        {formData.non_negotiables.map((item, i) => (
-                            <input
-                                key={i}
-                                type="text"
-                                autoFocus={i === 0}
-                                placeholder={`Win #${i + 1}`}
-                                value={item}
-                                onChange={(e) => updateArrayField('non_negotiables', i, e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors"
-                            />
-                        ))}
+                    <div className="space-y-6">
+                        {/* Gratitude — blue accent */}
+                        <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6 border-l-4 border-l-blue-500">
+                            <h3 className="text-lg font-semibold text-white mb-1">Gratitude</h3>
+                            <p className="text-sm text-slate-400 mb-4">What are 3 things you are grateful for?</p>
+                            <div className="space-y-3">
+                                {formData.gratitude.map((item, i) => (
+                                    <input
+                                        key={i}
+                                        type="text"
+                                        autoFocus={i === 0}
+                                        placeholder={`I am grateful for...`}
+                                        value={item}
+                                        onChange={(e) => updateArrayField('gratitude', i, e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 3 Must-Do's — rose accent */}
+                        <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6 border-l-4 border-l-rose-500">
+                            <h3 className="text-lg font-semibold text-white mb-1">3 Must-Do's</h3>
+                            <p className="text-sm text-slate-400 mb-4">These become today's high-priority tasks.</p>
+                            <div className="space-y-3">
+                                {formData.non_negotiables.map((item, i) => (
+                                    <input
+                                        key={i}
+                                        type="text"
+                                        placeholder={`Must-do #${i + 1}`}
+                                        value={item}
+                                        onChange={(e) => updateArrayField('non_negotiables', i, e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors"
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Ground — orange accent */}
+                        <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6 border-l-4 border-l-orange-500">
+                            <h3 className="text-lg font-semibold text-white mb-1">Ground</h3>
+                            <p className="text-sm text-slate-400 mb-4">Name it to tame it. These become relief tasks.</p>
+                            <div className="space-y-3">
+                                {formData.stressors.map((item, i) => (
+                                    <input
+                                        key={i}
+                                        type="text"
+                                        placeholder={`Stressor #${i + 1}`}
+                                        value={item}
+                                        onChange={(e) => updateArrayField('stressors', i, e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 );
             case 'calendar': {
@@ -418,97 +399,81 @@ export const MorningFlow: React.FC<MorningFlowProps> = ({ onComplete }) => {
                     </div>
                 );
             }
-            case 'stressors':
-                return (
-                    <div className="space-y-4">
-                        <p className="text-sm text-slate-500 mb-2">Name it to tame it. These become tasks you can knock out for relief.</p>
-                        {formData.stressors.map((item, i) => (
-                            <input
-                                key={i}
-                                type="text"
-                                autoFocus={i === 0}
-                                placeholder={`Stressor #${i + 1}`}
-                                value={item}
-                                onChange={(e) => updateArrayField('stressors', i, e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-lg p-4 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
-                            />
-                        ))}
-                    </div>
-                );
-            case 'habits': {
-                const habitList = dbHabits.length > 0
-                    ? dbHabits.map(h => ({ key: h.id, label: h.name }))
-                    : DEFAULT_HABITS.map(h => ({ key: h, label: h }));
-                return (
-                    <div className="grid grid-cols-2 gap-4">
-                        {habitList.map((habit) => (
-                            <button
-                                key={habit.key}
-                                onClick={() => toggleHabit(habit.key)}
-                                className={`p-6 rounded-xl border transition-all text-left ${formData.habits[habit.key] ? 'bg-blue-500/20 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10' }`}
-                            >
-                                <div className="font-bold mb-1">{habit.label}</div>
-                                <div className="text-xs opacity-70">{formData.habits[habit.key] ? 'Completed' : 'Pending'}</div>
-                            </button>
-                        ))}
-                    </div>
-                );
-            }
+            case 'email':
+                return <EmailTriageCard />;
             default:
                 return null;
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-            {/* Ambient Background */}
-            <div className="absolute top-0 left-0 w-full h-1/2 bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
+        <div className="max-w-4xl mx-auto space-y-6 animate-fade-up">
+            {/* Horizontal Stepper Bar */}
+            <div className="flex items-center gap-2">
+                {STEPS.map((step, i) => (
+                    <React.Fragment key={step.id}>
+                        {/* Step pill */}
+                        <button
+                            onClick={() => i < currentStepIndex && setCurrentStepIndex(i)}
+                            disabled={i > currentStepIndex}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                                i === currentStepIndex
+                                    ? 'bg-blue-500/20 border border-blue-500/50 text-blue-300'
+                                    : i < currentStepIndex
+                                    ? 'bg-green-500/10 border border-green-500/30 text-green-400 cursor-pointer hover:bg-green-500/20'
+                                    : 'bg-white/5 border border-white/10 text-slate-500'
+                            }`}
+                        >
+                            <span className="w-5 h-5 flex items-center justify-center text-xs">
+                                {i < currentStepIndex ? '✓' : i + 1}
+                            </span>
+                            <span className="hidden sm:inline">{step.title}</span>
+                        </button>
+                        {/* Connector line */}
+                        {i < STEPS.length - 1 && (
+                            <div className={`flex-1 h-px min-w-[24px] ${
+                                i < currentStepIndex ? 'bg-green-500/30' : 'bg-white/10'
+                            }`} />
+                        )}
+                    </React.Fragment>
+                ))}
+            </div>
 
+            {/* Step Content Card */}
             <AnimatePresence mode="wait">
                 <motion.div
                     key={currentStep.id}
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 1.05, y: -20 }}
-                    transition={{ duration: 0.4, ease: 'easeOut' }}
-                    className="relative z-10 w-full max-w-4xl"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.25 }}
+                    className="bg-slate-900/50 border border-white/10 rounded-2xl p-8"
                 >
-                    <div className="glass-panel p-12 rounded-2xl border-white/5 shadow-2xl min-h-[500px] flex flex-col">
-                        <motion.h6
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                            className="text-blue-400 font-mono text-sm uppercase tracking-widest mb-4"
+                    <h2 className="text-2xl font-bold text-white mb-2">
+                        {currentStep.title}
+                    </h2>
+                    <p className="text-slate-400 mb-6">
+                        {currentStep.description}
+                    </p>
+
+                    {renderStepContent()}
+
+                    {/* Navigation buttons */}
+                    <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
+                        <button
+                            onClick={handleBack}
+                            disabled={isFirst}
+                            className="text-slate-500 hover:text-white transition-colors disabled:opacity-0 px-6 py-2"
                         >
-                            Step {String(currentStepIndex + 1).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}
-                        </motion.h6>
+                            Back
+                        </button>
 
-                        <h2 className="text-4xl font-bold text-white mb-4 tracking-tight">
-                            {currentStep.title}
-                        </h2>
-
-                        <p className="text-xl text-slate-400 mb-8">
-                            {currentStep.prompt}
-                        </p>
-
-                        <div className="flex-1">
-                            {renderStepContent()}
-                        </div>
-
-                        <div className="flex justify-between items-center mt-12 pt-8 border-t border-white/10">
-                            <button
-                                onClick={handleBack}
-                                disabled={isFirst}
-                                className="text-slate-500 hover:text-white transition-colors disabled:opacity-0 px-6 py-2"
-                            >
-                                Back
-                            </button>
-
-                            <button
-                                onClick={handleNext}
-                                className="bg-white text-slate-950 px-8 py-3 rounded-lg font-bold hover:bg-slate-200 transition-all active:scale-95 shadow-lg shadow-white/10"
-                            >
-                                {isLast ? 'Ignite Day' : 'Next Step'}
-                            </button>
-                        </div>
+                        <button
+                            onClick={handleNext}
+                            className="bg-white text-slate-950 px-8 py-3 rounded-lg font-bold hover:bg-slate-200 transition-all active:scale-95 shadow-lg shadow-white/10"
+                        >
+                            {isLast ? 'Ignite Day' : 'Next Step'}
+                        </button>
                     </div>
                 </motion.div>
             </AnimatePresence>

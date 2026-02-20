@@ -355,7 +355,7 @@ export function StaffingDashboard({ pageMode = false }: StaffingDashboardProps) 
               <div key={member.id} className="bg-slate-700/50 rounded p-2 text-xs flex items-center justify-between">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <span className="text-white font-medium truncate">{member.name}</span>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] ${badge.className} whitespace-nowrap`}>
+                  <span className={`px-1.5 py-0.5 rounded text-xs ${badge.className} whitespace-nowrap`}>
                     {badge.label}
                   </span>
                 </div>

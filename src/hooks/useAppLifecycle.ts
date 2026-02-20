@@ -117,11 +117,17 @@ export function useAppLifecycle() {
         const db = await createDatabase();
         const now = new Date();
         const start = new Date(now);
-        start.setDate(start.getDate() - 1);
-        start.setHours(0, 0, 0, 0);
         const end = new Date(now);
-        end.setDate(end.getDate() + 1);
+
+        // Set to start of current week (Sunday)
+        const dayOfWeek = now.getDay(); // 0=Sunday
+        start.setDate(now.getDate() - dayOfWeek);
+        start.setHours(0, 0, 0, 0);
+
+        // Set to end of current week (Saturday)
+        end.setDate(start.getDate() + 6);
         end.setHours(23, 59, 59, 999);
+
         await syncCalendarEvents(db, start, end);
       } catch (err) {
         console.error('[Lifecycle] Calendar sync failed:', err);

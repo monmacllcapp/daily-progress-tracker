@@ -1,0 +1,50 @@
+{
+  "checkpoint_id": "2026-02-15T014500_infinite_render_fix",
+  "timestamp": "2026-02-15T01:45:00Z",
+  "agent": {
+    "model": "claude-sonnet-4-5",
+    "provider": "anthropic",
+    "session_id": "70dd80cb-9fdd-487f-a1d4-85765ee892da"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "Fix infinite re-render bug in 4 pages caused by inline filter in Zustand selector",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Fixed 'Maximum update depth exceeded' infinite re-render bug in 4 pages by applying stable reference pattern to Zustand signal store selectors",
+    "files_modified": [
+      "src/pages/DashboardPage.tsx",
+      "src/pages/ProjectsPage.tsx",
+      "src/pages/JournalPage.tsx",
+      "src/pages/StaffingPage.tsx"
+    ],
+    "decisions_made": [
+      "Applied stable reference pattern: change selector to return s.signals (stable), then use useMemo to filter outside selector",
+      "Added useMemo import to all 4 files that needed it",
+      "Root cause: .filter() inside selector creates new array reference on every render, Zustand Object.is comparison triggers infinite loop",
+      "Pattern already proven successful in DevProjectsPage"
+    ]
+  },
+  "continuation": {
+    "status": "completed",
+    "next_immediate_step": {
+      "action": "Test pages in browser",
+      "details": "Visit Dashboard, Projects, Journal, and Staffing pages to verify no infinite re-render and signals display correctly"
+    },
+    "next_three_steps": [
+      "Run dev server and test all 4 pages in browser",
+      "Verify no console errors about 'Maximum update depth exceeded'",
+      "Confirm signal filtering still works correctly (urgent signals on Dashboard, tech signals on Projects/Staffing, growth signals on Journal)"
+    ],
+    "blockers": [],
+    "context_notes": "TypeScript check passed. All edits followed exact pattern: (1) add useMemo to imports, (2) change selector to return s.signals, (3) wrap filter logic in useMemo with allSignals dependency. This matches the successful fix in DevProjectsPage."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 1,
+    "parent_checkpoint": "2026-02-15T011449_autocompact",
+    "tags": ["bugfix", "infinite-render", "zustand", "useMemo"]
+  }
+}

@@ -1,16 +1,18 @@
+import { useMemo } from 'react';
 import { JournalHistory } from '../components/JournalHistory';
 import { SignalFeed } from '../components/v2/SignalFeed';
 import { useSignalStore } from '../store/signalStore';
 
 export default function JournalPage() {
-  const growthSignals = useSignalStore(s => {
+  const allSignals = useSignalStore(s => s.signals);
+  const growthSignals = useMemo(() => {
     const now = new Date().toISOString();
-    return s.signals.filter(sig =>
+    return allSignals.filter(sig =>
       !sig.is_dismissed &&
       (!sig.expires_at || sig.expires_at > now) &&
       sig.domain === 'personal_growth'
     );
-  });
+  }, [allSignals]);
 
   return (
     <div className="animate-fade-up space-y-6">

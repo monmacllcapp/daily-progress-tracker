@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { RxCollection, MangoQuery } from 'rxdb';
 
 /**
@@ -6,6 +6,9 @@ import type { RxCollection, MangoQuery } from 'rxdb';
  *
  * Returns [data, loading, error] tuple. Unsubscribes on unmount to prevent
  * memory leaks from orphaned RxDB subscriptions.
+ *
+ * Includes shallow comparison to prevent unnecessary re-renders when data
+ * hasn't actually changed (only the array reference changed).
  */
 export function useRxQuery<T>(
     collection: RxCollection<T> | null | undefined,
@@ -14,9 +17,19 @@ export function useRxQuery<T>(
     const [data, setData] = useState<T[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const dataRef = useRef<T[]>([]);
 
     // Stable key for the query to avoid unnecessary re-subscriptions
     const queryKey = query ? JSON.stringify(query) : '{}';
+
+    // Shallow comparison: check if arrays are deeply equal
+    const arraysEqual = (a: T[], b: T[]): boolean => {
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) return false;
+        }
+        return true;
+    };
 
     useEffect(() => {
         if (!collection) {
@@ -31,7 +44,12 @@ export function useRxQuery<T>(
             .find(query)
             .$.subscribe({
                 next: (docs) => {
-                    setData(docs.map(d => d.toJSON() as T));
+                    const newData = docs.map(d => d.toJSON() as T);
+                    // Only update state if data actually changed
+                    if (!arraysEqual(newData, dataRef.current)) {
+                        dataRef.current = newData;
+                        setData(newData);
+                    }
                     setLoading(false);
                 },
                 error: (err) => {

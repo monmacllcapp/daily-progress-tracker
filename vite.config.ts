@@ -26,7 +26,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB — Porcupine WASM is ~3.3MB
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,wasm}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
@@ -47,11 +48,6 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/ollama/, ''),
       },
-      '/api/openclaw': {
-        target: 'http://10.0.0.204:18789',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/openclaw/, ''),
-      },
     },
   },
   define: {
@@ -59,6 +55,9 @@ export default defineConfig({
     global: 'globalThis',
     'process.env': {},
     process: { env: {} },
+  },
+  optimizeDeps: {
+    exclude: ['@picovoice/porcupine-web'],
   },
   build: {
     rollupOptions: {
@@ -68,6 +67,7 @@ export default defineConfig({
           'vendor-ui': ['framer-motion', 'lucide-react', 'recharts'],
           'vendor-data': ['rxdb', 'rxjs', 'zustand'],
           'vendor-grid': ['react-grid-layout', 'react-resizable'],
+          'vendor-voice': ['@picovoice/porcupine-web'],
         },
       },
     },

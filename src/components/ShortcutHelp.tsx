@@ -66,7 +66,7 @@ export function ShortcutHelp({ isOpen, onClose, shortcuts }: ShortcutHelpProps) 
                         </div>
 
                         <p className="text-xs text-slate-600 mt-6 text-center">
-                            Press <kbd className="px-1 bg-slate-800 rounded text-[10px]">Esc</kbd> to close
+                            Press <kbd className="px-1 bg-slate-800 rounded text-xs">Esc</kbd> to close
                         </p>
                     </motion.div>
                 </motion.div>

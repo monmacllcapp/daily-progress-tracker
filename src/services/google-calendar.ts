@@ -27,6 +27,15 @@ export interface GoogleCalendarEvent {
     };
     colorId?: string;
     status?: string;
+    calendarId?: string;
+}
+
+// Google Calendar List Item
+export interface GoogleCalendarListItem {
+    id: string;
+    summary: string;
+    backgroundColor: string;
+    selected?: boolean;
 }
 
 /**
@@ -79,35 +88,88 @@ export async function deleteGoogleEvent(eventId: string): Promise<void> {
 }
 
 /**
+ * Fetch all calendars visible to the user
+ */
+export async function fetchAllCalendars(): Promise<GoogleCalendarListItem[]> {
+    const response = await googleFetch(`${CALENDAR_API}/users/me/calendarList`);
+
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to fetch calendar list: ${error}`);
+    }
+
+    const data = await response.json();
+    const calendars = data.items || [];
+
+    // Filter to only selected calendars (visible in Google Calendar)
+    return calendars.filter((cal: GoogleCalendarListItem) => cal.selected === true);
+}
+
+/**
  * Fetch events from Google Calendar for a date range
+ * Now queries ALL selected calendars, not just primary
  */
 export async function fetchGoogleEvents(
     startDate: Date,
     endDate: Date
 ): Promise<GoogleCalendarEvent[]> {
-    const params = new URLSearchParams({
-        timeMin: startDate.toISOString(),
-        timeMax: endDate.toISOString(),
-        singleEvents: 'true',
-        orderBy: 'startTime',
-        maxResults: '250',
-    });
+    // Fetch all selected calendars
+    const calendars = await fetchAllCalendars();
+    console.log(`[Calendar] Fetching events from ${calendars.length} calendar(s)`);
 
-    const response = await googleFetch(`${CALENDAR_API}/calendars/primary/events?${params}`);
+    const allEvents: GoogleCalendarEvent[] = [];
+    const eventIds = new Set<string>();
 
-    if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to fetch calendar events: ${error}`);
+    for (const calendar of calendars) {
+        const params = new URLSearchParams({
+            timeMin: startDate.toISOString(),
+            timeMax: endDate.toISOString(),
+            singleEvents: 'true',
+            orderBy: 'startTime',
+            maxResults: '250',
+        });
+
+        try {
+            const response = await googleFetch(
+                `${CALENDAR_API}/calendars/${encodeURIComponent(calendar.id)}/events?${params}`
+            );
+
+            if (!response.ok) {
+                const error = await response.text();
+                console.warn(`[Calendar] Failed to fetch events from ${calendar.summary}: ${error}`);
+                continue;
+            }
+
+            const data = await response.json();
+            const events = data.items || [];
+
+            for (const event of events) {
+                // Deduplicate by event ID
+                if (event.id && !eventIds.has(event.id)) {
+                    eventIds.add(event.id);
+                    // Add calendar metadata
+                    event.calendarId = calendar.id;
+                    // Store calendar color (will be used in sync)
+                    if (!event.colorId) {
+                        event.colorId = calendar.backgroundColor;
+                    }
+                    allEvents.push(event);
+                }
+            }
+        } catch (err) {
+            console.warn(`[Calendar] Error fetching from ${calendar.summary}:`, err);
+        }
     }
 
-    const data = await response.json();
-    return data.items || [];
+    console.log(`[Calendar] Fetched ${allEvents.length} total event(s) across all calendars`);
+    return allEvents;
 }
 
 /**
  * Sync Google Calendar events into the local RxDB collection.
  * Performs a one-way pull: Google → local.
  * Local-only events (source: 'app') are preserved.
+ * Now includes per-event error handling and calendar color storage.
  */
 export async function syncCalendarEvents(
     db: TitanDatabase,
@@ -116,50 +178,61 @@ export async function syncCalendarEvents(
 ): Promise<number> {
     if (!isGoogleConnected()) return 0;
 
+    if (!db.calendar_events) {
+        console.warn('[Calendar] calendar_events collection not available — skipping sync');
+        return 0;
+    }
+
     const googleEvents = await fetchGoogleEvents(startDate, endDate);
     let synced = 0;
 
     for (const ge of googleEvents) {
         if (!ge.id) continue;
 
-        const startTime = ge.start.dateTime || ge.start.date || '';
-        const endTime = ge.end.dateTime || ge.end.date || '';
-        const allDay = !ge.start.dateTime;
+        try {
+            const startTime = ge.start.dateTime || ge.start.date || '';
+            const endTime = ge.end.dateTime || ge.end.date || '';
+            const allDay = !ge.start.dateTime;
 
-        // Check if we already have this event locally
-        const existing = await db.calendar_events.find({
-            selector: { google_event_id: ge.id }
-        }).exec();
+            // Check if we already have this event locally
+            const existing = await db.calendar_events.find({
+                selector: { google_event_id: ge.id }
+            }).exec();
 
-        if (existing.length > 0) {
-            // Update existing local event
-            await existing[0].patch({
-                summary: ge.summary || '',
-                description: ge.description || '',
-                start_time: startTime,
-                end_time: endTime,
-                all_day: allDay,
-                color: ge.colorId || undefined,
-                updated_at: new Date().toISOString(),
-            });
-        } else {
-            // Insert new local event
-            await db.calendar_events.insert({
-                id: crypto.randomUUID(),
-                google_event_id: ge.id,
-                linked_task_id: '',
-                summary: ge.summary || '(No title)',
-                description: ge.description || '',
-                start_time: startTime,
-                end_time: endTime,
-                all_day: allDay,
-                source: 'google',
-                color: ge.colorId || undefined,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            });
+            if (existing.length > 0) {
+                // Update existing local event
+                await existing[0].patch({
+                    summary: ge.summary || '',
+                    description: ge.description || '',
+                    start_time: startTime,
+                    end_time: endTime,
+                    all_day: allDay,
+                    color: ge.colorId || undefined,
+                    updated_at: new Date().toISOString(),
+                });
+                synced++;
+            } else {
+                // Insert new local event
+                await db.calendar_events.insert({
+                    id: crypto.randomUUID(),
+                    google_event_id: ge.id,
+                    linked_task_id: '',
+                    summary: ge.summary || '(No title)',
+                    description: ge.description || '',
+                    start_time: startTime,
+                    end_time: endTime,
+                    all_day: allDay,
+                    source: 'google',
+                    color: ge.colorId || undefined,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                });
+                synced++;
+            }
+        } catch (err) {
+            console.error(`[Calendar] Failed to sync event ${ge.id} (${ge.summary}):`, err);
+            // Continue with next event instead of failing entire batch
         }
-        synced++;
     }
 
     console.log(`[Calendar] Synced ${synced} events from Google Calendar`);

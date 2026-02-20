@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
@@ -17,6 +17,10 @@ const PatternInterrupt = lazy(
 
 const JarvisChat = lazy(
   () => import('../JarvisChat').then((m) => ({ default: m.JarvisChat }))
+);
+
+const MapleOrb = lazy(
+  () => import('../MapleOrb').then((m) => ({ default: m.MapleOrb }))
 );
 
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
@@ -58,6 +62,40 @@ export function AppShell() {
   const shortcuts = useKeyboardShortcuts();
   const { isOpen: shortcutHelpOpen, setIsOpen: setShortcutHelpOpen } = useShortcutHelp();
 
+  // Initialize voice mode (wake word + audio context) — non-blocking
+  useEffect(() => {
+    let cleanup: (() => Promise<void>) | null = null;
+    import('../../services/voice-mode').then((vm) => {
+      vm.initVoiceMode();
+      cleanup = vm.destroyVoiceMode;
+    });
+    return () => { cleanup?.(); };
+  }, []);
+
+  // Initialize email agent background intelligence — non-blocking
+  useEffect(() => {
+    let stopped = false;
+    Promise.all([
+      import('../../services/email-agent'),
+      import('../../db'),
+    ]).then(([agent, dbMod]) => {
+      if (stopped) return;
+      dbMod.createDatabase().then((db) => {
+        if (stopped) return;
+        agent.startEmailAgent(db);
+      });
+    }).catch((err) => {
+      console.warn('[AppShell] Email agent init failed:', err);
+    });
+
+    return () => {
+      stopped = true;
+      import('../../services/email-agent').then((agent) => {
+        agent.stopEmailAgent();
+      });
+    };
+  }, []);
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-background)]">
       <Sidebar />
@@ -98,6 +136,9 @@ export function AppShell() {
       <FeedbackWidget />
       <Suspense fallback={null}>
         <JarvisChat />
+      </Suspense>
+      <Suspense fallback={null}>
+        <MapleOrb />
       </Suspense>
       <ShortcutHelp
         isOpen={shortcutHelpOpen}

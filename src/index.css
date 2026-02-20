@@ -227,3 +227,30 @@ body {
 .animate-jarvis-pulse {
   animation: jarvis-pulse 3s ease-in-out infinite;
 }
+
+/* Maple Orb — ambient breathing animation (idle state) */
+@keyframes maple-orb-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+.animate-maple-breathe {
+  animation: maple-orb-breathe 3s ease-in-out infinite;
+}
+
+/* Maple Orb — expanding ring pulse (listening state) */
+@keyframes maple-orb-ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.animate-maple-ring {
+  animation: maple-orb-ring 1.5s ease-out infinite;
+}
+
+/* Maple Orb — glow pulse (speaking state) */
+@keyframes maple-orb-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(34, 211, 238, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(34, 211, 238, 0.6), 0 0 80px rgba(34, 211, 238, 0.2); }
+}
+.animate-maple-glow {
+  animation: maple-orb-glow 1s ease-in-out infinite;
+}

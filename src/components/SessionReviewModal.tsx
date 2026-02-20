@@ -82,7 +82,7 @@ export function SessionReviewModal({ patterns, onConfirm, onClose, actionCount }
             <h2 className="text-sm font-bold text-white">Session Review</h2>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-slate-500">
+            <span className="text-xs text-slate-500">
               {actionCount} action{actionCount !== 1 ? 's' : ''} this session
             </span>
             <button onClick={onClose} className="p-1 hover:bg-white/10 rounded transition-colors">
@@ -97,8 +97,8 @@ export function SessionReviewModal({ patterns, onConfirm, onClose, actionCount }
             <div className="flex flex-col items-center justify-center py-10 text-slate-500">
               <Brain className="w-8 h-8 mb-2 opacity-40" />
               <p className="text-xs">No patterns detected yet.</p>
-              <p className="text-[10px] text-slate-600 mt-1">Keep triaging to build patterns!</p>
-              <span className="text-[10px] text-slate-600 mt-2">
+              <p className="text-xs text-slate-600 mt-1">Keep triaging to build patterns!</p>
+              <span className="text-xs text-slate-600 mt-2">
                 {actionCount} action{actionCount !== 1 ? 's' : ''} recorded
               </span>
             </div>
@@ -141,7 +141,7 @@ export function SessionReviewModal({ patterns, onConfirm, onClose, actionCount }
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-white font-medium">{pattern.description}</p>
                         <div className="flex items-center gap-3 mt-1.5">
-                          <span className="text-[10px] text-slate-500">
+                          <span className="text-xs text-slate-500">
                             Based on {pattern.evidenceCount} action{pattern.evidenceCount !== 1 ? 's' : ''}
                           </span>
                           <div className="flex items-center gap-1.5">
@@ -203,7 +203,7 @@ export function SessionReviewModal({ patterns, onConfirm, onClose, actionCount }
         {/* Footer */}
         {patterns.length > 0 && (
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
-            <span className="text-[10px] text-slate-500">
+            <span className="text-xs text-slate-500">
               {selected.size} of {patterns.length} selected
             </span>
             <div className="flex gap-2">
