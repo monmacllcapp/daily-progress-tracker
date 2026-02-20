@@ -8,6 +8,7 @@ import {
   Flag,
   Activity,
   GitPullRequest,
+  Ban,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
@@ -18,7 +19,6 @@ interface DevProjectCardProps {
   onRefresh?: (repo: string) => void;
 }
 
-// Helper function to convert timestamp to relative time
 function timeAgo(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
@@ -29,25 +29,26 @@ function timeAgo(dateStr: string): string {
   const diffDays = Math.floor(diffHours / 24);
 
   if (diffSecs < 60) return 'just now';
-  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
 }
 
+const milestoneStatusColors: Record<string, string> = {
+  'COMPLETE': 'bg-emerald-500/20 text-emerald-400',
+  'IN PROGRESS': 'bg-blue-500/20 text-blue-400',
+  'PLANNED': 'bg-slate-700/50 text-slate-500',
+};
+
+const mergeableColors: Record<string, { dot: string; text: string }> = {
+  'MERGEABLE': { dot: 'bg-emerald-400', text: 'Clean' },
+  'CONFLICTING': { dot: 'bg-red-400', text: 'Conflicts' },
+  'UNKNOWN': { dot: 'bg-yellow-400', text: 'Checking' },
+};
+
 export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
-  const [northStarExpanded, setNorthStarExpanded] = useState(false);
-  const [showAllMilestones, setShowAllMilestones] = useState(false);
-
-  const milestoneStatusColors = {
-    'COMPLETE': 'bg-emerald-500/20 text-emerald-400',
-    'IN PROGRESS': 'bg-blue-500/20 text-blue-400',
-  };
-
-  const mergeableColors = {
-    'MERGEABLE': { dot: 'bg-emerald-400', text: 'Clean' },
-    'CONFLICTING': { dot: 'bg-red-400', text: 'Conflicts' },
-    'UNKNOWN': { dot: 'bg-yellow-400', text: 'Checking' },
-  };
+  const [showAllMilestones, setShowAllMilestones] = useState(true);
+  const [branchExpanded, setBranchExpanded] = useState(false);
 
   const displayedMilestones = showAllMilestones
     ? project.milestones
@@ -63,7 +64,7 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
         </div>
       )}
 
-      {/* Header */}
+      {/* 1. Header */}
       <div className="px-4 py-3 border-b border-white/5">
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
@@ -76,7 +77,7 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
               <div className={`mt-1 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full ${
                 project.shipGate.status === 'ship_it' ? 'bg-emerald-500/20 text-emerald-400' :
                 project.shipGate.status === 'scope_creep' ? 'bg-red-500/20 text-red-400' :
-                'bg-blue-500/20 text-blue-400'  // ship_and_build
+                'bg-blue-500/20 text-blue-400'
               }`}>
                 {project.shipGate.status === 'ship_it' ? 'SHIP IT' :
                  project.shipGate.status === 'scope_creep' ? 'SCOPE CREEP' :
@@ -102,7 +103,7 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
         )}
       </div>
 
-      {/* Stage Progress */}
+      {/* 2. Stage Progress */}
       {project.stageProgress && project.stageProgress.length > 0 ? (
         <div className="px-4 py-3 border-b border-white/5">
           <div className="flex items-center justify-between mb-2">
@@ -154,19 +155,15 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
               Progress
             </span>
             <span className="text-xs text-slate-400">
-              {project.progress.completed}/{project.progress.total} tasks ({project.progress.percent}%)
+              {project.progress.completed}/{project.progress.total} ({project.progress.percent}%)
             </span>
           </div>
           <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
-                project.progress.percent === 100
-                  ? 'bg-emerald-500'
-                  : project.progress.percent >= 70
-                  ? 'bg-blue-500'
-                  : project.progress.percent >= 40
-                  ? 'bg-amber-500'
-                  : 'bg-red-500'
+                project.progress.percent === 100 ? 'bg-emerald-500' :
+                project.progress.percent >= 70 ? 'bg-blue-500' :
+                project.progress.percent >= 40 ? 'bg-amber-500' : 'bg-red-500'
               }`}
               style={{ width: `${project.progress.percent}%` }}
             />
@@ -174,71 +171,18 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
         </div>
       ) : null}
 
-      {/* Branch Health */}
-      <div className="px-4 py-3 border-b border-white/5">
-        <div className="flex items-center gap-2 mb-2">
-          {project.branches.isHealthy ? (
-            <>
-              <CheckCircle className="w-4 h-4 text-emerald-400" />
-              <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-full">
-                2 branches
-              </span>
-            </>
-          ) : (
-            <>
-              <AlertTriangle className="w-4 h-4 text-red-400" />
-              <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full">
-                {project.branches.count} branches — expected 2
-              </span>
-            </>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {project.branches.names.map((branch) => (
-            <span
-              key={branch}
-              className="bg-slate-800/50 text-xs text-slate-400 px-2 py-0.5 rounded"
-            >
-              {branch}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* North Star */}
-      <div className="px-4 py-3 border-b border-white/5">
-        <button
-          onClick={() => setNorthStarExpanded(!northStarExpanded)}
-          className="flex items-center gap-2 w-full text-left hover:bg-white/5 -mx-2 px-2 py-1 rounded transition-colors"
-        >
-          {northStarExpanded ? (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          )}
-          <Compass className="w-4 h-4 text-slate-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            North Star
-          </span>
-        </button>
-        {northStarExpanded && (
-          <div className="mt-2 ml-6">
-            {project.northStar ? (
-              <p className="text-sm text-slate-300">{project.northStar}</p>
-            ) : (
-              <p className="text-sm text-slate-500">No North Star document found</p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Milestones */}
+      {/* 3. Milestones */}
       <div className="px-4 py-3 border-b border-white/5">
         <div className="flex items-center gap-2 mb-3">
           <Flag className="w-4 h-4 text-slate-400" />
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Milestones
           </span>
+          {project.milestones.length > 0 && (
+            <span className="text-xs text-slate-600 tabular-nums">
+              {project.milestones.filter(m => m.status === 'COMPLETE').length}/{project.milestones.length}
+            </span>
+          )}
         </div>
         {project.milestones.length > 0 ? (
           <div className="space-y-2">
@@ -250,8 +194,7 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
                 <span className="flex-1 text-slate-300">{milestone.name}</span>
                 <span
                   className={`px-2 py-0.5 text-xs rounded ${
-                    milestoneStatusColors[milestone.status as keyof typeof milestoneStatusColors] ||
-                    'bg-slate-700/50 text-slate-400'
+                    milestoneStatusColors[milestone.status] || 'bg-slate-700/50 text-slate-400'
                   }`}
                 >
                   {milestone.status}
@@ -272,32 +215,80 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
         )}
       </div>
 
-      {/* Session Status */}
-      <div className="px-4 py-3 border-b border-white/5">
-        <div className="flex items-center gap-2 mb-3">
-          <Activity className="w-4 h-4 text-slate-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Current Session
-          </span>
+      {/* 4. North Star / Vision */}
+      {project.northStar && (
+        <div className="px-4 py-3 border-b border-white/5">
+          <div className="flex items-center gap-2 mb-2">
+            <Compass className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              North Star
+            </span>
+          </div>
+          <p className="text-sm text-slate-300">{project.northStar}</p>
         </div>
-        {project.session ? (
+      )}
+
+      {/* 5. Out of Scope */}
+      {project.outOfScope && project.outOfScope.length > 0 && (
+        <div className="px-4 py-3 border-b border-white/5">
+          <div className="flex items-center gap-2 mb-3">
+            <Ban className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Out of Scope
+            </span>
+            <span className="text-xs text-slate-600 tabular-nums">{project.outOfScope.length}</span>
+          </div>
+          <div className="space-y-2">
+            {project.outOfScope.map((entry) => (
+              <div key={entry.id} className="text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="flex-1 text-slate-300">{entry.item}</span>
+                  {entry.revisit && (
+                    <span className="px-1.5 py-0.5 text-xs rounded bg-slate-800/50 text-slate-500 shrink-0">
+                      {entry.revisit}
+                    </span>
+                  )}
+                </div>
+                {entry.rationale && (
+                  <p className="text-xs text-slate-500 mt-0.5">{entry.rationale}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 6. Session Status */}
+      {project.session && (
+        <div className="px-4 py-3 border-b border-white/5">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Current Session
+            </span>
+          </div>
           <div className="space-y-2 text-sm">
-            <div>
-              <span className="text-slate-500">Done:</span>
-              <p className="text-slate-300 mt-1">
-                {project.session.whatWasDone.slice(0, 120)}
-                {project.session.whatWasDone.length > 120 && '...'}
-              </p>
-            </div>
-            <div>
-              <span className="text-slate-500">Next:</span>
-              <p className="text-slate-300 mt-1">
-                {project.session.nextStep.slice(0, 120)}
-                {project.session.nextStep.length > 120 && '...'}
-              </p>
-            </div>
+            {project.session.whatWasDone && (
+              <div>
+                <span className="text-slate-500">Done:</span>
+                <p className="text-slate-300 mt-1">
+                  {project.session.whatWasDone.slice(0, 200)}
+                  {project.session.whatWasDone.length > 200 && '...'}
+                </p>
+              </div>
+            )}
+            {project.session.nextStep && (
+              <div>
+                <span className="text-slate-500">Next:</span>
+                <p className="text-slate-300 mt-1">
+                  {project.session.nextStep.slice(0, 200)}
+                  {project.session.nextStep.length > 200 && '...'}
+                </p>
+              </div>
+            )}
             {project.session.blockers &&
               project.session.blockers !== 'None identified.' &&
+              project.session.blockers !== 'None.' &&
               project.session.blockers.trim() !== '' && (
                 <div>
                   <span className="text-red-400">Blockers:</span>
@@ -305,28 +296,24 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
                 </div>
               )}
           </div>
-        ) : (
-          <p className="text-sm text-slate-500">No active session</p>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Open PRs */}
-      <div className="px-4 py-3">
-        <div className="flex items-center gap-2 mb-3">
-          <GitPullRequest className="w-4 h-4 text-slate-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Pull Requests
-          </span>
-          {project.openPRs.length > 0 && (
+      {/* 7. Open PRs */}
+      {project.openPRs.length > 0 && (
+        <div className="px-4 py-3 border-b border-white/5">
+          <div className="flex items-center gap-2 mb-3">
+            <GitPullRequest className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Pull Requests
+            </span>
             <span className="px-1.5 py-0.5 bg-slate-800/50 text-slate-400 text-xs rounded">
               {project.openPRs.length}
             </span>
-          )}
-        </div>
-        {project.openPRs.length > 0 ? (
+          </div>
           <div className="space-y-3">
-            {project.openPRs.map((pr: { number: number; title: string; headRef: string; baseRef: string; mergeable: string }) => {
-              const mergeConfig = mergeableColors[pr.mergeable as keyof typeof mergeableColors];
+            {project.openPRs.map((pr) => {
+              const mergeConfig = mergeableColors[pr.mergeable];
               return (
                 <div key={pr.number} className="text-sm">
                   <div className="flex items-start justify-between gap-2 mb-1">
@@ -334,12 +321,10 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
                     <span className="text-slate-500 text-xs">#{pr.number}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500">
-                      {pr.headRef} → {pr.baseRef}
-                    </span>
+                    <span className="text-slate-500">{pr.headRef} → {pr.baseRef}</span>
                     {mergeConfig && (
                       <div className="flex items-center gap-1">
-                        <div className={`w-1.5 h-1.5 rounded-full ${mergeConfig.dot}`}></div>
+                        <div className={`w-1.5 h-1.5 rounded-full ${mergeConfig.dot}`} />
                         <span className="text-slate-400">{mergeConfig.text}</span>
                       </div>
                     )}
@@ -348,8 +333,47 @@ export const DevProjectCard: React.FC<DevProjectCardProps> = ({ project }) => {
               );
             })}
           </div>
-        ) : (
-          <p className="text-sm text-slate-500">No open pull requests</p>
+        </div>
+      )}
+
+      {/* 8. Branch Health (collapsed by default) */}
+      <div className="px-4 py-3">
+        <button
+          onClick={() => setBranchExpanded(!branchExpanded)}
+          className="flex items-center gap-2 w-full text-left hover:bg-white/5 -mx-2 px-2 py-1 rounded transition-colors"
+        >
+          {branchExpanded ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+          <GitBranch className="w-4 h-4 text-slate-400" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Branches
+          </span>
+          <span className={`ml-auto text-xs ${project.branches.isHealthy ? 'text-emerald-400' : 'text-amber-400'}`}>
+            {project.branches.count}
+          </span>
+        </button>
+        {branchExpanded && (
+          <div className="mt-2 ml-6">
+            <div className="flex items-center gap-2 mb-2">
+              {project.branches.isHealthy ? (
+                <>
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-xs text-emerald-400">main + sandbox</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-xs text-amber-400">missing main or sandbox</span>
+                </>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {project.branches.names.map((branch) => (
+                <span key={branch} className="bg-slate-800/50 text-xs text-slate-400 px-2 py-0.5 rounded">
+                  {branch}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -50,6 +50,7 @@ export const useDevProjectsStore = create<DevProjectsState>((set, get) => ({
             stageProgress: [],
             shipGate: null,
             northStar: null,
+            outOfScope: [],
             session: null,
             latestCommit: null,
             fetchedAt: new Date(),

@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   parseMilestoneTable,
   parseHandoff,
+  parseNorthStar,
   fetchBranches,
   fetchOpenPRs,
   fetchFileContent,
@@ -41,7 +42,7 @@ Additional text after table
     expect(result).toEqual([
       { phase: 'M0', name: 'Setup & Governance', status: 'COMPLETE' },
       { phase: 'M1', name: 'Foundation', status: 'IN PROGRESS' },
-      { phase: 'M2', name: 'Core Features', status: 'NOT STARTED' },
+      { phase: 'M2', name: 'Core Features', status: 'PLANNED' },
     ]);
   });
 
@@ -142,11 +143,75 @@ None
   });
 });
 
+describe('parseNorthStar', () => {
+  it('extracts vision from first paragraph', () => {
+    const md = '# North Star\n\nThis is the mission statement.\n\n## Out of Scope\n';
+    const { vision } = parseNorthStar(md);
+    expect(vision).toBe('This is the mission statement.');
+  });
+
+  it('returns null vision for markdown with only headings', () => {
+    const md = '# North Star\n## Out of Scope\n';
+    const { vision } = parseNorthStar(md);
+    expect(vision).toBeNull();
+  });
+
+  it('parses Out of Scope table into entries', () => {
+    const md = `# North Star
+The vision here.
+
+## Out of Scope
+
+| Item | Rationale | Revisit |
+|------|-----------|---------|
+| Real-time sync | Too complex for MVP | V2 |
+| Mobile app | Web-first | Post-launch |
+
+## Other Section
+`;
+    const { vision, outOfScope } = parseNorthStar(md);
+    expect(vision).toBe('The vision here.');
+    expect(outOfScope).toHaveLength(2);
+    expect(outOfScope[0]).toEqual({ id: '1', item: 'Real-time sync', rationale: 'Too complex for MVP', revisit: 'V2' });
+    expect(outOfScope[1]).toEqual({ id: '2', item: 'Mobile app', rationale: 'Web-first', revisit: 'Post-launch' });
+  });
+
+  it('returns empty outOfScope when section is absent', () => {
+    const md = '# North Star\nThe vision.\n';
+    const { outOfScope } = parseNorthStar(md);
+    expect(outOfScope).toEqual([]);
+  });
+});
+
+describe('parseMilestoneTable - status normalization', () => {
+  it('normalizes case-variant status values', () => {
+    const md = `| Phase | Name | Status |
+|-------|------|--------|
+| M0 | Setup | done |
+| M1 | Core | in progress |
+| M2 | Future | planned |`;
+    const result = parseMilestoneTable(md);
+    expect(result[0].status).toBe('COMPLETE');
+    expect(result[1].status).toBe('IN PROGRESS');
+    expect(result[2].status).toBe('PLANNED');
+  });
+
+  it('passes through unknown status values unchanged', () => {
+    const md = `| Phase | Name | Status |
+|-------|------|--------|
+| M0 | Setup | BLOCKED |
+| M1 | Core | DEFERRED |`;
+    const result = parseMilestoneTable(md);
+    expect(result[0].status).toBe('BLOCKED');
+    expect(result[1].status).toBe('DEFERRED');
+  });
+});
+
 describe('fetchBranches', () => {
-  it('fetches branch list and returns isHealthy=true for exactly 2 branches', async () => {
+  it('fetches branch list and returns isHealthy=true when main+sandbox exist', async () => {
     const mockBranches = [
       { name: 'main', commit: { sha: 'abc123' } },
-      { name: 'feature/test', commit: { sha: 'def456' } },
+      { name: 'sandbox', commit: { sha: 'def456' } },
     ];
 
     vi.spyOn(global, 'fetch').mockResolvedValue({
@@ -158,7 +223,7 @@ describe('fetchBranches', () => {
     const result = await fetchBranches('test-repo');
 
     expect(result).toEqual({
-      names: ['main', 'feature/test'],
+      names: ['main', 'sandbox'],
       count: 2,
       isHealthy: true,
     });
@@ -174,7 +239,7 @@ describe('fetchBranches', () => {
     );
   });
 
-  it('returns isHealthy=false for 1 branch', async () => {
+  it('returns isHealthy=false when sandbox is missing', async () => {
     const mockBranches = [{ name: 'main', commit: { sha: 'abc123' } }];
 
     vi.spyOn(global, 'fetch').mockResolvedValue({
@@ -192,10 +257,10 @@ describe('fetchBranches', () => {
     });
   });
 
-  it('returns isHealthy=false for 3 branches', async () => {
+  it('returns isHealthy=true for 3+ branches when main+sandbox exist', async () => {
     const mockBranches = [
       { name: 'main', commit: { sha: 'abc123' } },
-      { name: 'feature/a', commit: { sha: 'def456' } },
+      { name: 'sandbox', commit: { sha: 'def456' } },
       { name: 'feature/b', commit: { sha: 'ghi789' } },
     ];
 
@@ -207,7 +272,7 @@ describe('fetchBranches', () => {
 
     const result = await fetchBranches('test-repo');
 
-    expect(result.isHealthy).toBe(false);
+    expect(result.isHealthy).toBe(true);
     expect(result.count).toBe(3);
   });
 
@@ -433,7 +498,7 @@ describe('fetchProjectStatus', () => {
 
     const mockBranches = [
       { name: 'main', commit: { sha: 'abc' } },
-      { name: 'feature/test', commit: { sha: 'def' } },
+      { name: 'sandbox', commit: { sha: 'def' } },
     ];
 
     const mockPRs = [
@@ -514,6 +579,7 @@ None.
     expect(result.milestones).toHaveLength(1);
     expect(result.milestones[0].phase).toBe('M1');
     expect(result.northStar).toBe('This is the vision.');
+    expect(result.outOfScope).toEqual([]);
     expect(result.session?.whatWasDone).toBe('Built feature A.');
     expect(result.latestCommit?.sha).toBe('commit123');
     expect(result.error).toBeNull();

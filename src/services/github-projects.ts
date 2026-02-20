@@ -17,11 +17,14 @@ export interface TrackedProject {
 }
 
 export const TRACKED_PROJECTS: TrackedProject[] = [
-  { repo: 'titan-trinity-core', displayName: 'Titan Trinity Core', description: 'Quantitative trading bot' },
-  { repo: 'maple-docs', displayName: 'Maple Docs', description: 'PDF extraction pipeline' },
-  { repo: 'maple-underwriter', displayName: 'Maple Underwriter', description: 'Real estate underwriting' },
-  { repo: 'maple-360', displayName: 'Maple 360', description: 'Cloud storage + workflows' },
   { repo: 'maple-life-os', displayName: 'MAPLE Life OS', description: 'Life operating system' },
+  { repo: 'maple-360', displayName: 'Maple 360', description: 'Cloud storage + workflows' },
+  { repo: 'maple-underwriter', displayName: 'Maple Underwriter', description: 'Real estate underwriting' },
+  { repo: 'maple-docs', displayName: 'Maple Docs', description: 'PDF extraction pipeline' },
+  { repo: 'titan-trinity-core', displayName: 'Titan Trinity Core', description: 'Quantitative trading bot' },
+  { repo: 'alpha-ai', displayName: 'Alpha AI', description: 'EA agent + Supabase sync' },
+  { repo: 'ob-cold-call-ai', displayName: 'OB Cold Call AI', description: 'Cold calling + ISL marketing' },
+  { repo: 'governance', displayName: 'Governance', description: 'Agent bootstrap + skills library' },
 ];
 
 export interface BranchInfo {
@@ -86,6 +89,13 @@ export interface ProgressInfo {
   percent: number; // 0-100
 }
 
+export interface OutOfScopeEntry {
+  id: string;
+  item: string;
+  rationale: string;
+  revisit: string;
+}
+
 export interface ProjectStatus {
   repo: string;
   displayName: string;
@@ -97,6 +107,7 @@ export interface ProjectStatus {
   stageProgress: StageProgressInfo[];
   shipGate: ShipGate | null;
   northStar: string | null;
+  outOfScope: OutOfScopeEntry[];
   session: SessionStatus | null;
   latestCommit: CommitInfo | null;
   fetchedAt: Date;
@@ -138,7 +149,7 @@ export async function fetchBranches(repo: string): Promise<BranchInfo> {
   return {
     names,
     count: names.length,
-    isHealthy: names.length === 2,
+    isHealthy: names.includes('main') && names.includes('sandbox'),
   };
 }
 
@@ -281,13 +292,20 @@ function parseTableFormat(lines: string[]): MilestoneEntry[] {
         const status = statusIdx >= 0 ? cells[statusIdx] || '' : cells[2] || '';
         const name = nameIdx >= 0 ? cells[nameIdx] || '' : cells[1] || '';
 
-        // Clean status (remove emojis)
+        // Clean status (remove emojis) and normalize variants
         const cleanStatus = status.replace(/[✅🚧⬜]/g, '').trim();
+        const normalizedStatus = (() => {
+          const s = cleanStatus.toLowerCase();
+          if (s === 'done' || s === 'completed') return 'COMPLETE';
+          if (s === 'in progress' || s === 'in-progress' || s === 'wip') return 'IN PROGRESS';
+          if (s === 'planned' || s === 'not started' || s === 'todo') return 'PLANNED';
+          return cleanStatus;
+        })();
 
         const stageRaw = stageIdx >= 0 ? (cells[stageIdx] || '').trim().toUpperCase() : '';
         const stage = (['MVP', 'V2', 'V3', 'V4'].includes(stageRaw) ? stageRaw : undefined) as ProjectStage | undefined;
 
-        entries.push({ phase, name, status: cleanStatus, stage });
+        entries.push({ phase, name, status: normalizedStatus, stage });
       }
     }
   }
@@ -532,6 +550,66 @@ export function parseHandoff(markdown: string): SessionStatus {
 }
 
 /**
+ * Parse NORTH_STAR.md for vision statement and Out of Scope table.
+ */
+export function parseNorthStar(markdown: string): {
+  vision: string | null;
+  outOfScope: OutOfScopeEntry[];
+} {
+  const lines = markdown.split('\n');
+  let vision: string | null = null;
+  const outOfScope: OutOfScopeEntry[] = [];
+
+  // Extract vision: first non-heading, non-empty line
+  for (const line of lines) {
+    const t = line.trim();
+    if (t && !t.startsWith('#')) {
+      vision = t;
+      break;
+    }
+  }
+
+  // Find "## Out of Scope" section and parse its table
+  let inSection = false;
+  let headerCols: string[] = [];
+  let headerFound = false;
+  let rowId = 0;
+
+  for (const line of lines) {
+    const t = line.trim();
+
+    if (/^##\s+Out of Scope/i.test(t)) {
+      inSection = true;
+      headerFound = false;
+      continue;
+    }
+    if (inSection && /^##\s/.test(t) && !/^##\s+Out of Scope/i.test(t)) break;
+    if (!inSection) continue;
+
+    if (t.startsWith('|') && !t.startsWith('|---')) {
+      if (!headerFound) {
+        headerCols = t.split('|').map(c => c.trim().toLowerCase()).filter(Boolean);
+        headerFound = true;
+        continue;
+      }
+      const cells = t.split('|').map(c => c.trim()).filter(Boolean);
+      const itemIdx = headerCols.findIndex(h => /item|feature|scope|exclusion/.test(h));
+      const rationaleIdx = headerCols.findIndex(h => /rationale|reason|why/.test(h));
+      const revisitIdx = headerCols.findIndex(h => /revisit|when|future/.test(h));
+      rowId++;
+      outOfScope.push({
+        id: String(rowId),
+        item: cells[itemIdx >= 0 ? itemIdx : 0] || '',
+        rationale: cells[rationaleIdx >= 0 ? rationaleIdx : 1] || '',
+        revisit: cells[revisitIdx >= 0 ? revisitIdx : 2] || '',
+      });
+    }
+  }
+
+  return { vision, outOfScope };
+}
+
+/**
  * Fetch full project status for a tracked project.
  * Aggregates branches, PRs, milestones, North Star, session, and latest commit.
  */
@@ -565,18 +643,8 @@ export async function fetchProjectStatus(project: TrackedProject): Promise<Proje
   const milestonesMd = milestonesResult.status === 'fulfilled' ? milestonesResult.value : null;
   const handoffMd = handoffResult.status === 'fulfilled' ? handoffResult.value : null;
 
-  // Parse North Star (extract first meaningful paragraph)
-  let northStar: string | null = null;
-  if (northStarMd) {
-    const lines = northStarMd.split('\n');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        northStar = trimmed;
-        break;
-      }
-    }
-  }
+  // Parse North Star (vision + out of scope)
+  const northStarParsed = northStarMd ? parseNorthStar(northStarMd) : { vision: null, outOfScope: [] };
 
   // Parse milestones
   const milestones = milestonesMd ? parseMilestoneTable(milestonesMd) : [];
@@ -603,7 +671,8 @@ export async function fetchProjectStatus(project: TrackedProject): Promise<Proje
     progress,
     stageProgress,
     shipGate,
-    northStar,
+    northStar: northStarParsed.vision,
+    outOfScope: northStarParsed.outOfScope,
     session,
     latestCommit,
     fetchedAt: new Date(),
