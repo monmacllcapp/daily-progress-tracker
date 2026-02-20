@@ -143,7 +143,7 @@ export function Sidebar() {
         >
           {!collapsed && (
             <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-rose-400 bg-clip-text text-transparent">
-              Titan
+              Maple
             </h1>
           )}
           <div className="flex items-center gap-1">

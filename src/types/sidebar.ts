@@ -19,14 +19,8 @@ export interface SidebarConfig {
 }
 
 export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
-  version: 4,
+  version: 5,
   sections: [
-    {
-      id: 'section-command',
-      title: 'Command Center',
-      isCollapsed: false,
-      itemIds: ['nav-dashboard'],
-    },
     {
       id: 'section-flow',
       title: 'Flow',
@@ -34,28 +28,15 @@ export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
       itemIds: ['nav-morning', 'nav-planning', 'nav-calendar', 'nav-email'],
     },
     {
-      id: 'section-main',
-      title: 'Main',
-      isCollapsed: false,
-      itemIds: ['nav-tasks'],
-    },
-    {
       id: 'section-life',
       title: 'Life',
       isCollapsed: false,
-      itemIds: ['nav-journal', 'nav-projects', 'nav-vision', 'nav-categories'],
-    },
-    {
-      id: 'section-intelligence',
-      title: 'Intelligence',
-      isCollapsed: false,
-      itemIds: ['nav-deals', 'nav-trading', 'nav-family', 'nav-finance', 'nav-dev-projects', 'nav-agents'],
-    },
-    {
-      id: 'section-business',
-      title: 'Business',
-      isCollapsed: false,
-      itemIds: ['nav-staffing', 'nav-finances'],
+      itemIds: [
+        'nav-dashboard', 'nav-tasks', 'nav-journal', 'nav-projects',
+        'nav-vision', 'nav-categories', 'nav-deals', 'nav-trading',
+        'nav-family', 'nav-finance', 'nav-dev-projects', 'nav-agents',
+        'nav-staffing', 'nav-finances',
+      ],
     },
   ],
   items: [
