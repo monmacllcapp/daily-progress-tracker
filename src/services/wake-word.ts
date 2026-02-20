@@ -1,18 +1,17 @@
 /**
- * wake-word.ts — Picovoice Porcupine wake word detection
- * Uses "Jarvis" built-in keyword (free). Runs entirely in-browser via WASM.
- * Graceful degradation: returns null if no access key or mic denied.
+ * wake-word.ts — Web Speech API wake word detection
  *
- * Architecture note: PorcupineWorker is a raw PCM-frame processor with no
- * built-in mic integration. This module manages getUserMedia + ScriptProcessor
- * to pipe 16-bit PCM frames into Porcupine at the required sample rate.
+ * Listens for "Hey Maple" (or just "Maple") using the browser's built-in
+ * speech recognition. No external API keys needed — works in Chrome/Edge.
  *
- * The Porcupine model file (porcupine_params.pv) must be present in /public.
- * Copy it from: node_modules/@picovoice/porcupine-web/lib/porcupine_params.pv
+ * Replaces the previous Picovoice Porcupine implementation to remove the
+ * VITE_PICOVOICE_ACCESS_KEY dependency.
+ *
+ * Architecture: runs a SpeechRecognition instance in continuous mode during
+ * idle. When the wake phrase is detected, fires the callback and pauses.
+ * voice-mode.ts then takes over with its own SpeechRecognition for active
+ * listening. When voice-mode returns to idle, it resumes the wake word engine.
  */
-
-import { PorcupineWorker, BuiltInKeyword } from '@picovoice/porcupine-web';
-import type { PorcupineDetection } from '@picovoice/porcupine-web';
 
 type WakeWordCallback = () => void;
 
@@ -25,177 +24,155 @@ interface WakeWordEngine {
   isRunning: boolean;
 }
 
+const SpeechRecognitionClass =
+  typeof window !== 'undefined'
+    ? (window as Record<string, unknown>).SpeechRecognition as typeof SpeechRecognition | undefined ??
+      (window as Record<string, unknown>).webkitSpeechRecognition as typeof SpeechRecognition | undefined
+    : null;
+
+/** Phrases that trigger activation (lowercased for matching) */
+const WAKE_PHRASES = ['hey maple', 'hey mabel', 'hey meple', 'a maple', 'hey april'];
+const WAKE_WORD_SOLO = 'maple';
+
 let engineInstance: WakeWordEngine | null = null;
 
-// Mic capture state (shared across start/pause/resume)
-let micStream: MediaStream | null = null;
-let audioCtx: AudioContext | null = null;
-let scriptProcessor: ScriptProcessorNode | null = null;
-let micSource: MediaStreamAudioSourceNode | null = null;
-
-/** Convert Float32 audio samples to Int16 PCM expected by Porcupine */
-function float32ToInt16(float32: Float32Array): Int16Array {
-  const int16 = new Int16Array(float32.length);
-  for (let i = 0; i < float32.length; i++) {
-    const clamped = Math.max(-1, Math.min(1, float32[i]));
-    int16[i] = clamped < 0 ? clamped * 32768 : clamped * 32767;
+function matchesWakeWord(transcript: string): boolean {
+  const lower = transcript.toLowerCase().trim();
+  // Check full phrases first
+  for (const phrase of WAKE_PHRASES) {
+    if (lower.includes(phrase)) return true;
   }
-  return int16;
-}
-
-function teardownMic() {
-  try { scriptProcessor?.disconnect(); } catch { /* ignore */ }
-  try { micSource?.disconnect(); } catch { /* ignore */ }
-  scriptProcessor = null;
-  micSource = null;
-  if (micStream) {
-    micStream.getTracks().forEach((t) => t.stop());
-    micStream = null;
-  }
-  if (audioCtx) {
-    audioCtx.close().catch(() => { /* ignore */ });
-    audioCtx = null;
-  }
+  // Check if the transcript is just the solo wake word (to avoid false positives
+  // on longer sentences that happen to contain "maple")
+  const words = lower.split(/\s+/);
+  if (words.length <= 3 && words.includes(WAKE_WORD_SOLO)) return true;
+  return false;
 }
 
 export async function initWakeWord(): Promise<WakeWordEngine | null> {
   if (engineInstance) return engineInstance;
 
-  const accessKey = import.meta.env.VITE_PICOVOICE_ACCESS_KEY;
-  if (!accessKey) {
-    console.warn('[WakeWord] No VITE_PICOVOICE_ACCESS_KEY — wake word disabled');
+  if (!SpeechRecognitionClass) {
+    console.warn('[WakeWord] SpeechRecognition API not available — wake word disabled');
     return null;
   }
 
-  try {
-    let callback: WakeWordCallback = () => {};
-    let running = false;
-    let porcupine: PorcupineWorker | null = null;
+  let callback: WakeWordCallback = () => {};
+  let running = false;
+  let recognition: SpeechRecognition | null = null;
+  let restartTimer: ReturnType<typeof setTimeout> | null = null;
 
-    // Initialize Porcupine with "Jarvis" built-in keyword.
-    // The model file must be served from /public as porcupine_params.pv.
-    porcupine = await PorcupineWorker.create(
-      accessKey,
-      { builtin: BuiltInKeyword.Jarvis, sensitivity: 0.65 },
-      (detection: PorcupineDetection) => {
-        if (detection.index >= 0) {
-          console.log('[WakeWord] Detected:', detection.label);
-          callback();
-        }
-      },
-      { publicPath: '/porcupine_params.pv', forceWrite: false }
-    );
+  function stopRecognition(): void {
+    if (restartTimer) {
+      clearTimeout(restartTimer);
+      restartTimer = null;
+    }
+    try {
+      recognition?.stop();
+    } catch {
+      // already stopped
+    }
+    recognition = null;
+  }
 
-    const frameLength = porcupine.frameLength;
-    const sampleRate = porcupine.sampleRate;
+  function startRecognition(): void {
+    if (!running || !SpeechRecognitionClass) return;
+    stopRecognition();
 
-    async function setupMicPipeline(): Promise<void> {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      audioCtx = new AudioContext({ sampleRate });
-      micSource = audioCtx.createMediaStreamSource(micStream);
+    try {
+      recognition = new SpeechRecognitionClass();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
 
-      // ScriptProcessorNode accumulates samples into Porcupine frame-sized chunks
-      const bufferSize = 4096;
-      scriptProcessor = audioCtx.createScriptProcessor(bufferSize, 1, 1);
-
-      let accumulator = new Float32Array(0);
-
-      scriptProcessor.onaudioprocess = (event) => {
-        if (!porcupine || !running) return;
-        const input = event.inputBuffer.getChannelData(0);
-
-        // Append new samples to accumulator
-        const merged = new Float32Array(accumulator.length + input.length);
-        merged.set(accumulator, 0);
-        merged.set(input, accumulator.length);
-        accumulator = merged;
-
-        // Process complete frames
-        while (accumulator.length >= frameLength) {
-          const frame = accumulator.slice(0, frameLength);
-          accumulator = accumulator.slice(frameLength);
-          porcupine!.process(float32ToInt16(frame));
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0]?.transcript ?? '';
+          if (matchesWakeWord(transcript)) {
+            console.log('[WakeWord] Detected "Hey Maple" in:', transcript);
+            // Pause immediately so voice-mode can take over
+            stopRecognition();
+            running = false;
+            callback();
+            return;
+          }
         }
       };
 
-      micSource.connect(scriptProcessor);
-      // Connect to destination with zero gain to keep pipeline alive (required by some browsers)
-      const silentGain = audioCtx.createGain();
-      silentGain.gain.value = 0;
-      scriptProcessor.connect(silentGain);
-      silentGain.connect(audioCtx.destination);
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        // Silently handle expected errors
+        if (event.error === 'no-speech' || event.error === 'aborted') return;
+        if (event.error === 'not-allowed') {
+          console.warn('[WakeWord] Mic access denied — wake word disabled');
+          running = false;
+          return;
+        }
+        console.warn('[WakeWord] Recognition error:', event.error);
+      };
+
+      recognition.onend = () => {
+        // Auto-restart if still supposed to be running
+        if (running) {
+          restartTimer = setTimeout(() => {
+            restartTimer = null;
+            if (running) startRecognition();
+          }, 300);
+        }
+      };
+
+      recognition.start();
+      console.log('[WakeWord] Listening for "Hey Maple"...');
+    } catch (err) {
+      console.error('[WakeWord] Failed to start recognition:', err);
     }
-
-    const engine: WakeWordEngine = {
-      get isRunning() {
-        return running;
-      },
-
-      async start() {
-        if (running) return;
-        try {
-          await setupMicPipeline();
-          running = true;
-          console.log('[WakeWord] Listening for "Jarvis"...');
-        } catch (err) {
-          console.error('[WakeWord] Failed to start:', err);
-          teardownMic();
-        }
-      },
-
-      pause() {
-        if (!running) return;
-        running = false;
-        teardownMic();
-        console.log('[WakeWord] Paused');
-      },
-
-      async resume() {
-        if (running) return;
-        try {
-          await setupMicPipeline();
-          running = true;
-          console.log('[WakeWord] Resumed');
-        } catch (err) {
-          console.error('[WakeWord] Failed to resume:', err);
-          teardownMic();
-        }
-      },
-
-      async destroy() {
-        running = false;
-        teardownMic();
-        try {
-          if (porcupine) {
-            await porcupine.release();
-            porcupine.terminate();
-            porcupine = null;
-          }
-        } catch (err) {
-          console.error('[WakeWord] Failed to destroy:', err);
-        }
-        engineInstance = null;
-        console.log('[WakeWord] Destroyed');
-      },
-
-      onWakeWord(cb: WakeWordCallback) {
-        callback = cb;
-      },
-    };
-
-    engineInstance = engine;
-    return engine;
-  } catch (err) {
-    console.error('[WakeWord] Init failed (mic denied or WASM error):', err);
-    return null;
   }
+
+  const engine: WakeWordEngine = {
+    get isRunning() {
+      return running;
+    },
+
+    async start() {
+      if (running) return;
+      running = true;
+      startRecognition();
+    },
+
+    pause() {
+      if (!running) return;
+      running = false;
+      stopRecognition();
+      console.log('[WakeWord] Paused');
+    },
+
+    async resume() {
+      if (running) return;
+      running = true;
+      startRecognition();
+      console.log('[WakeWord] Resumed');
+    },
+
+    async destroy() {
+      running = false;
+      stopRecognition();
+      engineInstance = null;
+      console.log('[WakeWord] Destroyed');
+    },
+
+    onWakeWord(cb: WakeWordCallback) {
+      callback = cb;
+    },
+  };
+
+  engineInstance = engine;
+  return engine;
 }
 
 export function getWakeWordEngine(): WakeWordEngine | null {
   return engineInstance;
 }
 
-/** Check if wake word detection is potentially available (has access key configured) */
+/** Wake word is available if the browser supports SpeechRecognition */
 export function isWakeWordAvailable(): boolean {
-  return !!import.meta.env.VITE_PICOVOICE_ACCESS_KEY;
+  return !!SpeechRecognitionClass;
 }

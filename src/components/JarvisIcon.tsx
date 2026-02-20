@@ -89,7 +89,7 @@ export function JarvisIcon({ onClick, nudge, isActive }: JarvisIconProps) {
 
       {/* Label */}
       <div className="text-center">
-        <p className="text-sm font-bold text-white tracking-widest uppercase">Maple</p>
+        <p className="text-sm font-bold text-white tracking-widest uppercase">Pepper</p>
         <p className={`text-[11px] mt-0.5 ${isVoiceActive ? 'text-cyan-400' : 'text-slate-400'}`}>
           {voiceLabel}
         </p>

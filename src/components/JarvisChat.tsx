@@ -45,12 +45,16 @@ export function JarvisChat() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingIntent, setPendingIntent] = useState<CalendarIntent | null>(null);
 
+  const [available, setAvailable] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasBriefedRef = useRef(false);
   const lastSpokenIdRef = useRef<string | null>(null);
 
-  const available = isJarvisAvailable();
+  useEffect(() => {
+    isJarvisAvailable().then(setAvailable);
+  }, []);
 
   // --- Speak new jarvis messages when voice is enabled ---
   useEffect(() => {
@@ -90,7 +94,7 @@ export function JarvisChat() {
           addMessage('jarvis', text);
         })
         .catch(() => {
-          addMessage('jarvis', "Hey! I'm Maple, your AI assistant. What can I help you with?");
+          addMessage('jarvis', "Hey Quan! It's Pepper. What can I help you with?");
         })
         .finally(() => setIsProcessing(false));
     }
@@ -245,7 +249,7 @@ export function JarvisChat() {
                 <SoundwaveAnimation active={isProcessing || voiceMode === 'processing'} size="sm" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-white">Maple</h3>
+                    <h3 className="text-sm font-semibold text-white">Pepper</h3>
                     {voiceBadge && (
                       <span className="text-xs px-1.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 font-medium">
                         {voiceBadge}
@@ -365,7 +369,7 @@ export function JarvisChat() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={available ? 'Ask Maple anything...' : 'Set VITE_OLLAMA_BASE_URL to start'}
+                  placeholder={available ? 'Ask Pepper anything...' : 'Set VITE_OLLAMA_BASE_URL to start'}
                   disabled={!available || isProcessing}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 disabled:opacity-50 transition-colors"
                 />

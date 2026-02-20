@@ -65,7 +65,7 @@ export function MapleOrb() {
   const breathePhase = useRef(0);
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { voiceMode, isOpen, setIsOpen, liveTranscript, micEnabled, toggleMic, voiceEnabled, toggleVoice } = useJarvisStore();
+  const { voiceMode, isOpen, setIsOpen, liveTranscript, micEnabled, toggleMic, voiceEnabled, toggleVoice, voiceError } = useJarvisStore();
 
   // --- Canvas rendering ---
   const draw = useCallback(() => {
@@ -260,7 +260,7 @@ export function MapleOrb() {
         style={{ background: 'radial-gradient(circle, rgba(15,23,42,0.9) 0%, rgba(10,14,26,0.95) 100%)' }}
         title={
           voiceMode === 'idle'
-            ? (needsActivation() ? 'Tap to activate Maple' : 'Click to chat, double-click for voice')
+            ? (needsActivation() ? 'Tap to activate Pepper' : 'Click to chat, double-click for voice')
             : voiceMode === 'listening'
               ? 'Listening...'
               : voiceMode === 'processing'
@@ -310,6 +310,20 @@ export function MapleOrb() {
             {voiceMode === 'listening' ? 'Listening' : voiceMode === 'processing' ? 'Thinking' : 'Speaking'}
           </motion.span>
         ) : null}
+      </AnimatePresence>
+
+      {/* Voice error toast */}
+      <AnimatePresence>
+        {voiceError && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            className="absolute -top-16 right-0 max-w-[220px] px-3 py-2 rounded-lg bg-red-900/90 border border-red-500/30 backdrop-blur-sm"
+          >
+            <p className="text-xs text-red-200">{voiceError}</p>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Mic & Sound toggles */}

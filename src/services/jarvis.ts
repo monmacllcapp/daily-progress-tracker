@@ -5,7 +5,7 @@
  * briefings, and proactive suggestions. Powered by Ollama.
  */
 
-import { generateContent, isOllamaConfigured } from './ollama-client';
+import { askAI, detectProvider } from './ai/ai-service';
 import { buildSystemPrompt, BRIEFING_TEMPLATE } from './agent-prompts';
 import { isGoogleConnected } from './google-auth';
 import {
@@ -103,7 +103,7 @@ function formatConversationHistory(messages: JarvisMessage[]): string {
     const recent = messages.slice(-6);
     if (recent.length === 0) return '';
     return recent
-        .map((m) => `${m.role === 'user' ? 'User' : 'Maple'}: ${m.text}`)
+        .map((m) => `${m.role === 'user' ? 'User' : 'Pepper'}: ${m.text}`)
         .join('\n');
 }
 
@@ -113,10 +113,10 @@ export async function parseCalendarIntent(
     userMessage: string,
     conversationHistory: JarvisMessage[]
 ): Promise<CalendarIntent> {
-    if (!isOllamaConfigured()) {
+    if (await detectProvider() === 'rules') {
         return {
             action: 'unclear',
-            response: 'AI is not configured. Please set the VITE_OLLAMA_BASE_URL environment variable.',
+            response: 'No AI provider configured. Set VITE_GEMINI_API_KEY or enable another provider.',
         };
     }
 
@@ -131,7 +131,7 @@ export async function parseCalendarIntent(
     const eventsContext = formatEventsForPrompt(events);
     const conversationContext = formatConversationHistory(conversationHistory);
 
-    const prompt = `You are Maple, a calendar assistant. The current date/time in Pacific Time is: ${nowPT()}.
+    const prompt = `You are Pepper, Quan's executive assistant and calendar manager. The current date/time in Pacific Time is: ${nowPT()}.
 Today's date is ${todayISO()}.
 Timezone: ${TIMEZONE}
 
@@ -166,10 +166,11 @@ Rules:
 - If the request is ambiguous, set action="unclear" and ask for clarification in "response"`;
 
     try {
-        const text = await generateContent(prompt);
+        const rawText = await askAI(prompt);
+        if (!rawText) throw new Error('No response from AI');
 
         // Strip markdown code fences if present
-        const jsonStr = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '');
+        const jsonStr = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '');
         const parsed = JSON.parse(jsonStr) as CalendarIntent;
 
         // Ensure required fields
@@ -249,9 +250,9 @@ export async function executeCalendarAction(intent: CalendarIntent): Promise<str
     }
 }
 
-export function isJarvisAvailable(): boolean {
-    // Jarvis works with just an Ollama server — calendar is optional
-    return isOllamaConfigured();
+export async function isJarvisAvailable(): Promise<boolean> {
+    const provider = await detectProvider();
+    return provider !== 'rules';
 }
 
 // --- Full-Context Intelligence ---
@@ -260,10 +261,10 @@ export async function processJarvisMessage(
     userMessage: string,
     conversationHistory: JarvisMessage[]
 ): Promise<JarvisIntent> {
-    if (!isOllamaConfigured()) {
+    if (await detectProvider() === 'rules') {
         return {
             action: 'unclear',
-            response: 'AI is not configured. Please set the VITE_OLLAMA_BASE_URL environment variable.',
+            response: 'No AI provider configured. Set VITE_GEMINI_API_KEY or enable another provider.',
         };
     }
 
@@ -318,7 +319,8 @@ Rules:
 - All calendar times: ISO 8601 with Pacific timezone offset
 - CRITICAL: NEVER fabricate or invent data. ONLY reference data from the context above.`;
 
-        const text = await generateContent(prompt);
+        const text = await askAI(prompt);
+        if (!text) throw new Error('No response from AI');
 
         // Try to extract JSON from the response (handle markdown fences, extra text)
         let jsonStr = text;
@@ -341,11 +343,11 @@ Rules:
         console.error('[Maple] Message processing failed:', err);
         // Fallback: try a simpler non-JSON approach
         try {
-            const fallbackPrompt = `You are Maple, a helpful AI assistant. The user said: "${sanitizeForPrompt(userMessage, 500)}". Reply conversationally in 1-3 sentences.`;
-            const fallbackText = await generateContent(fallbackPrompt);
+            const fallbackPrompt = `You are Pepper, Quan's executive assistant. The user said: "${sanitizeForPrompt(userMessage, 500)}". Reply conversationally in 1-3 sentences.`;
+            const fallbackText = await askAI(fallbackPrompt);
             return {
                 action: 'advice',
-                response: fallbackText,
+                response: fallbackText || "I'm having trouble connecting to AI right now. Please try again.",
                 suggestions: [],
             };
         } catch {
@@ -359,7 +361,7 @@ Rules:
 }
 
 export async function generateBriefing(): Promise<string> {
-    if (!isOllamaConfigured()) return "Hey! I'm Maple, your AI assistant. Set up your Ollama server to unlock full intelligence.";
+    if (await detectProvider() === 'rules') return "Hey Quan! It's Pepper. Set up an AI provider to unlock full intelligence.";
 
     try {
         const ctx = await gatherJarvisContext();
@@ -375,10 +377,10 @@ Current time: ${nowPT()}
 
 Respond with plain text only (no JSON, no markdown).`;
 
-        const text = await generateContent(prompt);
-        return text;
+        const text = await askAI(prompt);
+        return text || "Hey Quan! It's Pepper. I couldn't generate a briefing right now, but I'm here to help.";
     } catch (err) {
         console.error('[Maple] Briefing generation failed:', err);
-        return "Hey! I'm Maple, your AI assistant. I can help with tasks, calendar, habits, and more. What's on your mind?";
+        return "Hey Quan! It's Pepper. I can help with tasks, calendar, habits, and more. What's on your mind?";
     }
 }
