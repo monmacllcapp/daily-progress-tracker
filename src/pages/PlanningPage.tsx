@@ -87,7 +87,7 @@ interface PlanViewProps {
 }
 
 function DailyPlanView({ db }: PlanViewProps) {
-  const today = new Date();
+  const [today] = useState(() => new Date());
   const todayStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   const [tasks] = useRxQuery<Task>(db?.tasks, {
