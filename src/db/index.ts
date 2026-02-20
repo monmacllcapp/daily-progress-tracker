@@ -728,6 +728,8 @@ async function startReplication(db: TitanDatabase, url: string, key: string) {
             await replicateRxCollection({
                 collection,
                 replicationIdentifier: `sync-${table}`,
+                live: true,
+                liveInterval: 10000,
                 pull: {
                     async handler(checkpointOrNull: unknown, batchSize: number) {
                         const checkpoint = (checkpointOrNull ? checkpointOrNull : { updated_at: new Date(0).toISOString() }) as { updated_at: string };
@@ -754,7 +756,14 @@ async function startReplication(db: TitanDatabase, url: string, key: string) {
                 },
                 push: {
                     async handler(docs: Array<{ newDocumentState: Record<string, unknown> }>) {
-                        const rows = docs.map(d => d.newDocumentState);
+                        const rows = docs.map(d => {
+                            const row = { ...d.newDocumentState };
+                            // Ensure updated_at is set so pull checkpoint advances
+                            if (!row.updated_at) {
+                                row.updated_at = new Date().toISOString();
+                            }
+                            return row;
+                        });
                         const { error } = await supabase
                             .from(table)
                             .upsert(rows);
@@ -979,13 +988,12 @@ async function initDatabase(): Promise<TitanDatabase> {
     }
     console.log(`[DB] ${addedCount} collections initialized`);
 
-    // Supabase replication disabled — tables not yet created in Supabase.
-    // Re-enable when Supabase schema is set up.
-    // const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    // const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    // if (supabaseUrl && supabaseKey) {
-    //     await startReplication(db, supabaseUrl, supabaseKey);
-    // }
+    // Supabase replication — syncs all 30 RxDB collections to Supabase
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (supabaseUrl && supabaseKey) {
+        await startReplication(db, supabaseUrl, supabaseKey);
+    }
 
     return db;
 }
