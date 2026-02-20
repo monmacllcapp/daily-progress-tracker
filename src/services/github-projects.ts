@@ -21,7 +21,7 @@ export const TRACKED_PROJECTS: TrackedProject[] = [
   { repo: 'maple-docs', displayName: 'Maple Docs', description: 'PDF extraction pipeline' },
   { repo: 'maple-underwriter', displayName: 'Maple Underwriter', description: 'Real estate underwriting' },
   { repo: 'maple-360', displayName: 'Maple 360', description: 'Cloud storage + workflows' },
-  { repo: 'daily-progress-tracker', displayName: 'MAPLE Life OS', description: 'Life operating system' },
+  { repo: 'maple-life-os', displayName: 'MAPLE Life OS', description: 'Life operating system' },
 ];
 
 export interface BranchInfo {

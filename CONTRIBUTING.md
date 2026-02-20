@@ -1,4 +1,4 @@
-# Contributing to daily-progress-tracker
+# Contributing to maple-life-os
 
 Thank you for your interest in contributing!
 

@@ -1,7 +1,7 @@
 version: "1.0.0"
 governance_hub: monmacllcapp/governance
 project:
-  name: "daily-progress-tracker"
+  name: "maple-life-os"
   stack: [typescript]
   domain: "productivity"
 required:

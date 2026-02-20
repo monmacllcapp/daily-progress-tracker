@@ -4,7 +4,7 @@
 
 ## Repository Purpose
 
-**daily-progress-tracker** - Personal productivity and daily progress tracking application built with React, Supabase, and AI integrations.
+**maple-life-os** - Personal life operating system built with React, RxDB, and AI integrations.
 
 ## Governance Model
 
