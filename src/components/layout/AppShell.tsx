@@ -6,7 +6,7 @@ import { useAppLifecycle } from '../../hooks/useAppLifecycle';
 import { useThemeApplicator } from '../../hooks/useThemeApplicator';
 import { Celebration } from '../Celebration';
 import { HealthNudge } from '../HealthNudge';
-import { FeedbackWidget } from '../FeedbackWidget';
+
 import { PomodoroTimer } from '../PomodoroTimer';
 import { useKeyboardShortcuts, useShortcutHelp } from '../../hooks/useKeyboardShortcuts';
 import { ShortcutHelp } from '../ShortcutHelp';
@@ -133,7 +133,6 @@ export function AppShell() {
         onSnooze={snoozeNudge}
       />
 
-      <FeedbackWidget />
       <Suspense fallback={null}>
         <JarvisChat />
       </Suspense>

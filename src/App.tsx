@@ -43,6 +43,7 @@ const FinancialPage = lazy(() => import('./pages/FinancialPage'));
 const DevProjectsPage = lazy(() => import('./pages/DevProjectsPage'));
 const PlanningPage = lazy(() => import('./pages/PlanningPage'));
 const AgentsPage = lazy(() => import('./pages/AgentsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 function LoadingSpinner() {
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-white flex items-center justify-center">
@@ -134,6 +135,7 @@ function App() {
               <Route path="/vision" element={<PageErrorBoundary pageName="Vision"><VisionPage /></PageErrorBoundary>} />
               <Route path="/dev-projects" element={<PageErrorBoundary pageName="Dev Projects"><DevProjectsPage /></PageErrorBoundary>} />
               <Route path="/agents" element={<PageErrorBoundary pageName="Agents"><AgentsPage /></PageErrorBoundary>} />
+              <Route path="/settings" element={<PageErrorBoundary pageName="Settings"><SettingsPage /></PageErrorBoundary>} />
             </Route>
           </Routes>
         </Suspense>

@@ -18,6 +18,7 @@ import {
   GitBranch,
   ClipboardList,
   Bot,
+  Settings,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -41,6 +42,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   GitBranch,
   ClipboardList,
   Bot,
+  Settings,
 };
 
 export function getIconComponent(iconName: string): LucideIcon {
