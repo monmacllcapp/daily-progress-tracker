@@ -12,7 +12,6 @@ BEGIN;
 
 -- ============================================================
 -- PART A: Drop 7 legacy tables (UUID/TIMESTAMPTZ → TEXT)
--- Order matters: drop dependents first, then parents.
 -- ============================================================
 
 -- Drop RLS policies first (they block DROP TABLE)
@@ -43,16 +42,7 @@ DROP POLICY IF EXISTS "Users can delete their own categories" ON categories;
 DROP POLICY IF EXISTS "Users can manage their own stressors" ON stressors;
 DROP POLICY IF EXISTS "Users can manage their own stressor milestones" ON stressor_milestones;
 
--- Remove from realtime publication before dropping
-ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS stressor_milestones;
-ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS stressors;
-ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS vision_board;
-ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS categories;
-ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS sub_tasks;
-ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS daily_journal;
-ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS projects;
-
--- Drop tables (dependents first)
+-- Drop tables (CASCADE auto-removes from publications)
 DROP TABLE IF EXISTS stressor_milestones CASCADE;
 DROP TABLE IF EXISTS stressors CASCADE;
 DROP TABLE IF EXISTS sub_tasks CASCADE;
@@ -65,7 +55,6 @@ DROP TABLE IF EXISTS categories CASCADE;
 -- PART B: Recreate 7 legacy tables with TEXT PK + TEXT timestamps
 -- ============================================================
 
--- Categories (must come before projects/vision_board which reference it)
 CREATE TABLE categories (
   id TEXT PRIMARY KEY,
   user_id TEXT,
@@ -80,7 +69,6 @@ CREATE TABLE categories (
   updated_at TEXT
 );
 
--- Projects
 CREATE TABLE projects (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -95,7 +83,6 @@ CREATE TABLE projects (
   updated_at TEXT
 );
 
--- Sub Tasks
 CREATE TABLE sub_tasks (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL,
@@ -108,7 +95,6 @@ CREATE TABLE sub_tasks (
   updated_at TEXT
 );
 
--- Daily Journal
 CREATE TABLE daily_journal (
   id TEXT PRIMARY KEY,
   date TEXT NOT NULL,
@@ -120,7 +106,6 @@ CREATE TABLE daily_journal (
   updated_at TEXT
 );
 
--- Vision Board
 CREATE TABLE vision_board (
   id TEXT PRIMARY KEY,
   user_id TEXT,
@@ -135,7 +120,6 @@ CREATE TABLE vision_board (
   updated_at TEXT
 );
 
--- Stressors
 CREATE TABLE stressors (
   id TEXT PRIMARY KEY,
   user_id TEXT,
@@ -147,7 +131,6 @@ CREATE TABLE stressors (
   updated_at TEXT
 );
 
--- Stressor Milestones
 CREATE TABLE stressor_milestones (
   id TEXT PRIMARY KEY,
   stressor_id TEXT NOT NULL,
@@ -159,10 +142,25 @@ CREATE TABLE stressor_milestones (
 );
 
 -- ============================================================
--- PART C: Create 15 missing tables (never existed in Supabase)
+-- PART C: Create 15 tables (drop first if any already exist)
 -- ============================================================
 
--- Tasks (central entity — was RxDB-only)
+DROP TABLE IF EXISTS tasks CASCADE;
+DROP TABLE IF EXISTS emails CASCADE;
+DROP TABLE IF EXISTS calendar_events CASCADE;
+DROP TABLE IF EXISTS pomodoro_sessions CASCADE;
+DROP TABLE IF EXISTS habits CASCADE;
+DROP TABLE IF EXISTS habit_completions CASCADE;
+DROP TABLE IF EXISTS user_profile CASCADE;
+DROP TABLE IF EXISTS analytics_events CASCADE;
+DROP TABLE IF EXISTS signals CASCADE;
+DROP TABLE IF EXISTS deals CASCADE;
+DROP TABLE IF EXISTS portfolio_snapshots CASCADE;
+DROP TABLE IF EXISTS family_events CASCADE;
+DROP TABLE IF EXISTS morning_briefs CASCADE;
+DROP TABLE IF EXISTS productivity_patterns CASCADE;
+DROP TABLE IF EXISTS signal_weights CASCADE;
+
 CREATE TABLE tasks (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -187,7 +185,6 @@ CREATE TABLE tasks (
   updated_at TEXT
 );
 
--- Emails
 CREATE TABLE emails (
   id TEXT PRIMARY KEY,
   gmail_id TEXT NOT NULL,
@@ -216,7 +213,6 @@ CREATE TABLE emails (
   updated_at TEXT
 );
 
--- Calendar Events
 CREATE TABLE calendar_events (
   id TEXT PRIMARY KEY,
   google_event_id TEXT,
@@ -233,7 +229,6 @@ CREATE TABLE calendar_events (
   updated_at TEXT
 );
 
--- Pomodoro Sessions
 CREATE TABLE pomodoro_sessions (
   id TEXT PRIMARY KEY,
   task_id TEXT,
@@ -247,7 +242,6 @@ CREATE TABLE pomodoro_sessions (
   updated_at TEXT
 );
 
--- Habits
 CREATE TABLE habits (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -261,7 +255,6 @@ CREATE TABLE habits (
   updated_at TEXT
 );
 
--- Habit Completions
 CREATE TABLE habit_completions (
   id TEXT PRIMARY KEY,
   habit_id TEXT NOT NULL,
@@ -269,7 +262,6 @@ CREATE TABLE habit_completions (
   completed_at TEXT NOT NULL
 );
 
--- User Profile (gamification)
 CREATE TABLE user_profile (
   id TEXT PRIMARY KEY,
   xp INTEGER NOT NULL DEFAULT 0,
@@ -283,7 +275,6 @@ CREATE TABLE user_profile (
   updated_at TEXT
 );
 
--- Analytics Events
 CREATE TABLE analytics_events (
   id TEXT PRIMARY KEY,
   event_type TEXT NOT NULL,
@@ -291,7 +282,6 @@ CREATE TABLE analytics_events (
   timestamp TEXT NOT NULL
 );
 
--- Signals (V2 intelligence)
 CREATE TABLE signals (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL,
@@ -310,7 +300,6 @@ CREATE TABLE signals (
   updated_at TEXT
 );
 
--- Deals (real estate)
 CREATE TABLE deals (
   id TEXT PRIMARY KEY,
   address TEXT NOT NULL,
@@ -335,7 +324,6 @@ CREATE TABLE deals (
   updated_at TEXT
 );
 
--- Portfolio Snapshots (trading)
 CREATE TABLE portfolio_snapshots (
   id TEXT PRIMARY KEY,
   date TEXT NOT NULL,
@@ -350,7 +338,6 @@ CREATE TABLE portfolio_snapshots (
   created_at TEXT
 );
 
--- Family Events
 CREATE TABLE family_events (
   id TEXT PRIMARY KEY,
   member TEXT NOT NULL,
@@ -363,7 +350,6 @@ CREATE TABLE family_events (
   updated_at TEXT
 );
 
--- Morning Briefs
 CREATE TABLE morning_briefs (
   id TEXT PRIMARY KEY,
   date TEXT NOT NULL,
@@ -376,7 +362,6 @@ CREATE TABLE morning_briefs (
   generated_at TEXT NOT NULL
 );
 
--- Productivity Patterns
 CREATE TABLE productivity_patterns (
   id TEXT PRIMARY KEY,
   pattern_type TEXT NOT NULL,
@@ -387,7 +372,6 @@ CREATE TABLE productivity_patterns (
   created_at TEXT
 );
 
--- Signal Weights (feedback loop)
 CREATE TABLE signal_weights (
   id TEXT PRIMARY KEY,
   signal_type TEXT NOT NULL,
@@ -402,10 +386,9 @@ CREATE TABLE signal_weights (
 );
 
 -- ============================================================
--- PART D: Enable realtime for ALL 30 tables
+-- PART D: Enable realtime for ALL 22 tables
 -- ============================================================
 
--- Recreated legacy tables
 ALTER PUBLICATION supabase_realtime ADD TABLE categories;
 ALTER PUBLICATION supabase_realtime ADD TABLE projects;
 ALTER PUBLICATION supabase_realtime ADD TABLE sub_tasks;
@@ -413,8 +396,6 @@ ALTER PUBLICATION supabase_realtime ADD TABLE daily_journal;
 ALTER PUBLICATION supabase_realtime ADD TABLE vision_board;
 ALTER PUBLICATION supabase_realtime ADD TABLE stressors;
 ALTER PUBLICATION supabase_realtime ADD TABLE stressor_milestones;
-
--- New tables (never had realtime)
 ALTER PUBLICATION supabase_realtime ADD TABLE tasks;
 ALTER PUBLICATION supabase_realtime ADD TABLE emails;
 ALTER PUBLICATION supabase_realtime ADD TABLE calendar_events;
@@ -430,10 +411,5 @@ ALTER PUBLICATION supabase_realtime ADD TABLE family_events;
 ALTER PUBLICATION supabase_realtime ADD TABLE morning_briefs;
 ALTER PUBLICATION supabase_realtime ADD TABLE productivity_patterns;
 ALTER PUBLICATION supabase_realtime ADD TABLE signal_weights;
-
--- Existing tables from schema.sql that already have realtime:
--- staff_members, staff_pay_periods, staff_expenses, staff_kpi_summaries
--- financial_accounts, financial_transactions, financial_subscriptions, financial_monthly_summaries
--- agent_status
 
 COMMIT;
