@@ -2,16 +2,18 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { createDatabase } from './db'
 import type { TitanDatabase } from './db'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorBoundary, PageErrorBoundary } from './components/ErrorBoundary';
 import { WelcomeOnboarding } from './components/WelcomeOnboarding';
 import { hasCompletedOnboarding } from './utils/onboarding';
+import { trackEvent } from './services/analytics';
+import { anticipationWorker } from './workers/anticipation-worker';
 
 // Log active integrations at startup
 if (typeof window !== 'undefined') {
   const env = import.meta.env;
-  console.log('[Titan] Active integrations:', {
+  console.log('[Maple] Active integrations:', {
     google: !!env.VITE_GOOGLE_CLIENT_ID,
-    gemini: !!env.VITE_GEMINI_API_KEY,
+    ollama: !!env.VITE_OLLAMA_BASE_URL,
     supabase: !!(env.VITE_SUPABASE_URL && env.VITE_SUPABASE_ANON_KEY),
   });
 }
@@ -30,7 +32,17 @@ const LifePage = lazy(() => import('./pages/LifePage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 const MorningFlowPage = lazy(() => import('./pages/MorningFlowPage'));
-
+const DealsPage = lazy(() => import('./pages/DealsPage'));
+const TradingPage = lazy(() => import('./pages/TradingPage'));
+const FamilyPage = lazy(() => import('./pages/FamilyPage'));
+const FinancePage = lazy(() => import('./pages/FinancePage'));
+const StaffingPage = lazy(() => import('./pages/StaffingPage'));
+const CategoriesPage = lazy(() => import('./pages/CategoriesPage'));
+const VisionPage = lazy(() => import('./pages/VisionPage'));
+const FinancialPage = lazy(() => import('./pages/FinancialPage'));
+const DevProjectsPage = lazy(() => import('./pages/DevProjectsPage'));
+const PlanningPage = lazy(() => import('./pages/PlanningPage'));
+const AgentsPage = lazy(() => import('./pages/AgentsPage'));
 function LoadingSpinner() {
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-white flex items-center justify-center">
@@ -49,7 +61,15 @@ function App() {
 
   useEffect(() => {
     createDatabase()
-      .then(database => setDb(database))
+      .then(database => {
+        setDb(database);
+        // Initialize anticipation engine with database for learning cycle
+        anticipationWorker.setDatabase(database);
+        // Track app open event (analytics)
+        trackEvent(database, 'app_open').catch(err =>
+          console.warn('[Analytics] Failed to track app open:', err)
+        );
+      })
       .catch(err => {
         console.error('Failed to initialize database:', err);
         setError(err.message);
@@ -78,7 +98,7 @@ function App() {
       <div className="min-h-screen bg-[var(--color-background)] text-white flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-secondary">Initializing Titan Life OS...</p>
+          <p className="text-secondary">Initializing Maple...</p>
         </div>
       </div>
     );
@@ -93,18 +113,27 @@ function App() {
       <BrowserRouter>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
-            {/* Full-screen (no shell) */}
-            <Route path="/morning" element={<MorningFlowPage />} />
-
             {/* Shell-wrapped routes */}
             <Route element={<AppShell />}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/tasks" element={<TasksPage />} />
-              <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/email" element={<EmailPage />} />
-              <Route path="/life" element={<LifePage />} />
-              <Route path="/journal" element={<JournalPage />} />
-              <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/" element={<PageErrorBoundary pageName="Dashboard"><DashboardPage /></PageErrorBoundary>} />
+              <Route path="/tasks" element={<PageErrorBoundary pageName="Tasks"><TasksPage /></PageErrorBoundary>} />
+              <Route path="/calendar" element={<PageErrorBoundary pageName="Calendar"><CalendarPage /></PageErrorBoundary>} />
+              <Route path="/email" element={<PageErrorBoundary pageName="Email"><EmailPage /></PageErrorBoundary>} />
+              <Route path="/life" element={<PageErrorBoundary pageName="Life"><LifePage /></PageErrorBoundary>} />
+              <Route path="/journal" element={<PageErrorBoundary pageName="Journal"><JournalPage /></PageErrorBoundary>} />
+              <Route path="/projects" element={<PageErrorBoundary pageName="Projects"><ProjectsPage /></PageErrorBoundary>} />
+              <Route path="/morning" element={<PageErrorBoundary pageName="Morning Flow"><MorningFlowPage /></PageErrorBoundary>} />
+              <Route path="/planning" element={<PageErrorBoundary pageName="Planning"><PlanningPage /></PageErrorBoundary>} />
+              <Route path="/deals" element={<PageErrorBoundary pageName="Deals"><DealsPage /></PageErrorBoundary>} />
+              <Route path="/trading" element={<PageErrorBoundary pageName="Trading"><TradingPage /></PageErrorBoundary>} />
+              <Route path="/family" element={<PageErrorBoundary pageName="Family"><FamilyPage /></PageErrorBoundary>} />
+              <Route path="/finance" element={<PageErrorBoundary pageName="Finance"><FinancePage /></PageErrorBoundary>} />
+              <Route path="/staffing" element={<PageErrorBoundary pageName="Staffing"><StaffingPage /></PageErrorBoundary>} />
+              <Route path="/categories" element={<PageErrorBoundary pageName="Categories"><CategoriesPage /></PageErrorBoundary>} />
+              <Route path="/finances" element={<PageErrorBoundary pageName="Finances"><FinancialPage /></PageErrorBoundary>} />
+              <Route path="/vision" element={<PageErrorBoundary pageName="Vision"><VisionPage /></PageErrorBoundary>} />
+              <Route path="/dev-projects" element={<PageErrorBoundary pageName="Dev Projects"><DevProjectsPage /></PageErrorBoundary>} />
+              <Route path="/agents" element={<PageErrorBoundary pageName="Agents"><AgentsPage /></PageErrorBoundary>} />
             </Route>
           </Routes>
         </Suspense>

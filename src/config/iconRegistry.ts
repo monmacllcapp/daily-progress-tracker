@@ -1,0 +1,48 @@
+import {
+  LayoutDashboard,
+  CheckSquare,
+  Calendar,
+  Mail,
+  BookOpen,
+  FolderKanban,
+  Image,
+  Target,
+  Sun,
+  Users,
+  Briefcase,
+  Wallet,
+  Zap,
+  Building2,
+  BarChart3,
+  Heart,
+  GitBranch,
+  ClipboardList,
+  Bot,
+  type LucideIcon,
+} from 'lucide-react';
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  CheckSquare,
+  Calendar,
+  Mail,
+  BookOpen,
+  FolderKanban,
+  Image,
+  Target,
+  Sun,
+  Users,
+  Briefcase,
+  Wallet,
+  Zap,
+  Building2,
+  BarChart3,
+  Heart,
+  GitBranch,
+  ClipboardList,
+  Bot,
+};
+
+export function getIconComponent(iconName: string): LucideIcon {
+  return ICON_MAP[iconName] ?? LayoutDashboard;
+}

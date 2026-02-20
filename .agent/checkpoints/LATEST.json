@@ -1,50 +1,56 @@
 {
-  "checkpoint_id": "2026-02-01T091500_renderdeploy",
-  "timestamp": "2026-02-01T09:15:00Z",
+  "checkpoint_id": "2026-02-14T221500_multi-stage-tracking-with-fixes",
+  "timestamp": "2026-02-14T22:15:00Z",
   "agent": {
-    "model": "claude-opus-4-5-20251101",
+    "model": "claude-opus-4-6",
     "provider": "anthropic",
-    "session_id": "session-11"
+    "session_id": "current"
   },
   "session": {
-    "project": "Titan Life OS",
-    "goal": "M5: Beta Launch — diagnose Render deploy failure, fix TS error",
+    "project": "Daily Progress Tracker (MAPLE Life OS)",
+    "goal": "Multi-stage progress tracking + runtime bug fixes",
     "branch": "sandbox",
-    "working_directory": "/workspace"
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
   },
   "changes": {
-    "summary": "Diagnosed Render deploy failure (deploying from stale `master` instead of `main`). Fixed TypeScript error in Sidebar.tsx (NavItem icon type too narrow). Opened PR #3 with fix. Generated full project scorecard dashboard.",
+    "summary": "Multi-stage progress tracking (MVP/V2/V3) with ship-gate alerts. Fixed RxDB DXE1 (optional fields in indexes), bumped task schema to v1, fixed infinite re-render loop in DevProjectsPage. 21 new tests, 761 total passing.",
     "files_modified": [
-      {"path": "src/components/layout/Sidebar.tsx", "action": "modified", "description": "Widened NavItem icon type to accept style?: React.CSSProperties"},
-      {"path": "docs/PROJECT_SCORECARD.md", "action": "modified", "description": "Added session 8 history entry, added B-06 blocker for Render branch misconfiguration"},
-      {"path": ".agent/HANDOFF.md", "action": "modified", "description": "Updated with session 11 state and deploy diagnosis"},
-      {"path": ".agent/checkpoints/LATEST.json", "action": "modified", "description": "New checkpoint for session 11"}
+      "src/services/github-projects.ts",
+      "src/services/__tests__/stage-progress.test.ts",
+      "src/components/v2/DevProjectCard.tsx",
+      "src/components/v2/ProjectStageWidget.tsx",
+      "src/config/widgetRegistry.ts",
+      "src/store/devProjectsStore.ts",
+      "src/db/index.ts",
+      "src/pages/DevProjectsPage.tsx",
+      "docs/MILESTONES.md"
     ],
     "decisions_made": [
-      {"decision": "Open PR #3 to main instead of master", "rationale": "main has PR #2 merged (M1-M5 code), master is stale. Render should deploy from main.", "alternatives_considered": ["Fast-forward master to main", "Delete master branch"]}
+      "Stage column in MILESTONES.md overview table — parser-compatible, fallback to index-based mapping",
+      "Four ship-gate states: building, ship_it, ship_and_build, scope_creep",
+      "Removed due_date/priority from task indexes (optional fields can't be indexed in RxDB)",
+      "Bumped task schema to v1 with identity migration to force IndexedDB rebuild",
+      "Moved Zustand selector filtering to useMemo to prevent infinite re-render"
     ]
   },
   "continuation": {
-    "status": "blocked",
+    "status": "complete",
     "next_immediate_step": {
-      "action": "Change Render deploy branch from master to main",
-      "details": "User must go to Render dashboard → Settings → change branch to 'main', then trigger manual deploy. After that, approve PR #3 to get TS fix onto main."
+      "action": "Verify Dev Projects page loads in browser",
+      "details": "Confirm multi-stage bars, ship-gate badges, and ProjectStageWidget render correctly"
     },
     "next_three_steps": [
-      {"step_number": 2, "action": "Verify deployed site works", "details": "Test MorningFlow, BrainDump, RPM wizard, email dashboard on deployed URL"},
-      {"step_number": 3, "action": "Onboard beta users (M5-7)", "details": "Share deployed URL, collect feedback"},
-      {"step_number": 4, "action": "Bug fix sprint (M5-9)", "details": "Address any issues found during beta validation"}
+      "Verify Dev Projects page loads correctly",
+      "Add Stage column to other project MILESTONES.md files",
+      "Scan other pages for same Zustand selector-filter pattern"
     ],
-    "blockers": [
-      "B-06: Render deploys from stale master branch — user must switch to main",
-      "PR #3 awaits human approval"
-    ],
-    "context_notes": "Repo has both master and main branches. main is the real default with all M1-M5 code. master only has baseline + governance overlay. Render service ID: srv-d5ookjggjchc73aitsq0. NEVER use bg-opacity-* in TW4 — use slash syntax."
+    "blockers": [],
+    "context_notes": "761 tests (0 failures). TypeScript clean. Build successful. 4 commits on sandbox."
   },
   "metadata": {
     "schema_version": "1.0.0",
-    "checkpoint_sequence": 12,
-    "parent_checkpoint": "2026-02-01T054000_tw4opacity",
-    "tags": ["render-deploy", "ts-fix", "branch-mismatch", "session-11"]
+    "checkpoint_sequence": 8,
+    "parent_checkpoint": "2026-02-14T093000_security-remediation-complete",
+    "tags": ["feature", "multi-stage", "ship-gate", "bugfix", "rxdb", "infinite-loop"]
   }
 }

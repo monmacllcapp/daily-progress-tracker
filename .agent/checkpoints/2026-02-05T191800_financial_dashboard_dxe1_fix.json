@@ -1,0 +1,70 @@
+{
+  "checkpoint_id": "2026-02-05T191800_financial_dashboard_dxe1_fix",
+  "timestamp": "2026-02-05T19:18:00Z",
+  "agent": {
+    "model": "claude-opus-4-6",
+    "provider": "anthropic",
+    "session_id": "5052c1c8-5ed8-4268-8b22-5086c342a455"
+  },
+  "session": {
+    "project": "daily-progress-tracker",
+    "goal": "Implement Financial Dashboard widget with Plaid integration",
+    "branch": "feature/financial-dashboard",
+    "working_directory": "/Users/mac/daily-progress-tracker"
+  },
+  "changes": {
+    "summary": "Full Financial Dashboard implementation complete. Fixed RxDB DXE1 error — removed optional plaid_item_id from financialAccountSchema indexes (Dexie adapter requires indexed fields to be in required array). Also removed unused Filter icon import from FinancialDashboard.tsx and unused MerchantGroup interface from financial-analysis.ts.",
+    "files_modified": [
+      "src/types/schema.ts",
+      "src/db/index.ts",
+      "supabase/schema.sql",
+      "src/services/plaid.ts",
+      "src/services/financial-analysis.ts",
+      "supabase/functions/create-link-token/index.ts",
+      "supabase/functions/exchange-token/index.ts",
+      "supabase/functions/sync-transactions/index.ts",
+      "supabase/functions/webhook-handler/index.ts",
+      "src/components/FinancialDashboard.tsx",
+      "src/pages/FinancialPage.tsx",
+      "src/config/widgetRegistry.ts",
+      "src/config/iconRegistry.ts",
+      "src/types/sidebar.ts",
+      "src/App.tsx",
+      ".env.example",
+      "src/services/__tests__/financial-analysis.test.ts",
+      "src/services/__tests__/plaid.test.ts"
+    ],
+    "decisions_made": [
+      "Followed StaffingDashboard pattern exactly: compact widget + page mode via pageMode prop",
+      "4 RxDB schemas with version 0, Supabase replication enabled",
+      "Plaid access tokens stored server-side only (plaid_items table with RLS)",
+      "Transaction categorization: rule-based with CATEGORY_RULES map, AI fallback via Gemini",
+      "Subscription detection: algorithmic (group by merchant, detect frequency from date gaps)",
+      "Modals use createPortal to document.body (outside AnimatePresence per project pattern)",
+      "Edge functions use Deno runtime with CORS headers",
+      "Removed plaid_item_id from financialAccountSchema indexes — Dexie adapter requires indexed fields be in required array, but plaid_item_id is optional"
+    ]
+  },
+  "continuation": {
+    "status": "complete",
+    "next_immediate_step": {
+      "action": "Create PR for feature/financial-dashboard",
+      "details": "All code is on feature/financial-dashboard branch. Commit changes and open PR to sandbox."
+    },
+    "next_three_steps": [
+      "Commit all changes on feature/financial-dashboard",
+      "Create PR to sandbox branch via gh pr create",
+      "Set up Plaid sandbox credentials in Supabase secrets for testing"
+    ],
+    "blockers": [
+      "npm run build fails due to pre-existing tsc errors in StaffingDashboard.tsx, staffing-data.ts, server/headless-unsubscribe.ts — not caused by this work"
+    ],
+    "context_notes": "38 new tests all pass. tsc --noEmit clean. DXE1 runtime error fixed by removing optional field from index. User may need to clear IndexedDB in browser if old schema cached."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 2,
+    "parent_checkpoint": "2026-02-05T191500_financial_dashboard_complete",
+    "tags": ["financial-dashboard", "plaid", "bugfix", "dxe1"]
+  }
+}

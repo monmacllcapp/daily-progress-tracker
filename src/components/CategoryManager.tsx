@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Pencil, Trash2, Check, X, GripVertical, ChevronDown, ChevronRight,
     Target, ArrowUp, ArrowDown
 } from 'lucide-react';
-import { createDatabase } from '../db';
-import type { TitanDatabase } from '../db';
 import type { Category, Task, Project, SubTask } from '../types/schema';
 import { ICON_OPTIONS } from '../utils/icon-utils';
 import { CategoryIcon } from './CategoryIcon';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 const COLOR_PRESETS = [
     '#F59E0B', '#3B82F6', '#8B5CF6', '#6366F1', '#10B981',
@@ -164,11 +164,11 @@ function FormFields({
 // --- Main component ---
 
 export function CategoryManager() {
-    const [db, setDb] = useState<TitanDatabase | null>(null);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [subtasks, setSubtasks] = useState<SubTask[]>([]);
+    const [db] = useDatabase();
+    const [categories] = useRxQuery<Category>(db?.categories, { sort: [{ sort_order: 'asc' }] });
+    const [tasks] = useRxQuery<Task>(db?.tasks);
+    const [projects] = useRxQuery<Project>(db?.projects);
+    const [subtasks] = useRxQuery<SubTask>(db?.sub_tasks);
 
     // UI state
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -186,27 +186,6 @@ export function CategoryManager() {
     // Milestone creation
     const [newMilestoneName, setNewMilestoneName] = useState('');
     const [creatingMilestoneForProject, setCreatingMilestoneForProject] = useState<string | null>(null);
-
-    useEffect(() => {
-        const init = async () => {
-            const database = await createDatabase();
-            setDb(database);
-
-            database.categories.find({ sort: [{ sort_order: 'asc' }] }).$.subscribe(docs => {
-                setCategories(docs.map(d => d.toJSON() as Category));
-            });
-            database.tasks.find().$.subscribe(docs => {
-                setTasks(docs.map(d => d.toJSON() as Task));
-            });
-            database.projects.find().$.subscribe(docs => {
-                setProjects(docs.map(d => d.toJSON() as Project));
-            });
-            database.sub_tasks.find().$.subscribe(docs => {
-                setSubtasks(docs.map(d => d.toJSON() as SubTask));
-            });
-        };
-        init();
-    }, []);
 
     const handleCreate = async () => {
         if (!db || !formName.trim()) return;
@@ -330,7 +309,7 @@ export function CategoryManager() {
     };
 
     return (
-        <div className="h-full w-full flex flex-col p-4 overflow-y-auto">
+        <div className="w-full flex flex-col p-4">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold">Life Categories</h3>
                 {!showCreate && !editingId && (

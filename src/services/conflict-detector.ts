@@ -1,6 +1,7 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateContent, isOllamaConfigured } from './ollama-client';
 import type { GoogleCalendarEvent as CalendarEvent } from './google-calendar';
 import type { Project } from '../types/schema';
+import { sanitizeForPrompt } from '../utils/sanitize-prompt';
 
 export interface Conflict {
     type: 'overlap' | 'back-to-back' | 'overbooked';
@@ -11,12 +12,9 @@ export interface Conflict {
 }
 
 export class ConflictDetector {
-    private genAI: GoogleGenerativeAI | null = null;
-
-    constructor(apiKey?: string) {
-        if (apiKey) {
-            this.genAI = new GoogleGenerativeAI(apiKey);
-        }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    constructor(_apiKey?: string) {
+        // apiKey no longer needed; AI is handled by the shared Ollama client
     }
 
     /**
@@ -145,7 +143,7 @@ export class ConflictDetector {
         project: Project,
         conflictingEvent: CalendarEvent
     ): Promise<{ suggestion: string; explanation: string }> {
-        if (!this.genAI) {
+        if (!isOllamaConfigured()) {
             return {
                 suggestion: 'Move to next available time slot',
                 explanation: 'This project conflicts with an existing event.',
@@ -153,19 +151,17 @@ export class ConflictDetector {
         }
 
         try {
-            const model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
-
             const prompt = `
 You are a scheduling assistant. A user is trying to schedule a project that conflicts with an existing calendar event.
 
 New Project:
-- Title: ${project.title}
-- Purpose: ${project.motivation_payload.why}
+- Title: ${sanitizeForPrompt(project.title, 200)}
+- Purpose: ${sanitizeForPrompt(project.motivation_payload.why, 300)}
 - Estimated Duration: ${project.metrics.total_time_estimated} minutes
 - Priority: ${project.priority || 'medium'}
 
 Conflicting Event:
-- Title: ${conflictingEvent.summary}
+- Title: ${sanitizeForPrompt(conflictingEvent.summary, 200)}
 - Start: ${conflictingEvent.start.dateTime}
 - End: ${conflictingEvent.end.dateTime}
 
@@ -180,9 +176,7 @@ Format your response as JSON:
 }
 `;
 
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            const text = await generateContent(prompt);
 
             // Parse JSON response
             const parsed = JSON.parse(text);

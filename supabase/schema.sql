@@ -184,3 +184,217 @@ CREATE POLICY "Users can manage their own stressor milestones" ON stressor_miles
 -- Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE stressors;
 ALTER PUBLICATION supabase_realtime ADD TABLE stressor_milestones;
+
+-- ============================================================
+-- Staffing Pipeline Tables (RxDB-synced, no RLS — admin app)
+-- ============================================================
+
+-- Staff Members
+CREATE TABLE staff_members (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  pay_type TEXT NOT NULL,
+  base_rate NUMERIC NOT NULL DEFAULT 0,
+  payment_method TEXT,
+  hubstaff_user_id TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Staff Pay Periods
+CREATE TABLE staff_pay_periods (
+  id TEXT PRIMARY KEY,
+  staff_id TEXT NOT NULL,
+  period_start TEXT NOT NULL,
+  period_end TEXT NOT NULL,
+  base_pay NUMERIC NOT NULL DEFAULT 0,
+  total_pay NUMERIC NOT NULL DEFAULT 0,
+  is_paid BOOLEAN NOT NULL DEFAULT false,
+  notes TEXT,
+  hours_worked NUMERIC,
+  activity_pct NUMERIC,
+  bonus NUMERIC,
+  holiday_pay NUMERIC,
+  num_leads INTEGER,
+  num_passes INTEGER,
+  cost_per_lead NUMERIC,
+  lists_added INTEGER,
+  num_recs_added INTEGER,
+  dials INTEGER,
+  convos INTEGER,
+  quality_convos INTEGER,
+  lead_to_acq NUMERIC,
+  calls_processed INTEGER,
+  underwrote INTEGER,
+  apt_set INTEGER,
+  apt_met INTEGER,
+  offers_made INTEGER,
+  offers_accepted INTEGER,
+  offers_rejected INTEGER,
+  deals_closed INTEGER,
+  deals_fellthrough INTEGER,
+  commission NUMERIC,
+  hubstaff_synced_at TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Staff Expenses
+CREATE TABLE staff_expenses (
+  id TEXT PRIMARY KEY,
+  date TEXT NOT NULL,
+  category TEXT NOT NULL,
+  vendor TEXT NOT NULL,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  channel TEXT,
+  leads_generated INTEGER,
+  cost_per_lead NUMERIC,
+  month TEXT NOT NULL,
+  notes TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Staff KPI Summaries
+CREATE TABLE staff_kpi_summaries (
+  id TEXT PRIMARY KEY,
+  month TEXT NOT NULL,
+  total_staff_cost NUMERIC NOT NULL DEFAULT 0,
+  total_platform_cost NUMERIC NOT NULL DEFAULT 0,
+  total_marketing_spend NUMERIC NOT NULL DEFAULT 0,
+  total_burn NUMERIC NOT NULL DEFAULT 0,
+  total_leads INTEGER NOT NULL DEFAULT 0,
+  avg_cost_per_lead NUMERIC NOT NULL DEFAULT 0,
+  staff_breakdown TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Enable realtime for staffing tables (RxDB replication)
+ALTER PUBLICATION supabase_realtime ADD TABLE staff_members;
+ALTER PUBLICATION supabase_realtime ADD TABLE staff_pay_periods;
+ALTER PUBLICATION supabase_realtime ADD TABLE staff_expenses;
+ALTER PUBLICATION supabase_realtime ADD TABLE staff_kpi_summaries;
+
+-- ============================================================
+-- Financial Dashboard Tables (RxDB-synced, no RLS — admin app)
+-- ============================================================
+
+-- Financial Accounts
+CREATE TABLE financial_accounts (
+  id TEXT PRIMARY KEY,
+  plaid_account_id TEXT,
+  plaid_item_id TEXT,
+  institution_name TEXT NOT NULL,
+  account_name TEXT NOT NULL,
+  account_type TEXT NOT NULL,
+  account_scope TEXT NOT NULL,
+  mask TEXT,
+  current_balance NUMERIC NOT NULL DEFAULT 0,
+  available_balance NUMERIC,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  last_synced_at TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Financial Transactions
+CREATE TABLE financial_transactions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  plaid_transaction_id TEXT,
+  date TEXT NOT NULL,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  name TEXT NOT NULL,
+  merchant_name TEXT,
+  category TEXT NOT NULL DEFAULT 'other',
+  plaid_category TEXT,
+  scope TEXT NOT NULL DEFAULT 'personal',
+  is_recurring BOOLEAN NOT NULL DEFAULT false,
+  is_subscription BOOLEAN NOT NULL DEFAULT false,
+  pending BOOLEAN NOT NULL DEFAULT false,
+  month TEXT NOT NULL,
+  notes TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Financial Subscriptions
+CREATE TABLE financial_subscriptions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT,
+  merchant_name TEXT NOT NULL,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  frequency TEXT NOT NULL DEFAULT 'monthly',
+  category TEXT NOT NULL DEFAULT 'subscription',
+  scope TEXT NOT NULL DEFAULT 'personal',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  last_charge_date TEXT,
+  last_used_date TEXT,
+  next_expected_date TEXT,
+  flagged_unused BOOLEAN NOT NULL DEFAULT false,
+  notes TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Financial Monthly Summaries
+CREATE TABLE financial_monthly_summaries (
+  id TEXT PRIMARY KEY,
+  month TEXT NOT NULL,
+  total_income NUMERIC NOT NULL DEFAULT 0,
+  total_expenses NUMERIC NOT NULL DEFAULT 0,
+  net_cash_flow NUMERIC NOT NULL DEFAULT 0,
+  business_income NUMERIC NOT NULL DEFAULT 0,
+  business_expenses NUMERIC NOT NULL DEFAULT 0,
+  personal_income NUMERIC NOT NULL DEFAULT 0,
+  personal_expenses NUMERIC NOT NULL DEFAULT 0,
+  subscription_burn NUMERIC NOT NULL DEFAULT 0,
+  top_categories TEXT,
+  ai_insights TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- Plaid Items (access tokens — RLS enabled, zero policies, only Edge Functions with service_role can access)
+CREATE TABLE plaid_items (
+  id TEXT PRIMARY KEY,
+  access_token TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  institution_name TEXT,
+  cursor TEXT,
+  error_code TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+ALTER TABLE plaid_items ENABLE ROW LEVEL SECURITY;
+
+-- Enable realtime for financial tables (RxDB replication)
+ALTER PUBLICATION supabase_realtime ADD TABLE financial_accounts;
+ALTER PUBLICATION supabase_realtime ADD TABLE financial_transactions;
+ALTER PUBLICATION supabase_realtime ADD TABLE financial_subscriptions;
+ALTER PUBLICATION supabase_realtime ADD TABLE financial_monthly_summaries;
+
+-- ============================================================
+-- Agent Status Tracking (Alpha AI — OpenClaw agents)
+-- ============================================================
+
+CREATE TABLE agent_status (
+  id TEXT PRIMARY KEY,                -- matches OpenClaw agent id
+  agent_name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'idle', -- idle, working, error, offline
+  current_task TEXT,
+  last_activity TIMESTAMPTZ DEFAULT now(),
+  model TEXT,
+  metadata JSONB DEFAULT '{}'::JSONB,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+-- No RLS — this is an admin/agent-only table
+-- Enable realtime for dashboard polling
+ALTER PUBLICATION supabase_realtime ADD TABLE agent_status;

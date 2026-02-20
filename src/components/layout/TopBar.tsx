@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useSidebarStore } from './SidebarStore';
+import { LevelBadge } from '../LevelBadge';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -10,12 +11,22 @@ const PAGE_TITLES: Record<string, string> = {
   '/life': 'Wheel of Life',
   '/journal': 'Journal',
   '/projects': 'Projects',
+  '/command-center': 'Command Center',
+  '/deals': 'Deals Pipeline',
+  '/trading': 'Trading Dashboard',
+  '/family': 'Family Hub',
+  '/finance': 'Financial Overview',
+  '/morning': 'Morning Flow',
+  '/staffing': 'Staffing KPIs',
+  '/categories': 'Life Categories',
+  '/vision': 'Vision Board',
+  '/dev-projects': 'Dev Intelligence',
 };
 
 export function TopBar() {
   const location = useLocation();
   const { setMobileOpen } = useSidebarStore();
-  const title = PAGE_TITLES[location.pathname] ?? 'Titan';
+  const title = PAGE_TITLES[location.pathname] ?? 'Maple';
 
   return (
     <header className="glass-topbar h-16 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20 shrink-0">
@@ -28,6 +39,7 @@ export function TopBar() {
         </button>
         <h2 className="text-lg font-semibold text-white">{title}</h2>
       </div>
+      <LevelBadge />
     </header>
   );
 }

@@ -1,0 +1,50 @@
+{
+  "checkpoint_id": "2026-02-13T143640_ai_services_created",
+  "timestamp": "2026-02-13T14:36:40Z",
+  "agent": {
+    "model": "claude-sonnet-4-5",
+    "provider": "anthropic",
+    "session_id": "v2-wave-1b-ai-services"
+  },
+  "session": {
+    "project": "MAPLE Life OS V2",
+    "goal": "Session 2 (partial) — Create Claude Client + AI Service",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Created Claude API client + unified AI service with 3-layer fallback (Claude → Gemini → rules)",
+    "files_modified": [
+      "src/services/ai/claude-client.ts",
+      "src/services/ai/ai-service.ts"
+    ],
+    "decisions_made": [
+      "ClaudeClient calls through MCP proxy (http://localhost:3100) — NOT direct to Anthropic (CORS)",
+      "60s timeout on Claude requests, 3s timeout on health checks",
+      "JSON extraction handles markdown code blocks with regex fallback",
+      "ai-service.ts provides 3-layer fallback: Claude (preferred) → Gemini → null",
+      "Provider detection: Claude availability check first, then Gemini API key, then rules",
+      "All errors caught and logged with console.warn — graceful degradation"
+    ]
+  },
+  "continuation": {
+    "status": "in_progress",
+    "next_immediate_step": {
+      "action": "Continue Session 2 — Create MCP Bridge + Config + Proxy Script",
+      "details": "Create src/services/mcp/mcp-bridge.ts, mcp-config.ts, scripts/mcp-proxy.ts. Install @anthropic-ai/sdk + eventsource-parser. Write ~24 tests."
+    },
+    "next_three_steps": [
+      "Complete Session 2: MCP Bridge + Config + Proxy (3 more files, ~24 tests)",
+      "Session 3: Intelligence Services Part 1 (6 services, ~36 tests)",
+      "Session 4: Intelligence Services Part 2 + MCP Adapters (5 services + 7 adapters, ~32 tests)"
+    ],
+    "blockers": [],
+    "context_notes": "340 tests passing (312 V1 + 28 V2). TypeScript compilation verified. Claude client uses proxy for CORS avoidance. AI service integrates with existing Gemini ai-advisor.ts."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 2,
+    "parent_checkpoint": "2026-02-13T144500_session1_complete",
+    "tags": ["v2-wave-1b", "ai-services", "claude-client"]
+  }
+}

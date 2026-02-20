@@ -1,0 +1,56 @@
+{
+  "checkpoint_id": "2026-02-13T144018_mcp_ai_tests",
+  "timestamp": "2026-02-13T14:40:18Z",
+  "agent": {
+    "model": "claude-sonnet-4-5",
+    "provider": "anthropic",
+    "session_id": "v2-wave-1b-tests"
+  },
+  "session": {
+    "project": "MAPLE Life OS V2",
+    "goal": "Create test files for MCP and AI services",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Created 3 test files with 24 tests total covering MCP bridge, Claude client, and AI service. All tests pass, bringing total to 365 tests across 28 test files.",
+    "files_created": [
+      "src/services/mcp/__tests__/mcp-bridge.test.ts",
+      "src/services/ai/__tests__/claude-client.test.ts",
+      "src/services/ai/__tests__/ai-service.test.ts"
+    ],
+    "decisions_made": [
+      "Used vi.stubGlobal() to mock fetch and EventSource globally for MCP bridge tests",
+      "Used vi.mocked() for type-safe mock handling in ai-service tests",
+      "Mocked the mcpStore using useMcpStore.setState() for state reset between tests",
+      "Tested mcp-config helper functions separately from McpBridge class",
+      "Covered both success and error paths for all network operations"
+    ]
+  },
+  "test_results": {
+    "total_files": 28,
+    "total_tests": 365,
+    "new_tests": 24,
+    "status": "all passing"
+  },
+  "continuation": {
+    "status": "complete",
+    "next_immediate_step": {
+      "action": "Tests complete. Ready for next user request.",
+      "details": "All MCP and AI service tests passing. V2 foundation fully tested."
+    },
+    "next_three_steps": [
+      "Await user direction for V2 implementation",
+      "Consider integration tests for MCP proxy server",
+      "Consider E2E tests for AI advisor features"
+    ],
+    "blockers": [],
+    "context_notes": "365 tests passing (312 V1 + 53 V2). All MCP/AI services have corresponding test coverage. Test patterns established for mocking fetch, EventSource, and module dependencies."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 3,
+    "parent_checkpoint": "2026-02-13T143640_ai_services_created",
+    "tags": ["v2-wave-1b", "tests", "mcp-bridge", "claude-client", "ai-service"]
+  }
+}

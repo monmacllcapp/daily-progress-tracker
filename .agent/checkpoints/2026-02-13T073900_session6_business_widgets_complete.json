@@ -1,0 +1,63 @@
+{
+  "checkpoint_id": "2026-02-13T073900_session6_business_widgets_complete",
+  "timestamp": "2026-02-13T07:39:00Z",
+  "agent": {
+    "model": "claude-sonnet-4-5",
+    "provider": "anthropic",
+    "session_id": "v2-session-6-business-widgets"
+  },
+  "session": {
+    "project": "MAPLE Life OS V2",
+    "goal": "Session 6 COMPLETE — 4 business intelligence widgets + comprehensive tests",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Created 4 business intelligence widgets (DealAnalyzer, TradingDashboard, BusinessKPIs, FinancialOverview) with comprehensive test suite (18 tests). All widgets are presentational components using Tailwind dark theme and lucide-react icons. Total test count: 543 tests (all passing).",
+    "files_modified": [
+      "src/components/v2/DealAnalyzer.tsx",
+      "src/components/v2/TradingDashboard.tsx",
+      "src/components/v2/BusinessKPIs.tsx",
+      "src/components/v2/FinancialOverview.tsx",
+      "src/components/v2/__tests__/BusinessWidgets.test.tsx"
+    ],
+    "decisions_made": [
+      "DealAnalyzer (126 LOC): Shows real estate deal pipeline with active deals count, total pipeline value, under contract count. Displays up to 5 deals with address, city/state, strategy, status badges (color-coded), and purchase price. Filters out closed/dead deals automatically",
+      "TradingDashboard (138 LOC): Portfolio snapshot widget showing total equity, day P&L (with color coding), cash/buying power, positions count, total P&L. Displays top 5 positions with symbol, quantity, and P&L. Calculates day P&L percentage automatically",
+      "BusinessKPIs (141 LOC): Overview of business health showing active signals by severity (critical/urgent/attention/info with color-coded cards) and deal pipeline status breakdown (prospect/analyzing/offer/under_contract). Filters out dismissed signals automatically",
+      "FinancialOverview (149 LOC): Combined financial view showing net worth (portfolio equity + deal pipeline value), portfolio allocation (cash vs positions percentage), and deal pipeline breakdown by strategy (flip/brrrr/rental/wholesale). Handles missing portfolio or deals gracefully",
+      "Test coverage (254 LOC, 18 tests): Created factory helpers (makeDeal, makeSnapshot, makeSignal) with sensible defaults + overrides. Tests cover loading states, empty states, data rendering, calculations, color coding, and edge cases",
+      "All components follow consistent patterns: named exports, dark theme (bg-slate-900/50, text-white, text-slate-300), lucide-react icons, presentational (receive data via props, no fetching), responsive grid layouts"
+    ]
+  },
+  "test_results": {
+    "total_files": 45,
+    "total_tests": 543,
+    "v1_tests": 312,
+    "v2_tests": 231,
+    "status": "all passing",
+    "new_tests_this_session": [
+      "BusinessWidgets.test.tsx: 18 tests (5 DealAnalyzer, 5 TradingDashboard, 4 BusinessKPIs, 4 FinancialOverview)"
+    ]
+  },
+  "continuation": {
+    "status": "session-6-complete",
+    "next_immediate_step": {
+      "action": "Update project scorecard and prepare for Session 7",
+      "details": "Session 6 complete with 4 business intelligence widgets + 18 tests. Next: Session 7 would focus on dashboard composition and integration - wiring up widgets to V2 dashboard pages with real data from stores and services."
+    },
+    "next_three_steps": [
+      "Update scorecard/milestones for Session 6 completion",
+      "Plan Session 7: Dashboard composition - create V2 dashboard page components that wire up widgets to signalStore, mcpStore, and intelligence services",
+      "Plan Session 8: Integration polish - connect anticipation engine, add keyboard shortcuts, implement full data flow from MCP → intelligence → signals → widgets"
+    ],
+    "blockers": [],
+    "context_notes": "543 tests passing (312 V1 + 231 V2). TypeScript compiles clean. All Session 6 widgets complete. V2 architecture: 11 intelligence services, 7 MCP adapters, 2 stores, 2 AI services, 7 widgets (3 core + 4 business). Ready for dashboard composition phase."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 10,
+    "parent_checkpoint": "2026-02-13T153300_session5_command_palette_widget",
+    "tags": ["v2-wave-2b", "session-6-complete", "business-widgets-complete", "543-tests"]
+  }
+}

@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { createDatabase } from '../db';
 import { createTask } from '../services/task-rollover';
 import { Sparkles, Target, Zap, ArrowRight, ArrowLeft, FolderOpen, Eye } from 'lucide-react';
 import { DatePicker } from './DatePicker';
 import type { Category, VisionBoard } from '../types/schema';
+import { useDatabase } from '../hooks/useDatabase';
+import { useRxQuery } from '../hooks/useRxQuery';
 
 interface SubTaskInput {
     id: string;
@@ -22,6 +23,9 @@ interface RPMWizardProps {
 
 export function RPMWizard({ onClose }: RPMWizardProps) {
     const navigate = useNavigate();
+    const [db] = useDatabase();
+    const [categories] = useRxQuery<Category>(db?.categories);
+    const [visions] = useRxQuery<VisionBoard>(db?.vision_board);
     const [currentSlide, setCurrentSlide] = useState(0);
 
     // Form state
@@ -33,21 +37,6 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
     ]);
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [selectedVision, setSelectedVision] = useState<string>('');
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [visions, setVisions] = useState<VisionBoard[]>([]);
-
-    useEffect(() => {
-        const loadData = async () => {
-            const db = await createDatabase();
-            db.categories.find().$.subscribe(docs => {
-                setCategories(docs.map(d => d.toJSON() as Category));
-            });
-            db.vision_board.find().$.subscribe(docs => {
-                setVisions(docs.map(d => d.toJSON() as VisionBoard));
-            });
-        };
-        loadData();
-    }, []);
 
     const canProceedFromSlide = (slide: number): boolean => {
         if (slide === 0) return result.trim().length > 0;
@@ -92,8 +81,13 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
         console.log('[RPM Wizard] Ignite Project clicked');
         console.log('[RPM Wizard] Form data:', { result, purpose, subtasks, dueDate });
 
+        if (!db) {
+            console.error('[RPM Wizard] Database not initialized');
+            alert('Database not ready. Please wait a moment and try again.');
+            return;
+        }
+
         try {
-            const db = await createDatabase();
             const projectId = uuidv4();
             const now = new Date().toISOString();
 
@@ -213,6 +207,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                 value={result}
                 onChange={(e) => setResult(e.target.value)}
                 placeholder="e.g., Launch MVP of my SaaS product"
+                maxLength={500}
                 className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 autoFocus
             />
@@ -270,6 +265,7 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
                 placeholder="This matters because..."
+                maxLength={500}
                 rows={6}
                 className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all resize-none"
                 autoFocus
@@ -307,16 +303,20 @@ export function RPMWizard({ onClose }: RPMWizardProps) {
                             value={st.title}
                             onChange={(e) => updateSubtask(st.id, 'title', e.target.value)}
                             placeholder="Milestone title"
+                            maxLength={300}
                             className="flex-1 px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm"
                         />
                         <input
-                            type="text"
+                            type="number"
                             inputMode="numeric"
                             value={st.time_estimate_minutes}
                             onChange={(e) => {
                                 const value = e.target.value.replace(/^0+/, '') || '0';
-                                updateSubtask(st.id, 'time_estimate_minutes', parseInt(value) || 0);
+                                const numValue = parseInt(value) || 0;
+                                updateSubtask(st.id, 'time_estimate_minutes', Math.min(Math.max(numValue, 1), 10000));
                             }}
+                            min={1}
+                            max={10000}
                             className="w-14 px-2 py-2.5 bg-white/5 border border-white/10 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
                         />
                         <select

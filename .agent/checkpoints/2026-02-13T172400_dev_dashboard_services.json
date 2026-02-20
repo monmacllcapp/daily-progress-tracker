@@ -1,0 +1,50 @@
+{
+  "checkpoint_id": "2026-02-13T172400_dev_dashboard_services",
+  "timestamp": "2026-02-13T17:24:00Z",
+  "agent": {
+    "model": "sonnet-4.5",
+    "provider": "anthropic",
+    "session_id": "70dd80cb-9fdd-487f-a1d4-85765ee892da"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "Create Dev Intelligence Dashboard services and store",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Created GitHub Projects service and Zustand store for Dev Intelligence Dashboard — fetches project health across 5 repos (branches, PRs, milestones, North Star, session status, commits)",
+    "files_modified": [
+      "src/services/github-projects.ts",
+      "src/store/devProjectsStore.ts"
+    ],
+    "decisions_made": [
+      "GitHub REST API integration with optional PAT auth (VITE_GITHUB_PAT)",
+      "Tracked 5 repos: titan-trinity-core, maple-docs, maple-underwriter, maple-360, daily-progress-tracker",
+      "Branch health = exactly 2 branches (main + feature)",
+      "Parses MILESTONES.md table, HANDOFF.md sections, NORTH_STAR.md",
+      "Zustand store with fetchAll, fetchProject, and auto-refresh support",
+      "Error handling: individual project failures don't break the entire fetch"
+    ]
+  },
+  "continuation": {
+    "status": "complete",
+    "next_immediate_step": {
+      "action": "Create Dev Intelligence Dashboard UI component",
+      "details": "Build React component that uses useDevProjectsStore to display project health cards, branch status, open PRs, milestones, and session state"
+    },
+    "next_three_steps": [
+      "Create DevDashboard.tsx component with project health cards",
+      "Add dashboard widget registration to widget system",
+      "Test with actual GitHub repos and PAT"
+    ],
+    "blockers": [],
+    "context_notes": "Services and store are TypeScript-clean (tsc --noEmit passes). Ready for UI component integration. Follows project patterns (Zustand create pattern, service error handling, no default exports)."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 1,
+    "parent_checkpoint": "2026-02-13T170939_autocompact",
+    "tags": ["dev-dashboard", "github-api", "zustand", "services"]
+  }
+}

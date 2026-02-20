@@ -1,0 +1,67 @@
+{
+  "checkpoint_id": "2026-02-14T080000_full-intelligence-wiring",
+  "timestamp": "2026-02-14T08:00:00Z",
+  "agent": {
+    "model": "claude-opus-4-6",
+    "provider": "anthropic",
+    "session_id": "current"
+  },
+  "session": {
+    "project": "Daily Progress Tracker (MAPLE Life OS)",
+    "goal": "Wire all pages and widgets to the 3-tier learning intelligence layer",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Fixed critical anticipationWorker.setDatabase() bug in App.tsx, added signal props to 3 widgets, wired 14 pages to the signal store with domain/type filtering",
+    "files_modified": [
+      "src/App.tsx",
+      "src/components/v2/TradingDashboard.tsx",
+      "src/components/v2/DealAnalyzer.tsx",
+      "src/components/v2/FinancialOverview.tsx",
+      "src/pages/TradingPage.tsx",
+      "src/pages/DealsPage.tsx",
+      "src/pages/FinancePage.tsx",
+      "src/pages/FinancialPage.tsx",
+      "src/pages/FamilyPage.tsx",
+      "src/pages/LifePage.tsx",
+      "src/pages/TasksPage.tsx",
+      "src/pages/EmailPage.tsx",
+      "src/pages/DashboardPage.tsx",
+      "src/pages/CalendarPage.tsx",
+      "src/pages/DevProjectsPage.tsx",
+      "src/pages/ProjectsPage.tsx",
+      "src/pages/StaffingPage.tsx",
+      "src/pages/JournalPage.tsx"
+    ],
+    "decisions_made": [
+      "Fixed critical bug: anticipationWorker.setDatabase(database) was never called — learning cycle was dead code",
+      "Domain-based filtering for pages with domain widgets (e.g., business_trading, business_re, finance, family)",
+      "Type-based filtering for cross-domain pages (Tasks: deadline/follow_up/streak, Email: aging_email, Calendar: conflict/context_switch)",
+      "Urgent signals banner on Dashboard (critical/urgent severity only, max 3)",
+      "Dual SignalFeed on LifePage for health_fitness and personal_growth domains",
+      "All signal sections render conditionally — no empty states shown",
+      "Skipped VisionPage, CategoriesPage, MorningFlowPage (low signal relevance)"
+    ]
+  },
+  "continuation": {
+    "status": "complete",
+    "next_immediate_step": {
+      "action": "Commit all changes",
+      "details": "All work is complete and verified. Commit the full intelligence layer + wiring to sandbox branch."
+    },
+    "next_three_steps": [
+      "Commit all changes to sandbox branch",
+      "Consider PR to main when ready",
+      "Deferred: Intelligence layer for Maple 360 project"
+    ],
+    "blockers": [],
+    "context_notes": "726 tests pass (1 pre-existing failure). TypeScript clean. Production build successful. The full intelligence pipeline is now: data → pattern-learner (hourly) → productivity_patterns → pattern-recognizer + claude-insight (5min) → signals → feedback-loop (hourly) → signal_weights → priority-synthesizer → UI (all pages)."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 2,
+    "parent_checkpoint": "2026-02-14T073000_anticipation-worker-fix-signals",
+    "tags": ["wiring", "signals", "pages", "widgets", "intelligence-layer", "complete"]
+  }
+}

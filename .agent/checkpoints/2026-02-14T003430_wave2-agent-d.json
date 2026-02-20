@@ -1,0 +1,56 @@
+{
+  "checkpoint_id": "2026-02-14T003430_wave2-agent-d",
+  "timestamp": "2026-02-14T00:34:30Z",
+  "agent": {
+    "model": "sonnet-4.5",
+    "provider": "anthropic",
+    "session_id": "wave2-claude-insight"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "MAPLE Life OS Learning Layer Wave 2 Agent D - Claude Insight Engine (Tier 2) and Priority Synthesizer weights integration",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Implemented Claude Insight Engine service (Tier 2 AI-powered insights) and integrated SignalWeight feedback into Priority Synthesizer. Created 2 new files, modified 2 existing files, added 13 tests total.",
+    "files_modified": [
+      "src/services/intelligence/claude-insight-engine.ts (new)",
+      "src/services/intelligence/__tests__/claude-insight-engine.test.ts (new)",
+      "src/services/intelligence/priority-synthesizer.ts",
+      "src/services/intelligence/__tests__/priority-synthesizer.test.ts"
+    ],
+    "decisions_made": [
+      "Claude Insight Engine uses askAIJSON with 3-layer fallback (Claude -> Gemini -> null)",
+      "Insights capped at 3 per generation to avoid overwhelming user",
+      "Dynamic import for ai-service to handle test environments gracefully",
+      "Insights expire after 24h (set expires_at field)",
+      "Skip insight generation if no patterns available (nothing to reason about)",
+      "Parse and validate all AI responses - default invalid severity to 'info', invalid domain to 'personal_growth'",
+      "Weekly digest only includes patterns with >= 0.3 confidence threshold",
+      "Priority Synthesizer now accepts optional SignalWeight[] parameter",
+      "Feedback weights applied AFTER existing scoring logic (severity + time + project boosts)",
+      "applyFeedbackWeights called from feedback-loop service (already implemented)"
+    ]
+  },
+  "continuation": {
+    "status": "completed",
+    "next_immediate_step": {
+      "action": "Wave 2 Agent D complete - all Tier 2 intelligence infrastructure ready",
+      "details": "Claude Insight Engine can now generate proactive insights from productivity patterns. Priority Synthesizer applies learned feedback weights. TypeScript compilation passed. All 22 tests passing (11 new + 11 existing)."
+    },
+    "next_three_steps": [
+      "Wave 2 integration: Connect Claude Insight Engine to anticipation worker pipeline (DONE by Agent E)",
+      "Wave 2 integration: Load SignalWeights from DB and pass to synthesizePriorities (DONE by Agent E)",
+      "Wave 3: Add learned_suggestions to morning brief UI display"
+    ],
+    "blockers": [],
+    "context_notes": "All 4 tasks completed successfully. TypeScript clean. All tests green. Wave 2 Agent E has already integrated these services into the anticipation engine."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 3,
+    "parent_checkpoint": "2026-02-14T001530_wave1-learning-layer",
+    "tags": ["learning-layer", "wave-2", "agent-d", "claude-insight-engine", "priority-synthesizer", "ai-service", "tier-2"]
+  }
+}

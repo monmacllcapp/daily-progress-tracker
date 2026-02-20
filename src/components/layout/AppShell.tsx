@@ -3,12 +3,20 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { useAppLifecycle } from '../../hooks/useAppLifecycle';
+import { useThemeApplicator } from '../../hooks/useThemeApplicator';
 import { Celebration } from '../Celebration';
 import { HealthNudge } from '../HealthNudge';
 import { FeedbackWidget } from '../FeedbackWidget';
+import { PomodoroTimer } from '../PomodoroTimer';
+import { useKeyboardShortcuts, useShortcutHelp } from '../../hooks/useKeyboardShortcuts';
+import { ShortcutHelp } from '../ShortcutHelp';
 
 const PatternInterrupt = lazy(
   () => import('../PatternInterrupt').then((m) => ({ default: m.PatternInterrupt }))
+);
+
+const JarvisChat = lazy(
+  () => import('../JarvisChat').then((m) => ({ default: m.JarvisChat }))
 );
 
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
@@ -46,6 +54,10 @@ export function AppShell() {
     snoozeNudge,
   } = useAppLifecycle();
 
+  useThemeApplicator();
+  const shortcuts = useKeyboardShortcuts();
+  const { isOpen: shortcutHelpOpen, setIsOpen: setShortcutHelpOpen } = useShortcutHelp();
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-background)]">
       <Sidebar />
@@ -61,6 +73,7 @@ export function AppShell() {
       </div>
 
       {/* Global overlays */}
+      <PomodoroTimer />
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
       <Suspense fallback={null}>
@@ -83,6 +96,14 @@ export function AppShell() {
       />
 
       <FeedbackWidget />
+      <Suspense fallback={null}>
+        <JarvisChat />
+      </Suspense>
+      <ShortcutHelp
+        isOpen={shortcutHelpOpen}
+        onClose={() => setShortcutHelpOpen(false)}
+        shortcuts={shortcuts}
+      />
     </div>
   );
 }

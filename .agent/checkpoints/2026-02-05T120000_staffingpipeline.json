@@ -1,0 +1,52 @@
+{
+  "checkpoint_id": "2026-02-05T120000_staffingpipeline",
+  "timestamp": "2026-02-05T12:00:00Z",
+  "agent": {
+    "model": "claude-opus-4-5-20251101",
+    "provider": "anthropic"
+  },
+  "session": {
+    "project": "daily-progress-tracker",
+    "goal": "Implement Supabase Staffing Pipeline: Hubstaff sync, Excel import, dashboard fixes",
+    "branch": "main (no git repo)",
+    "working_directory": "/Users/mac/daily-progress-tracker"
+  },
+  "changes": {
+    "summary": "Built full staffing pipeline: created 4 Supabase tables, fixed Hubstaff API member name fetching, fixed activity % calculation, fixed Excel import (Date objects, column mapping, $regex bug), added pre-import cleanup, fixed invisible import modal (AnimatePresence portal issue), added staff hide/show inactive feature.",
+    "files_modified": [
+      {"path": "src/services/hubstaff.ts", "action": "modified", "description": "Fixed fetchOrgMembers() to enrich via /v2/users/{id}, added HubstaffOrgMember and HubstaffUserDetail types, fixed overall field comment"},
+      {"path": "src/services/staffing-sync.ts", "action": "modified", "description": "Fixed activity % calculation: (totalActivity/totalSecs)*100 instead of totalActivity/days"},
+      {"path": "src/services/staffing-data.ts", "action": "modified", "description": "Added hubstaff_user_id to STAFF_DEFAULTS, fixed parseWeekDate for Date objects, enhanced normalizeColumnName to strip parentheticals, extended column aliases, replaced broken $regex with manual filter, added expense date fallback, added debug logging"},
+      {"path": "src/components/StaffingDashboard.tsx", "action": "modified", "description": "Fixed handleSync error surfacing, fixed handleFileImport with db null check, added pre-import cleanup (staffing collections only), moved import modal outside AnimatePresence, converted to plain div, added staff hide/show inactive feature with useMemo filter"},
+      {"path": "supabase/schema.sql", "action": "modified", "description": "Appended 4 staffing tables (staff_members, staff_pay_periods, staff_expenses, staff_kpi_summaries) + realtime publication"},
+      {"path": ".env", "action": "modified", "description": "Added VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY"}
+    ],
+    "decisions_made": [
+      {"decision": "Replace $regex with manual filter in RxDB Dexie", "rationale": "$regex with RegExp objects matches ALL records in Dexie storage adapter, causing all staff tabs to reuse first staff member ID", "alternatives_considered": ["Use $eq with exact match", "Switch to different query operator"]},
+      {"decision": "Move import modal outside AnimatePresence", "rationale": "AnimatePresence swallowed createPortal renders making modal invisible despite state being true", "alternatives_considered": ["Remove portal entirely", "Use different animation library"]},
+      {"decision": "Pre-import cleanup of 4 staffing collections only", "rationale": "User explicitly said not to lose email layouts and cleaned emails — targeted cleanup prevents data loss while ensuring clean import", "alternatives_considered": ["Full DB reset with ?resetdb", "No cleanup (upsert only)"]},
+      {"decision": "TEXT primary keys in Supabase (not UUID)", "rationale": "Matches RxDB id format — UUIDs for staff, composite {staff_id}_{period_start} for pay periods", "alternatives_considered": ["UUID with mapping layer"]},
+      {"decision": "No FK constraints in Supabase", "rationale": "Prevents replication order issues — RxDB may sync child records before parent", "alternatives_considered": ["FK with deferred constraints"]}
+    ]
+  },
+  "continuation": {
+    "status": "in_progress",
+    "next_immediate_step": {
+      "action": "Verify Hubstaff sync end-to-end",
+      "details": "Click Sync Hubstaff button — Anita now has hubstaff_user_id=3617393 in DB, should pull hours/activity from Hubstaff API and populate pay periods"
+    },
+    "next_three_steps": [
+      {"step_number": 2, "action": "Verify Supabase replication", "details": "Check Supabase Table Editor to confirm staffing data is replicating from RxDB after import"},
+      {"step_number": 3, "action": "Clean up debug logging", "details": "Remove console.log statements added during debugging from StaffingDashboard.tsx and staffing-data.ts"},
+      {"step_number": 4, "action": "Restore import modal animation", "details": "Optionally convert plain div back to motion.div with Framer Motion, keeping it outside AnimatePresence"}
+    ],
+    "blockers": [],
+    "context_notes": "282 tests pass (17 pre-existing failures). tsc clean. Supabase tables created and verified via REST API (HTTP 200). Import modal works but uses plain div instead of motion.div. Staff hide/show feature works — inactive staff dimmed with opacity-50. RxDB $regex with RegExp objects is broken in Dexie adapter — always use manual filter pattern instead."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 12,
+    "parent_checkpoint": "2026-02-04T153000_emailpipeline",
+    "tags": ["supabase-staffing", "hubstaff-sync", "excel-import", "rxdb-regex-bug", "animate-presence-portal", "staff-hide-show"]
+  }
+}

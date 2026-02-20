@@ -1,0 +1,143 @@
+/**
+ * Agent Tracker Service
+ *
+ * Fetches agent status from OpenClaw gateway and agent-assigned tasks from RxDB.
+ * Used by AgentsPage for the full operations dashboard.
+ */
+
+export interface AgentInfo {
+  id: string;
+  name: string;
+  emoji: string;
+  status: 'idle' | 'working' | 'error' | 'offline';
+  currentTask?: string;
+  lastActivity?: string;
+  model?: string;
+  tokensToday?: number;
+  tasksCompleted?: number;
+  avgResponseMs?: number;
+}
+
+export interface AgentTask {
+  id: string;
+  title: string;
+  description?: string;
+  priority: string;
+  status: string;
+  assignedAgent: string;
+  agentStatus: 'pending' | 'in_progress' | 'completed' | 'failed';
+  agentNotes?: string;
+  createdDate: string;
+  source: 'user' | 'agent';  // who created it
+}
+
+export const AGENTS: AgentInfo[] = [
+  { id: 'manager',   name: 'Manager',     emoji: '🎯', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'sales',     name: 'Sales',       emoji: '💰', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'marketing', name: 'Marketing',   emoji: '📣', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'finance',   name: 'Finance',     emoji: '📊', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'support',   name: 'Support',     emoji: '🛟', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'ea-user',   name: 'EA (Quan)',   emoji: '🧑‍💼', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'ea-wife',   name: 'EA (Wife)',   emoji: '👩‍💼', status: 'offline', model: 'llama3.1:latest' },
+  { id: 'reasoner',  name: 'Reasoner',    emoji: '🧠', status: 'offline', model: 'deepseek-r1:8b' },
+];
+
+/** Fetch live agent status from OpenClaw gateway */
+export async function fetchAgentStatus(): Promise<AgentInfo[]> {
+  try {
+    const res = await fetch('/api/openclaw/agents', { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data: AgentInfo[] = await res.json();
+    return AGENTS.map((known) => {
+      const live = data.find((a) => a.id === known.id);
+      return live ? { ...known, ...live } : known;
+    });
+  } catch {
+    return AGENTS; // graceful fallback — all show as offline
+  }
+}
+
+/** Check if OpenClaw gateway is reachable */
+export async function checkGatewayConnection(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/openclaw/agents', { signal: AbortSignal.timeout(5000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get tasks assigned to agents from RxDB database.
+ * Takes the database instance and returns tasks grouped by agent.
+ */
+export async function getAgentTasks(db: any): Promise<Map<string, AgentTask[]>> {
+  const map = new Map<string, AgentTask[]>();
+
+  try {
+    const allTasks = await db.tasks.find().exec();
+    for (const doc of allTasks) {
+      const task = doc.toJSON();
+      if (!task.assigned_agent) continue;
+
+      const agentTask: AgentTask = {
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: task.status,
+        assignedAgent: task.assigned_agent,
+        agentStatus: task.agent_status || 'pending',
+        agentNotes: task.agent_notes,
+        createdDate: task.created_date,
+        source: task.source === 'manual' ? 'user' : 'agent',
+      };
+
+      const existing = map.get(task.assigned_agent) || [];
+      existing.push(agentTask);
+      map.set(task.assigned_agent, existing);
+    }
+  } catch (err) {
+    console.warn('[AgentTracker] Failed to fetch tasks:', err);
+  }
+
+  return map;
+}
+
+/** Get summary stats across all agents */
+export function getAgentStats(agents: AgentInfo[], taskMap: Map<string, AgentTask[]>) {
+  const totalAgents = agents.length;
+  const activeAgents = agents.filter(a => a.status === 'working').length;
+  const onlineAgents = agents.filter(a => a.status !== 'offline').length;
+
+  let totalAssigned = 0;
+  let inProgress = 0;
+  let completedToday = 0;
+  let failed = 0;
+  const today = new Date().toISOString().slice(0, 10);
+
+  for (const tasks of taskMap.values()) {
+    totalAssigned += tasks.length;
+    for (const t of tasks) {
+      if (t.agentStatus === 'in_progress') inProgress++;
+      if (t.agentStatus === 'completed' && t.createdDate === today) completedToday++;
+      if (t.agentStatus === 'failed') failed++;
+    }
+  }
+
+  return { totalAgents, activeAgents, onlineAgents, totalAssigned, inProgress, completedToday, failed };
+}
+
+/** Format relative time string */
+export function formatRelativeTime(iso?: string): string {
+  if (!iso) return 'never';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  if (diffMs < 0) return 'just now';
+  const secs = Math.floor(diffMs / 1000);
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}

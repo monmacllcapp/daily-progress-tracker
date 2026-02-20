@@ -44,21 +44,23 @@ function getHeader(msg: GmailMessage, name: string): string {
  * Fetch a list of recent message IDs from Gmail.
  */
 export async function listMessages(
-    maxResults: number = 20,
-    query: string = 'in:inbox'
-): Promise<Array<{ id: string; threadId: string }>> {
-    if (!isGoogleConnected()) return [];
+    maxResults: number = 100,
+    query: string = 'in:inbox',
+    pageToken?: string
+): Promise<{ messages: Array<{ id: string; threadId: string }>; nextPageToken?: string }> {
+    if (!isGoogleConnected()) return { messages: [] };
 
     const params = new URLSearchParams({
         maxResults: String(maxResults),
         q: query,
     });
+    if (pageToken) params.set('pageToken', pageToken);
 
     const resp = await googleFetch(`${GMAIL_BASE}/messages?${params}`);
     if (!resp.ok) throw new Error(`Gmail list failed: ${resp.status}`);
 
     const data: GmailListResponse = await resp.json();
-    return data.messages || [];
+    return { messages: data.messages || [], nextPageToken: data.nextPageToken };
 }
 
 /**
@@ -80,6 +82,18 @@ export async function archiveMessage(messageId: string): Promise<void> {
         body: JSON.stringify({ removeLabelIds: ['INBOX'] }),
     });
     if (!resp.ok) throw new Error(`Gmail archive failed: ${resp.status}`);
+}
+
+/**
+ * Unarchive a message (re-add INBOX label).
+ */
+export async function unarchiveMessage(messageId: string): Promise<void> {
+    const resp = await googleFetch(`${GMAIL_BASE}/messages/${messageId}/modify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addLabelIds: ['INBOX'] }),
+    });
+    if (!resp.ok) throw new Error(`Gmail unarchive failed: ${resp.status}`);
 }
 
 /**
@@ -128,6 +142,40 @@ export function extractUnsubscribeLink(msg: GmailMessage): string | null {
 }
 
 /**
+ * Send a standalone email (not a reply). Used for mailto-based unsubscribes.
+ * Parses mailto: URIs to extract recipient, subject, and body.
+ */
+export async function sendUnsubscribeEmail(mailto: string): Promise<void> {
+    if (!isGoogleConnected()) throw new Error('Gmail not connected');
+
+    // Parse mailto URI: mailto:addr?subject=X&body=Y
+    const cleaned = mailto.replace(/^mailto:/i, '');
+    const [address, queryString] = cleaned.split('?');
+    const params = new URLSearchParams(queryString || '');
+    const subject = params.get('subject') || 'Unsubscribe';
+    const body = params.get('body') || '';
+
+    const headers = [
+        `To: ${address}`,
+        `Subject: ${subject}`,
+        `Content-Type: text/plain; charset=utf-8`,
+    ];
+
+    const raw = headers.join('\r\n') + '\r\n\r\n' + body;
+    const encoded = btoa(unescape(encodeURIComponent(raw)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+    const resp = await googleFetch(`${GMAIL_BASE}/messages/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw: encoded }),
+    });
+    if (!resp.ok) throw new Error(`Gmail unsubscribe email failed: ${resp.status}`);
+}
+
+/**
  * Sync Gmail inbox to local RxDB.
  * Fetches recent messages and upserts into the emails collection.
  * Returns count of new emails added.
@@ -135,9 +183,10 @@ export function extractUnsubscribeLink(msg: GmailMessage): string | null {
 export async function syncGmailInbox(
     db: TitanDatabase,
     classifyFn: (from: string, subject: string, snippet: string, labels: string[]) => Promise<EmailTier>,
-    maxResults: number = 20
-): Promise<number> {
-    const messageRefs = await listMessages(maxResults);
+    maxResults: number = 100,
+    pageToken?: string
+): Promise<{ newCount: number; nextPageToken?: string }> {
+    const { messages: messageRefs, nextPageToken } = await listMessages(maxResults, 'in:inbox', pageToken);
     let newCount = 0;
 
     for (const ref of messageRefs) {
@@ -157,6 +206,21 @@ export async function syncGmailInbox(
 
         const status: EmailStatus = labels.includes('UNREAD') ? 'unread' : 'read';
 
+        // Extract newsletter headers
+        const listId = getHeader(msg, 'List-ID') || undefined;
+        const listUnsubscribe = getHeader(msg, 'List-Unsubscribe');
+        const listUnsubscribePost = getHeader(msg, 'List-Unsubscribe-Post');
+        let unsubscribeUrl: string | undefined;
+        let unsubscribeMailto: string | undefined;
+        if (listUnsubscribe) {
+            const urlMatch = listUnsubscribe.match(/<(https?:\/\/[^>]+)>/);
+            if (urlMatch) unsubscribeUrl = urlMatch[1];
+            const mailtoMatch = listUnsubscribe.match(/<(mailto:[^>]+)>/);
+            if (mailtoMatch) unsubscribeMailto = mailtoMatch[1];
+        }
+        const unsubscribeOneClick = !!listUnsubscribePost;
+        const isNewsletter = !!(listId || unsubscribeUrl || unsubscribeMailto);
+
         await db.emails.insert({
             id: crypto.randomUUID(),
             gmail_id: ref.id,
@@ -168,6 +232,11 @@ export async function syncGmailInbox(
             status,
             received_at: new Date(parseInt(msg.internalDate)).toISOString(),
             labels,
+            list_id: listId,
+            unsubscribe_url: unsubscribeUrl,
+            unsubscribe_mailto: unsubscribeMailto,
+            unsubscribe_one_click: unsubscribeOneClick,
+            is_newsletter: isNewsletter,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         });
@@ -176,5 +245,15 @@ export async function syncGmailInbox(
     }
 
     console.log(`[Gmail] Synced ${newCount} new emails from inbox`);
-    return newCount;
+    return { newCount, nextPageToken };
+}
+
+/**
+ * Fetch a Gmail thread by ID. Returns the thread with all messages.
+ */
+export async function getThread(threadId: string): Promise<{ messages: Array<{ id: string; labelIds?: string[] }> }> {
+    const { googleFetch } = await import('./google-auth');
+    const res = await googleFetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=metadata&metadataHeaders=labelIds`);
+    if (!res.ok) throw new Error(`Gmail getThread failed: ${res.status}`);
+    return res.json();
 }

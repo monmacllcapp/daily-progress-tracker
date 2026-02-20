@@ -1,0 +1,47 @@
+{
+  "checkpoint_id": "2026-02-13T062400_v2-stores-created",
+  "timestamp": "2026-02-13T06:24:00Z",
+  "agent": {
+    "model": "claude-sonnet-4-5-20250929",
+    "provider": "anthropic",
+    "session_id": "v2-zustand-stores-creation"
+  },
+  "session": {
+    "project": "MAPLE Life OS V2 Upgrade",
+    "goal": "Create V2 Zustand stores (signalStore + mcpStore) following V1 patterns",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Created two new Zustand stores for V2 architecture: signalStore.ts for anticipation engine signals and mcpStore.ts for MCP server connection management. Both follow V1 store patterns using Zustand create() with set/get pattern.",
+    "files_modified": [
+      {"path": "src/store/signalStore.ts", "action": "created", "description": "Zustand store for managing Signal entities from anticipation engine — handles active/urgent filtering, domain/type queries, dismiss/act-on actions, expiry cleanup"},
+      {"path": "src/store/mcpStore.ts", "action": "created", "description": "Zustand store for MCP server connection state — tracks server status, health checks, available tools, proxy running state"}
+    ],
+    "decisions_made": [
+      {"decision": "Used non-persisted stores", "rationale": "Signal and MCP state are ephemeral runtime state, synced from RxDB or health checks — no need for localStorage persistence like theme/dashboard"},
+      {"decision": "Computed getters via get()", "rationale": "Follows V1 dashboardStore pattern — getters call get() internally for fresh state on each invocation"},
+      {"decision": "ISO 8601 timestamps", "rationale": "Consistent with V1 schema.ts pattern for all datetime strings"}
+    ]
+  },
+  "continuation": {
+    "status": "in_progress",
+    "next_immediate_step": {
+      "action": "Integrate V2 types and collections into db/index.ts and schema.ts",
+      "details": "Task #3 — add RxDB collections for signals, deals, portfolio snapshots, family events, anticipation context"
+    },
+    "next_three_steps": [
+      {"step_number": 2, "action": "Write tests for V2 collections and stores", "details": "Task #4 — Vitest tests for signalStore and mcpStore"},
+      {"step_number": 3, "action": "Build V2 widget components", "details": "Create AnticipationSignals and MCPStatusIndicator widgets"},
+      {"step_number": 4, "action": "Wire up anticipation engine service", "details": "Background service that runs anticipation cycle and populates signal store"}
+    ],
+    "blockers": [],
+    "context_notes": "V2 type definitions already exist at src/types/signals.ts and src/types/mcp-types.ts. Both new stores compiled without TypeScript errors. Stack: React 19, TypeScript 5.9, Zustand 5. V1 stores: themeStore (with persist), dashboardStore, pomodoroStore, time-engine."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 17,
+    "parent_checkpoint": "2026-02-04T104500_docs-pr-complete",
+    "tags": ["v2-stores", "zustand", "signals", "mcp", "architecture-upgrade"]
+  }
+}

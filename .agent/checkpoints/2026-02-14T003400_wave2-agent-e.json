@@ -1,0 +1,53 @@
+{
+  "checkpoint_id": "2026-02-14T003400_wave2-agent-e",
+  "timestamp": "2026-02-14T00:34:00Z",
+  "agent": {
+    "model": "sonnet-4.5",
+    "provider": "anthropic",
+    "session_id": "wave2-agent-e"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "MAPLE Life OS Learning Layer Wave 2 Agent E — Integrate Learning Services into Anticipation Engine and Worker",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Integrated claude-insight-engine as 5th detector in anticipation engine, added learning cycle to anticipation worker with hourly pattern learning and feedback weight computation, injected signal weights into context.",
+    "files_modified": [
+      "src/services/intelligence/anticipation-engine.ts",
+      "src/workers/anticipation-worker.ts",
+      "src/services/intelligence/__tests__/anticipation-engine.test.ts"
+    ],
+    "decisions_made": [
+      "Added generateClaudeInsights as 5th detector in anticipation engine with access to historicalPatterns and signals",
+      "Updated synthesizePriorities call to pass context.signalWeights as 3rd parameter",
+      "Added learning cycle to AnticipationWorker that runs hourly (3600000ms)",
+      "Learning cycle dynamically imports pattern-learner and feedback-loop to avoid circular deps",
+      "Cached signal weights in worker state and inject into both contextProvider and fallback context paths",
+      "Added setDatabase() method to worker for dependency injection",
+      "Added cachedWeightsCount to worker status for observability",
+      "Added test to verify claude-insight-engine is included in detector list"
+    ]
+  },
+  "continuation": {
+    "status": "completed",
+    "next_immediate_step": {
+      "action": "Wave 2 Agent E complete — anticipation engine and worker now integrate all learning services",
+      "details": "The anticipation engine now runs 5 detectors (including claude-insight-engine), the worker runs hourly learning cycles (pattern-learner + feedback-loop), and signal weights are injected into context for priority synthesis."
+    },
+    "next_three_steps": [
+      "Wave 3: Integrate learned suggestions into Morning Brief UI",
+      "Wave 4: Build feedback capture UI (signal dismiss/act-on tracking)",
+      "End-to-end testing of full learning loop"
+    ],
+    "blockers": [],
+    "context_notes": "TypeScript compilation passed. All 7 anticipation engine tests pass (including new claude-insight-engine detector test). Learning cycle uses dynamic imports to prevent circular dependencies. Signal weights are cached in worker and passed through to priority synthesis."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 2,
+    "parent_checkpoint": "2026-02-14T001530_wave1-learning-layer",
+    "tags": ["learning-layer", "wave-2", "agent-e", "anticipation-engine", "worker", "integration"]
+  }
+}

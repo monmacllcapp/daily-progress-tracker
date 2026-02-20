@@ -7,10 +7,15 @@ import type { Task, Category, Project } from '../../types/schema';
 describe('AI Advisor — Graceful Degradation', () => {
     beforeEach(() => {
         vi.resetModules();
+        vi.stubEnv('VITE_OLLAMA_BASE_URL', '');
+    });
+
+    afterEach(() => {
+        vi.unstubAllEnvs();
     });
 
     it('categorizeTask returns null when no API key is set', async () => {
-        // import.meta.env.VITE_GEMINI_API_KEY is not set in test env
+        // import.meta.env.VITE_OLLAMA_BASE_URL is not set in test env
         const { categorizeTask } = await import('../ai-advisor');
 
         const categories: Category[] = [
@@ -77,7 +82,7 @@ describe('AI Advisor — Interface Contract', () => {
     });
 });
 
-describe('AI Advisor — With Mocked Gemini API', () => {
+describe('AI Advisor — With Mocked Ollama API', () => {
     const mockGenerateContent = vi.fn();
 
     beforeEach(() => {
@@ -90,15 +95,11 @@ describe('AI Advisor — With Mocked Gemini API', () => {
     });
 
     async function importWithAI() {
-        vi.stubEnv('VITE_GEMINI_API_KEY', 'test-key');
+        vi.stubEnv('VITE_OLLAMA_BASE_URL', 'http://test:11434');
 
-        vi.doMock('@google/generative-ai', () => ({
-            GoogleGenerativeAI: class MockGoogleGenerativeAI {
-                constructor() {}
-                getGenerativeModel() {
-                    return { generateContent: mockGenerateContent };
-                }
-            },
+        vi.doMock('../ollama-client', () => ({
+            generateContent: mockGenerateContent,
+            isOllamaConfigured: () => true,
         }));
 
         return await import('../ai-advisor');
@@ -153,9 +154,7 @@ describe('AI Advisor — With Mocked Gemini API', () => {
 
     describe('categorizeTask with AI', () => {
         it('should return category ID when AI returns a valid category', async () => {
-            mockGenerateContent.mockResolvedValue({
-                response: { text: () => 'cat-health' },
-            });
+            mockGenerateContent.mockResolvedValue('cat-health');
 
             const { categorizeTask } = await importWithAI();
             const result = await categorizeTask('Go for a morning run', makeCategories());
@@ -165,9 +164,7 @@ describe('AI Advisor — With Mocked Gemini API', () => {
         });
 
         it('should return null when AI returns "none"', async () => {
-            mockGenerateContent.mockResolvedValue({
-                response: { text: () => 'none' },
-            });
+            mockGenerateContent.mockResolvedValue('none');
 
             const { categorizeTask } = await importWithAI();
             const result = await categorizeTask('Something uncategorizable', makeCategories());
@@ -176,9 +173,7 @@ describe('AI Advisor — With Mocked Gemini API', () => {
         });
 
         it('should return null when AI returns an invalid category ID', async () => {
-            mockGenerateContent.mockResolvedValue({
-                response: { text: () => 'cat-nonexistent' },
-            });
+            mockGenerateContent.mockResolvedValue('cat-nonexistent');
 
             const { categorizeTask } = await importWithAI();
             const result = await categorizeTask('Random task', makeCategories());
@@ -196,9 +191,7 @@ describe('AI Advisor — With Mocked Gemini API', () => {
         });
 
         it('should handle whitespace around category ID', async () => {
-            mockGenerateContent.mockResolvedValue({
-                response: { text: () => '  cat-wealth  ' },
-            });
+            mockGenerateContent.mockResolvedValue('  cat-wealth  ');
 
             const { categorizeTask } = await importWithAI();
             const result = await categorizeTask('Check investments', makeCategories());
@@ -209,14 +202,10 @@ describe('AI Advisor — With Mocked Gemini API', () => {
 
     describe('suggestFocus with AI', () => {
         it('should return focus suggestion when AI provides valid JSON', async () => {
-            mockGenerateContent.mockResolvedValue({
-                response: {
-                    text: () => JSON.stringify({
-                        taskId: 'task-1',
-                        reason: 'This task has the highest leverage for your health goals.',
-                    }),
-                },
-            });
+            mockGenerateContent.mockResolvedValue(JSON.stringify({
+                taskId: 'task-1',
+                reason: 'This task has the highest leverage for your health goals.',
+            }));
 
             const { suggestFocus } = await importWithAI();
             const result = await suggestFocus(makeTasks(), makeProjects(), makeCategories());
@@ -227,11 +216,7 @@ describe('AI Advisor — With Mocked Gemini API', () => {
         });
 
         it('should extract JSON from markdown code blocks', async () => {
-            mockGenerateContent.mockResolvedValue({
-                response: {
-                    text: () => '```json\n{"taskId": "task-2", "reason": "Reviewing finances is time-sensitive."}\n```',
-                },
-            });
+            mockGenerateContent.mockResolvedValue('```json\n{"taskId": "task-2", "reason": "Reviewing finances is time-sensitive."}\n```');
 
             const { suggestFocus } = await importWithAI();
             const result = await suggestFocus(makeTasks(), makeProjects(), makeCategories());
@@ -242,11 +227,7 @@ describe('AI Advisor — With Mocked Gemini API', () => {
         });
 
         it('should return null when AI response contains no JSON', async () => {
-            mockGenerateContent.mockResolvedValue({
-                response: {
-                    text: () => 'I recommend focusing on task-1 because it is important.',
-                },
-            });
+            mockGenerateContent.mockResolvedValue('I recommend focusing on task-1 because it is important.');
 
             const { suggestFocus } = await importWithAI();
             const result = await suggestFocus(makeTasks(), makeProjects(), makeCategories());
@@ -255,14 +236,10 @@ describe('AI Advisor — With Mocked Gemini API', () => {
         });
 
         it('should return null when AI returns a task ID that does not exist', async () => {
-            mockGenerateContent.mockResolvedValue({
-                response: {
-                    text: () => JSON.stringify({
-                        taskId: 'nonexistent-task',
-                        reason: 'This task does not exist.',
-                    }),
-                },
-            });
+            mockGenerateContent.mockResolvedValue(JSON.stringify({
+                taskId: 'nonexistent-task',
+                reason: 'This task does not exist.',
+            }));
 
             const { suggestFocus } = await importWithAI();
             const result = await suggestFocus(makeTasks(), makeProjects(), makeCategories());
@@ -290,14 +267,10 @@ describe('AI Advisor — With Mocked Gemini API', () => {
                 sort_order: i,
             }));
 
-            mockGenerateContent.mockResolvedValue({
-                response: {
-                    text: () => JSON.stringify({
-                        taskId: 'task-0',
-                        reason: 'First task is most urgent.',
-                    }),
-                },
-            });
+            mockGenerateContent.mockResolvedValue(JSON.stringify({
+                taskId: 'task-0',
+                reason: 'First task is most urgent.',
+            }));
 
             const { suggestFocus } = await importWithAI();
             const result = await suggestFocus(manyTasks, [], []);
@@ -308,14 +281,10 @@ describe('AI Advisor — With Mocked Gemini API', () => {
         });
 
         it('should include category and project info in the prompt', async () => {
-            mockGenerateContent.mockResolvedValue({
-                response: {
-                    text: () => JSON.stringify({
-                        taskId: 'task-1',
-                        reason: 'Health tasks align with vision.',
-                    }),
-                },
-            });
+            mockGenerateContent.mockResolvedValue(JSON.stringify({
+                taskId: 'task-1',
+                reason: 'Health tasks align with vision.',
+            }));
 
             const tasks: Task[] = [{
                 id: 'task-1',

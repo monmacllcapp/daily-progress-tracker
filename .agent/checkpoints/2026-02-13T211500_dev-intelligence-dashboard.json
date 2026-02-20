@@ -1,0 +1,57 @@
+{
+  "checkpoint_id": "2026-02-13T211500_dev-intelligence-dashboard",
+  "timestamp": "2026-02-13T21:15:00Z",
+  "agent": {
+    "model": "opus-4.6",
+    "provider": "anthropic",
+    "session_id": "dev-intel-dashboard"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "Add Dev Intelligence Dashboard — live project tracker for 5 GitHub repos under Intelligence section",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Added Dev Intelligence Dashboard page with live GitHub API integration tracking 5 repos (titan-trinity-core, maple-docs, maple-underwriter, maple-360, daily-progress-tracker). Shows branch health, milestones, PRs, session status, and North Star per project with 60-second auto-refresh.",
+    "files_modified": [
+      "src/services/github-projects.ts (NEW — GitHub REST API client)",
+      "src/store/devProjectsStore.ts (NEW — Zustand store for project data)",
+      "src/components/v2/DevProjectCard.tsx (NEW — per-project health card)",
+      "src/pages/DevProjectsPage.tsx (NEW — page shell with summary bar + grid)",
+      "src/services/__tests__/github-projects.test.ts (NEW — 21 tests)",
+      "src/types/sidebar.ts (MOD — added nav-dev-projects to Intelligence section)",
+      "src/components/layout/TopBar.tsx (MOD — added Dev Intelligence title)",
+      "src/App.tsx (MOD — added lazy import + route for /dev-projects)",
+      ".env.example (MOD — added VITE_GITHUB_PAT)"
+    ],
+    "decisions_made": [
+      "GitHub REST API called directly from browser (supports CORS with PAT auth) — no proxy needed",
+      "VITE_GITHUB_PAT env var for auth (local-only dev tool, acceptable security)",
+      "60-second auto-refresh interval (30 API calls per refresh, 1800/hour well within 5000 limit)",
+      "Page route /dev-projects under Intelligence sidebar section",
+      "Fetches 6 data points per repo: branches, PRs, NORTH_STAR.md, MILESTONES.md, HANDOFF.md, latest commit",
+      "Branch health: green=2 branches (governance model), red≠2"
+    ]
+  },
+  "continuation": {
+    "status": "complete",
+    "next_immediate_step": {
+      "action": "Add VITE_GITHUB_PAT to .env",
+      "details": "User needs to add their GitHub PAT with repo scope to .env for the dashboard to fetch private repo data"
+    },
+    "next_three_steps": [
+      "Test the live dashboard on localhost with VITE_GITHUB_PAT configured",
+      "Consider adding per-project refresh and click-to-navigate to specific pages",
+      "Wire Trading card to existing /trading page, consider adding project-specific deep links"
+    ],
+    "blockers": [],
+    "context_notes": "686 tests pass across 54 files. Clean production build. 4 new files created, 4 existing files modified. Feature adds ~460 LOC."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 17,
+    "parent_checkpoint": "2026-02-13T170939_autocompact",
+    "tags": ["dev-intelligence", "github-api", "dashboard"]
+  }
+}

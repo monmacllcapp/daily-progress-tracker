@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { Responsive } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 
 import { useDashboardStore } from '../../store/dashboardStore';
 import { WIDGET_REGISTRY } from '../../config/widgetRegistry';
 import { WidgetWrapper } from './WidgetWrapper';
+import { WidgetErrorBoundary } from '../WidgetErrorBoundary';
 
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -87,8 +88,16 @@ export function DashboardGrid() {
                         const Component = config.component;
 
                         return (
-                            <WidgetWrapper key={item.i} title={config.title}>
-                                <Component />
+                            <WidgetWrapper key={item.i} title={config.title} widgetId={item.i}>
+                                <WidgetErrorBoundary widgetTitle={config.title}>
+                                    <Suspense fallback={
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                        </div>
+                                    }>
+                                        <Component />
+                                    </Suspense>
+                                </WidgetErrorBoundary>
                             </WidgetWrapper>
                         );
                     })}

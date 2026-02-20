@@ -1,17 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { classifyEmail, draftResponse, isClassifierAvailable, _resetForTesting } from '../email-classifier';
 
-const { mockGenerateContent } = vi.hoisted(() => ({
+const { mockGenerateContent, mockIsConfiguredForTest } = vi.hoisted(() => ({
     mockGenerateContent: vi.fn(),
+    mockIsConfiguredForTest: vi.fn(() => false),
 }));
 
-vi.mock('@google/generative-ai', () => ({
-    GoogleGenerativeAI: class MockGoogleGenerativeAI {
-        constructor() {}
-        getGenerativeModel() {
-            return { generateContent: mockGenerateContent };
-        }
-    },
+vi.mock('../ollama-client', () => ({
+    generateContent: mockGenerateContent,
+    isOllamaConfigured: () => false,
+    _setTestBaseUrl: vi.fn(),
+    _isConfiguredForTest: mockIsConfiguredForTest,
 }));
 
 // Test the rule-based email classification (AI classification requires Gemini key)
@@ -20,14 +19,14 @@ describe('Email Classifier (Rule-based)', () => {
         _resetForTesting(undefined);
     });
 
-    it('should classify Gmail CATEGORY_PROMOTIONS as promotions', async () => {
+    it('should classify Gmail CATEGORY_PROMOTIONS as social', async () => {
         const tier = await classifyEmail(
             'deals@store.com',
             'Big Sale Today!',
             'Get 50% off everything',
             ['CATEGORY_PROMOTIONS']
         );
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should classify SPAM as unsubscribe', async () => {
@@ -47,7 +46,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Your payment is due today',
             ['INBOX']
         );
-        expect(tier).toBe('urgent');
+        expect(tier).toBe('reply_urgent');
     });
 
     it('should classify security alerts as urgent', async () => {
@@ -57,7 +56,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Someone signed into your account from a new device',
             ['INBOX']
         );
-        expect(tier).toBe('urgent');
+        expect(tier).toBe('reply_urgent');
     });
 
     it('should classify IMPORTANT label as urgent', async () => {
@@ -67,7 +66,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Can you update me on the status?',
             ['INBOX', 'IMPORTANT']
         );
-        expect(tier).toBe('urgent');
+        expect(tier).toBe('reply_urgent');
     });
 
     it('should classify noreply senders as promotions', async () => {
@@ -77,7 +76,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Here is your weekly activity summary',
             ['INBOX']
         );
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should classify newsletter subjects as promotions', async () => {
@@ -87,7 +86,7 @@ describe('Email Classifier (Rule-based)', () => {
             'This week in tech...',
             ['INBOX']
         );
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should classify digest notifications as unsubscribe', async () => {
@@ -100,14 +99,14 @@ describe('Email Classifier (Rule-based)', () => {
         expect(tier).toBe('unsubscribe');
     });
 
-    it('should default personal-looking emails to important', async () => {
+    it('should default personal-looking emails to unsure', async () => {
         const tier = await classifyEmail(
             'john.doe@gmail.com',
             'Hey, about our meeting',
             'I wanted to follow up on our conversation yesterday',
             ['INBOX']
         );
-        expect(tier).toBe('important');
+        expect(tier).toBe('unsure');
     });
 
     it('should report classifier availability based on API key', () => {
@@ -122,7 +121,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Please take note of planned downtime',
             ['INBOX']
         );
-        expect(tier).toBe('urgent');
+        expect(tier).toBe('reply_urgent');
     });
 
     it('should classify password reset emails as urgent', async () => {
@@ -132,7 +131,7 @@ describe('Email Classifier (Rule-based)', () => {
             'You requested a password reset for your account',
             ['INBOX']
         );
-        expect(tier).toBe('urgent');
+        expect(tier).toBe('reply_urgent');
     });
 
     it('should classify "% off" in subject as promotions', async () => {
@@ -142,7 +141,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Hurry, limited time offer',
             ['INBOX']
         );
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should classify "deal" in subject as promotions', async () => {
@@ -152,7 +151,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Check out our latest products',
             ['INBOX']
         );
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should classify "sale" in subject as promotions', async () => {
@@ -162,7 +161,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Save big on all categories',
             ['INBOX']
         );
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should classify "unsubscribe" in snippet as promotions', async () => {
@@ -172,7 +171,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Click here to unsubscribe from this list',
             ['INBOX']
         );
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should classify no-reply senders as promotions', async () => {
@@ -182,7 +181,7 @@ describe('Email Classifier (Rule-based)', () => {
             'See what happened this week',
             ['INBOX']
         );
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should classify marketing@ senders as promotions', async () => {
@@ -192,7 +191,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Discover our latest styles',
             ['INBOX']
         );
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should classify digest@ senders as unsubscribe', async () => {
@@ -222,7 +221,7 @@ describe('Email Classifier (Rule-based)', () => {
             'Buy now or miss out',
             ['CATEGORY_PROMOTIONS']
         );
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should prioritize SPAM label over keyword rules', async () => {
@@ -239,13 +238,12 @@ describe('Email Classifier (Rule-based)', () => {
 describe('Email Classifier (AI-powered)', () => {
     beforeEach(() => {
         mockGenerateContent.mockReset();
+        mockIsConfiguredForTest.mockReturnValue(true);
         _resetForTesting('test-key');
     });
 
     it('should classify email as urgent via AI', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: { text: () => 'urgent' },
-        });
+        mockGenerateContent.mockResolvedValue('reply_urgent');
 
         const tier = await classifyEmail(
             'boss@company.com',
@@ -254,14 +252,12 @@ describe('Email Classifier (AI-powered)', () => {
             ['INBOX']
         );
 
-        expect(tier).toBe('urgent');
+        expect(tier).toBe('reply_urgent');
         expect(mockGenerateContent).toHaveBeenCalledTimes(1);
     });
 
-    it('should classify email as important via AI', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: { text: () => 'important' },
-        });
+    it('should classify email as to_review via AI', async () => {
+        mockGenerateContent.mockResolvedValue('to_review');
 
         const tier = await classifyEmail(
             'colleague@company.com',
@@ -270,13 +266,11 @@ describe('Email Classifier (AI-powered)', () => {
             ['INBOX']
         );
 
-        expect(tier).toBe('important');
+        expect(tier).toBe('to_review');
     });
 
-    it('should classify email as promotions via AI', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: { text: () => 'promotions' },
-        });
+    it('should classify email as social via AI', async () => {
+        mockGenerateContent.mockResolvedValue('social');
 
         const tier = await classifyEmail(
             'deals@retailer.com',
@@ -285,13 +279,11 @@ describe('Email Classifier (AI-powered)', () => {
             ['INBOX']
         );
 
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('social');
     });
 
     it('should classify email as unsubscribe via AI', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: { text: () => 'unsubscribe' },
-        });
+        mockGenerateContent.mockResolvedValue('unsubscribe');
 
         const tier = await classifyEmail(
             'spam@sketchy.com',
@@ -304,11 +296,7 @@ describe('Email Classifier (AI-powered)', () => {
     });
 
     it('should extract tier from verbose AI response', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: {
-                text: () => 'I would classify this as urgent because it requires immediate attention.',
-            },
-        });
+        mockGenerateContent.mockResolvedValue('I would classify this as reply_urgent because it requires immediate attention.');
 
         const tier = await classifyEmail(
             'alert@service.com',
@@ -317,15 +305,11 @@ describe('Email Classifier (AI-powered)', () => {
             ['INBOX']
         );
 
-        expect(tier).toBe('urgent');
+        expect(tier).toBe('reply_urgent');
     });
 
-    it('should default to promotions when AI returns unrecognized tier', async () => {
-        mockGenerateContent.mockResolvedValue({
-            response: {
-                text: () => 'I cannot determine the category of this email.',
-            },
-        });
+    it('should default to unsure when AI returns unrecognized tier', async () => {
+        mockGenerateContent.mockResolvedValue('I cannot determine the category of this email.');
 
         const tier = await classifyEmail(
             'test@example.com',
@@ -334,7 +318,7 @@ describe('Email Classifier (AI-powered)', () => {
             ['INBOX']
         );
 
-        expect(tier).toBe('promotions');
+        expect(tier).toBe('unsure');
     });
 
     it('should fall back to rule-based classification when AI throws error', async () => {
@@ -348,7 +332,7 @@ describe('Email Classifier (AI-powered)', () => {
             ['INBOX']
         );
 
-        expect(tier).toBe('urgent');
+        expect(tier).toBe('reply_urgent');
         expect(mockGenerateContent).toHaveBeenCalledTimes(1);
     });
 
@@ -362,14 +346,61 @@ describe('Email Classifier (AI-powered)', () => {
             ['INBOX']
         );
 
-        // No urgent/promo/unsub keywords, so should default to important
-        expect(tier).toBe('important');
+        // No urgent/promo/unsub keywords, personal sender with no question in subject, so should default to unsure
+        expect(tier).toBe('unsure');
+    });
+});
+
+describe('Email Classifier — New tiers', () => {
+    beforeEach(() => {
+        _resetForTesting(undefined);
+    });
+
+    it('should classify CATEGORY_SOCIAL as social', async () => {
+        const tier = await classifyEmail(
+            'updates@facebook.com',
+            'You have new notifications',
+            'See what your friends are up to',
+            ['CATEGORY_SOCIAL']
+        );
+        expect(tier).toBe('social');
+    });
+
+    it('should classify personal email with question as reply_needed', async () => {
+        const tier = await classifyEmail(
+            'colleague@company.com',
+            'Quick question about the project?',
+            'I was wondering about the timeline',
+            ['INBOX']
+        );
+        expect(tier).toBe('reply_needed');
+    });
+
+    it('should classify personal reply thread as reply_needed', async () => {
+        const tier = await classifyEmail(
+            'friend@gmail.com',
+            'Re: Weekend plans',
+            'Sounds good, see you then',
+            ['INBOX']
+        );
+        expect(tier).toBe('reply_needed');
+    });
+
+    it('should classify ambiguous personal email as unsure', async () => {
+        const tier = await classifyEmail(
+            'someone@company.com',
+            'FYI',
+            'Just wanted to let you know about this',
+            ['INBOX']
+        );
+        expect(tier).toBe('unsure');
     });
 });
 
 describe('Email Classifier — draftResponse', () => {
     beforeEach(() => {
         mockGenerateContent.mockReset();
+        mockIsConfiguredForTest.mockReturnValue(false);
     });
 
     it('should return null when no API key is set', async () => {
@@ -383,12 +414,9 @@ describe('Email Classifier — draftResponse', () => {
     });
 
     it('should return AI-generated draft when API key is set', async () => {
+        mockIsConfiguredForTest.mockReturnValue(true);
         _resetForTesting('test-key');
-        mockGenerateContent.mockResolvedValue({
-            response: {
-                text: () => 'Thanks for reaching out. I am available next Tuesday or Wednesday afternoon. Let me know what works for you.',
-            },
-        });
+        mockGenerateContent.mockResolvedValue('Thanks for reaching out. I am available next Tuesday or Wednesday afternoon. Let me know what works for you.');
 
         const result = await draftResponse(
             'client@company.com',
@@ -402,10 +430,9 @@ describe('Email Classifier — draftResponse', () => {
     });
 
     it('should include user context in the prompt when provided', async () => {
+        mockIsConfiguredForTest.mockReturnValue(true);
         _resetForTesting('test-key');
-        mockGenerateContent.mockResolvedValue({
-            response: { text: () => 'I am free next week. Let me know.' },
-        });
+        mockGenerateContent.mockResolvedValue('I am free next week. Let me know.');
 
         const result = await draftResponse(
             'colleague@work.com',
@@ -422,6 +449,7 @@ describe('Email Classifier — draftResponse', () => {
     });
 
     it('should return null when AI draft generation fails', async () => {
+        mockIsConfiguredForTest.mockReturnValue(true);
         _resetForTesting('test-key');
         mockGenerateContent.mockRejectedValue(new Error('Service unavailable'));
 
@@ -435,12 +463,9 @@ describe('Email Classifier — draftResponse', () => {
     });
 
     it('should trim whitespace from AI draft response', async () => {
+        mockIsConfiguredForTest.mockReturnValue(true);
         _resetForTesting('test-key');
-        mockGenerateContent.mockResolvedValue({
-            response: {
-                text: () => '  Thank you for the update. I will review it shortly.  \n',
-            },
-        });
+        mockGenerateContent.mockResolvedValue('  Thank you for the update. I will review it shortly.  \n');
 
         const result = await draftResponse(
             'team@company.com',

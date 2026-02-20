@@ -1,0 +1,71 @@
+{
+  "checkpoint_id": "2026-02-14T093000_security-remediation-complete",
+  "timestamp": "2026-02-14T09:30:00Z",
+  "agent": {
+    "model": "claude-opus-4-6",
+    "provider": "anthropic",
+    "session_id": "current"
+  },
+  "session": {
+    "project": "Daily Progress Tracker (MAPLE Life OS)",
+    "goal": "Red team security audit + fix all findings possible autonomously",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Full red team audit (39 findings), fixed 25 via 7 Sonnet agents in 2 waves. 740 tests (0 failures). Prompt sanitization, OAuth hardening, CSP, CORS lockdown, calculation fixes, schema validation, data retention.",
+    "files_modified": [
+      "src/utils/sanitize-prompt.ts",
+      "src/services/data-retention.ts",
+      "src/services/__tests__/data-retention.test.ts",
+      "src/services/analytics.ts",
+      "src/store/signalStore.ts",
+      "src/workers/anticipation-worker.ts",
+      "src/services/intelligence/pattern-learner.ts",
+      "src/services/intelligence/streak-guardian.ts",
+      "src/services/jarvis.ts",
+      "src/services/ai-advisor.ts",
+      "src/services/email-classifier.ts",
+      "src/services/conflict-detector.ts",
+      "src/services/financial-analysis.ts",
+      "src/services/intelligence/context-switch-prep.ts",
+      "src/services/intelligence/deadline-radar.ts",
+      "src/services/intelligence/morning-brief.ts",
+      "src/services/intelligence/claude-insight-engine.ts",
+      "src/services/google-auth.ts",
+      "netlify.toml",
+      "scripts/mcp-proxy.ts",
+      "src/db/index.ts",
+      "src/components/BrainDump.tsx",
+      "src/components/JarvisChat.tsx",
+      "src/components/RPMWizard.tsx"
+    ],
+    "decisions_made": [
+      "Fixed 25 of 39 findings; deferred 14 requiring user/architectural decisions",
+      "Prompt sanitization blocks: [SYSTEM], [INST], IGNORE PREVIOUS, role tags",
+      "OAuth moved to sessionStorage (session-scoped)",
+      "MCP proxy CORS locked to localhost origins",
+      "Data retention: expired+dismissed signals, 90-day analytics, 30-day weights"
+    ]
+  },
+  "continuation": {
+    "status": "complete",
+    "next_immediate_step": {
+      "action": "User action needed for remaining findings",
+      "details": "Rotate API keys, remove .env from git history, design Supabase auth architecture"
+    },
+    "next_three_steps": [
+      "Rotate exposed API keys (Gemini, GitHub PAT, Hubstaff)",
+      "Remove .env from git history",
+      "Design backend proxy architecture for API keys"
+    ],
+    "blockers": [],
+    "context_notes": "740 tests (0 failures). TypeScript clean. Build successful. Commits: 5618a41 (prompt sanitization), aeb42c3 (remaining remediation)."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 7,
+    "parent_checkpoint": "2026-02-14T002200_data-retention-system",
+    "tags": ["security", "remediation", "complete", "audit"]
+  }
+}
