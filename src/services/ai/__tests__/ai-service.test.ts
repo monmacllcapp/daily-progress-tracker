@@ -8,8 +8,12 @@ vi.mock('../claude-client', () => ({
   },
 }));
 
-vi.mock('../../ai-advisor', () => ({
-  isAIAvailable: vi.fn(),
+vi.mock('../gemini-client', () => ({
+  geminiClient: {
+    isAvailable: vi.fn(() => false),
+    ask: vi.fn(),
+    askJSON: vi.fn(),
+  },
 }));
 
 vi.mock('../../ollama-client', () => ({
@@ -19,10 +23,12 @@ vi.mock('../../ollama-client', () => ({
 
 import { detectProvider, askAI, aiService } from '../ai-service';
 import { claudeClient } from '../claude-client';
-import { isAIAvailable as isGeminiAvailable } from '../../ai-advisor';
+import { geminiClient } from '../gemini-client';
+import { isOllamaConfigured } from '../../ollama-client';
 
 const mockedClaudeClient = vi.mocked(claudeClient);
-const mockedIsGeminiAvailable = vi.mocked(isGeminiAvailable);
+const mockedGeminiClient = vi.mocked(geminiClient);
+const mockedIsOllamaConfigured = vi.mocked(isOllamaConfigured);
 
 describe('ai-service', () => {
   beforeEach(() => {
@@ -36,9 +42,18 @@ describe('ai-service', () => {
     expect(provider).toBe('claude');
   });
 
-  it('detectProvider returns ollama when Claude unavailable and Ollama configured', async () => {
+  it('detectProvider returns gemini when Claude unavailable and Gemini configured', async () => {
     mockedClaudeClient.isAvailable.mockResolvedValueOnce(false);
-    mockedIsGeminiAvailable.mockReturnValueOnce(true);
+    mockedGeminiClient.isAvailable.mockReturnValueOnce(true);
+
+    const provider = await detectProvider();
+    expect(provider).toBe('gemini');
+  });
+
+  it('detectProvider returns ollama when Claude+Gemini unavailable and Ollama configured', async () => {
+    mockedClaudeClient.isAvailable.mockResolvedValueOnce(false);
+    mockedGeminiClient.isAvailable.mockReturnValueOnce(false);
+    mockedIsOllamaConfigured.mockReturnValueOnce(true);
 
     const provider = await detectProvider();
     expect(provider).toBe('ollama');
@@ -46,7 +61,8 @@ describe('ai-service', () => {
 
   it('detectProvider returns rules when nothing available', async () => {
     mockedClaudeClient.isAvailable.mockResolvedValueOnce(false);
-    mockedIsGeminiAvailable.mockReturnValueOnce(false);
+    mockedGeminiClient.isAvailable.mockReturnValueOnce(false);
+    mockedIsOllamaConfigured.mockReturnValueOnce(false);
 
     const provider = await detectProvider();
     expect(provider).toBe('rules');
@@ -61,9 +77,19 @@ describe('ai-service', () => {
     expect(mockedClaudeClient.ask).toHaveBeenCalledWith('What is the weather?', undefined);
   });
 
+  it('askAI falls back to Gemini when Claude fails', async () => {
+    mockedClaudeClient.isAvailable.mockResolvedValueOnce(false);
+    mockedGeminiClient.isAvailable.mockReturnValueOnce(true);
+    mockedGeminiClient.ask.mockResolvedValueOnce('Gemini response text');
+
+    const result = await askAI('What is the weather?');
+    expect(result).toBe('Gemini response text');
+  });
+
   it('askAI returns null when no provider available', async () => {
     mockedClaudeClient.isAvailable.mockResolvedValueOnce(false);
-    mockedIsGeminiAvailable.mockReturnValueOnce(false);
+    mockedGeminiClient.isAvailable.mockReturnValueOnce(false);
+    mockedIsOllamaConfigured.mockReturnValueOnce(false);
 
     const result = await askAI('What is the weather?');
     expect(result).toBeNull();

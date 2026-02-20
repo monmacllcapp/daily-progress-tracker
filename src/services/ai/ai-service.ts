@@ -1,16 +1,18 @@
 import { claudeClient } from './claude-client';
+import { geminiClient } from './gemini-client';
 import { generateContent, isOllamaConfigured } from '../ollama-client';
 
 /**
  * Unified AI Service
  *
- * Provides 3-layer fallback for AI features:
+ * Provides 4-layer fallback for AI features:
  * 1. Claude (via MCP proxy) - preferred
- * 2. Ollama (local LLM) - fallback
- * 3. Rule-based logic - last resort
+ * 2. Gemini (Google AI cloud) - stable fallback
+ * 3. Ollama (local LLM) - offline fallback
+ * 4. Rule-based logic - last resort
  */
 
-export type AIProvider = 'claude' | 'ollama' | 'rules';
+export type AIProvider = 'claude' | 'gemini' | 'ollama' | 'rules';
 
 /**
  * Detect which AI provider is currently available
@@ -20,6 +22,11 @@ export async function detectProvider(): Promise<AIProvider> {
   const claudeAvailable = await claudeClient.isAvailable();
   if (claudeAvailable) {
     return 'claude';
+  }
+
+  // Try Gemini (check if API key is set)
+  if (geminiClient.isAvailable()) {
+    return 'gemini';
   }
 
   // Try Ollama (check if local LLM is configured)
@@ -33,7 +40,7 @@ export async function detectProvider(): Promise<AIProvider> {
 
 /**
  * Ask AI a question and get text response
- * Falls back through providers: Claude -> Ollama -> null
+ * Falls back through providers: Claude -> Gemini -> Ollama -> null
  */
 export async function askAI(
   prompt: string,
@@ -48,7 +55,17 @@ export async function askAI(
       return response;
     }
   } catch (error) {
-    console.warn('[AI Service] Claude failed, trying Ollama:', error);
+    console.warn('[AI Service] Claude failed, trying Gemini:', error);
+  }
+
+  // Try Gemini
+  try {
+    if (geminiClient.isAvailable()) {
+      console.info('[AI Service] Using provider: gemini');
+      return await geminiClient.ask(prompt, systemPrompt);
+    }
+  } catch (error) {
+    console.warn('[AI Service] Gemini failed, trying Ollama:', error);
   }
 
   // Try Ollama fallback
@@ -73,7 +90,7 @@ export async function askAI(
 
 /**
  * Ask AI and parse response as JSON
- * Falls back through providers: Claude -> Ollama -> null
+ * Falls back through providers: Claude -> Gemini -> Ollama -> null
  */
 export async function askAIJSON<T>(
   prompt: string,
@@ -88,7 +105,17 @@ export async function askAIJSON<T>(
       return response;
     }
   } catch (error) {
-    console.warn('[AI Service] Claude failed, trying Ollama:', error);
+    console.warn('[AI Service] Claude failed, trying Gemini:', error);
+  }
+
+  // Try Gemini
+  try {
+    if (geminiClient.isAvailable()) {
+      console.info('[AI Service] Using provider: gemini');
+      return await geminiClient.askJSON<T>(prompt, systemPrompt);
+    }
+  } catch (error) {
+    console.warn('[AI Service] Gemini failed, trying Ollama:', error);
   }
 
   // Try Ollama fallback

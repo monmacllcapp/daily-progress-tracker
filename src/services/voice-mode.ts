@@ -128,6 +128,9 @@ function startRecognition(): void {
 
           if (!transcript || confidence < CONFIDENCE_THRESHOLD) return;
 
+          // Clear any previous error on successful speech
+          getStore().setVoiceError(null);
+
           const now = Date.now();
           if (now - lastResponseTime < RESPONSE_COOLDOWN_MS) return;
 
@@ -143,11 +146,36 @@ function startRecognition(): void {
 
     recognition.onerror = (event: any) => {
       console.warn('[VoiceMode] Recognition error:', event.error);
-      if (event.error === 'not-allowed') {
-        needsUserGesture = true;
-        returnToIdle();
+
+      switch (event.error) {
+        case 'not-allowed':
+          needsUserGesture = true;
+          getStore().setVoiceError('Microphone access denied. Click the orb to retry.');
+          returnToIdle();
+          return;
+
+        case 'network':
+          getStore().setVoiceError('Speech recognition unavailable. Check your internet connection.');
+          returnToIdle();
+          return;
+
+        case 'audio-capture':
+          getStore().setVoiceError('No microphone detected.');
+          returnToIdle();
+          return;
+
+        case 'aborted':
+          // User cancelled — go idle quietly
+          returnToIdle();
+          return;
+
+        case 'no-speech':
+          // Normal silence timeout — let onend handle restart
+          break;
+
+        default:
+          break;
       }
-      // All other errors: let onend handle restart
     };
 
     recognition.onend = () => {
@@ -159,7 +187,7 @@ function startRecognition(): void {
           if (getStore().voiceMode === 'listening' && getStore().micEnabled) {
             startRecognition();
           }
-        }, 2000); // 2 second cooldown before restart
+        }, 500); // 500ms cooldown before restart
       }
     };
 
@@ -364,6 +392,7 @@ export async function initVoiceMode(): Promise<void> {
 export async function forceStartListening(): Promise<void> {
   if (getStore().voiceMode !== 'idle') return;
   needsUserGesture = false;
+  getStore().setVoiceError(null);
   await enterListening();
 }
 

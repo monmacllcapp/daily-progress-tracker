@@ -48,6 +48,10 @@ interface JarvisState {
   liveTranscript: string;
   setLiveTranscript: (text: string) => void;
 
+  // Voice error
+  voiceError: string | null;
+  setVoiceError: (msg: string | null) => void;
+
   // Messages (shared between voice mode + panel)
   messages: JarvisMessage[];
   addMessage: (role: 'user' | 'jarvis', text: string, intent?: CalendarIntent, jarvisIntent?: JarvisIntent) => JarvisMessage;
@@ -83,6 +87,10 @@ export const useJarvisStore = create<JarvisState>((set, get) => ({
   // Live transcript
   liveTranscript: '',
   setLiveTranscript: (text) => set({ liveTranscript: text }),
+
+  // Voice error
+  voiceError: null,
+  setVoiceError: (msg) => set({ voiceError: msg }),
 
   // Messages
   messages: [],

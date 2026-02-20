@@ -1,7 +1,7 @@
 /**
  * Jarvis Context — Data Aggregation Layer
  *
- * Gathers a concise snapshot from ALL 14 RxDB collections for Jarvis AI prompts.
+ * Gathers a concise snapshot from ALL 30 RxDB collections for Maple AI prompts.
  * Uses Promise.allSettled so one failed query never breaks everything.
  * 60-second cache avoids hammering RxDB on every message.
  */
@@ -42,6 +42,18 @@ export interface JarvisContextSnapshot {
   level: number;
   xp: number;
   hasJournaledToday: boolean;
+  // --- V2: Intelligence & Multi-Domain ---
+  activeSignals: { severity: string; count: number; titles: string[] }[];
+  dealsPipeline: { status: string; count: number; totalValue: number }[];
+  familyEvents: { member: string; summary: string; start: string; end: string; conflict?: string }[];
+  portfolioSnapshot: { equity: number; cash: number; dayPnl: number; positionsCount: number } | null;
+  visionDeclarations: { declaration: string; purpose: string; category?: string }[];
+  staffSummary: { activeCount: number; totalMonthlyCost: number } | null;
+  financialSummary: { month: string; totalIncome: number; totalExpenses: number; netCashFlow: number; aiInsights: string } | null;
+  subscriptionBurn: { totalMonthly: number; flaggedUnused: { merchant: string; amount: number }[] };
+  productivityInsights: { patternType: string; description: string; confidence: number }[];
+  latestBriefInsight: string | null;
+  stressorMilestoneProgress: { stressorTitle: string; total: number; completed: number }[];
 }
 
 // --- Cache ---
@@ -84,7 +96,21 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
     habitCompletionsResult,
     profileResult,
     googleEventsResult,
+    // V2 collections
+    signalsResult,
+    dealsResult,
+    familyEventsResult,
+    portfolioResult,
+    visionResult,
+    staffMembersResult,
+    staffPayResult,
+    financialSummaryResult,
+    subscriptionsResult,
+    patternsResult,
+    morningBriefsResult,
+    stressorMilestonesResult,
   ] = await Promise.allSettled([
+    // Original collections
     db.tasks.find().exec(),
     db.projects.find({ selector: { status: 'active' } }).exec(),
     db.sub_tasks.find().exec(),
@@ -100,8 +126,22 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
     isGoogleConnected()
       ? fetchGoogleEvents(now, new Date(now.getTime() + 30 * 60 * 60 * 1000)).catch(() => [])
       : Promise.resolve([]),
+    // V2 collections
+    db.signals.find({ selector: { is_dismissed: false } }).exec(),
+    db.deals.find().exec(),
+    db.family_events.find().exec(),
+    db.portfolio_snapshots.find().exec(),
+    db.vision_board.find().exec(),
+    db.staff_members.find({ selector: { is_active: true } }).exec(),
+    db.staff_pay_periods.find().exec(),
+    db.financial_monthly_summaries.find().exec(),
+    db.financial_subscriptions.find({ selector: { is_active: true } }).exec(),
+    db.productivity_patterns.find().exec(),
+    db.morning_briefs.find().exec(),
+    db.stressor_milestones.find().exec(),
   ]);
 
+  // Extract original results
   const tasks = tasksResult.status === 'fulfilled' ? tasksResult.value : [];
   const projects = projectsResult.status === 'fulfilled' ? projectsResult.value : [];
   const subTasks = subTasksResult.status === 'fulfilled' ? subTasksResult.value : [];
@@ -114,6 +154,20 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
   const habitCompletions = habitCompletionsResult.status === 'fulfilled' ? habitCompletionsResult.value : [];
   const profiles = profileResult.status === 'fulfilled' ? profileResult.value : [];
   const googleEvents = googleEventsResult.status === 'fulfilled' ? googleEventsResult.value : [];
+
+  // Extract V2 results
+  const signals = signalsResult.status === 'fulfilled' ? signalsResult.value : [];
+  const deals = dealsResult.status === 'fulfilled' ? dealsResult.value : [];
+  const familyEventsRaw = familyEventsResult.status === 'fulfilled' ? familyEventsResult.value : [];
+  const portfolioSnaps = portfolioResult.status === 'fulfilled' ? portfolioResult.value : [];
+  const visionItems = visionResult.status === 'fulfilled' ? visionResult.value : [];
+  const staffMembers = staffMembersResult.status === 'fulfilled' ? staffMembersResult.value : [];
+  const payPeriods = staffPayResult.status === 'fulfilled' ? staffPayResult.value : [];
+  const monthlySummaries = financialSummaryResult.status === 'fulfilled' ? financialSummaryResult.value : [];
+  const subscriptions = subscriptionsResult.status === 'fulfilled' ? subscriptionsResult.value : [];
+  const patterns = patternsResult.status === 'fulfilled' ? patternsResult.value : [];
+  const morningBriefs = morningBriefsResult.status === 'fulfilled' ? morningBriefsResult.value : [];
+  const milestones = stressorMilestonesResult.status === 'fulfilled' ? stressorMilestonesResult.value : [];
 
   // --- Tasks ---
   const activeTasks = tasks.filter((t) => t.status === 'active');
@@ -154,7 +208,6 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
   const urgentUnreplied = urgentUnrepliedEmails.length;
   const totalUnread = emails.filter((e) => e.status === 'unread').length;
 
-  // Include actual email details so AI doesn't hallucinate content
   const urgentEmailDetails = urgentUnrepliedEmails
     .slice(0, 5)
     .map((e) => ({
@@ -215,6 +268,101 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
   // --- Profile ---
   const profile = profiles[0];
 
+  // ═══ V2: Signals ═══
+  const severityGroups: Record<string, { count: number; titles: string[] }> = {};
+  for (const s of signals) {
+    const sev = s.severity || 'info';
+    if (!severityGroups[sev]) severityGroups[sev] = { count: 0, titles: [] };
+    severityGroups[sev].count++;
+    if (severityGroups[sev].titles.length < 3) {
+      severityGroups[sev].titles.push(s.title);
+    }
+  }
+  const activeSignals = Object.entries(severityGroups).map(([severity, data]) => ({
+    severity, count: data.count, titles: data.titles,
+  }));
+
+  // ═══ V2: Deals ═══
+  const dealGroups: Record<string, { count: number; totalValue: number }> = {};
+  for (const d of deals) {
+    const st = d.status || 'prospect';
+    if (!dealGroups[st]) dealGroups[st] = { count: 0, totalValue: 0 };
+    dealGroups[st].count++;
+    dealGroups[st].totalValue += d.purchase_price || 0;
+  }
+  const dealsPipeline = Object.entries(dealGroups).map(([status, data]) => ({
+    status, count: data.count, totalValue: data.totalValue,
+  }));
+
+  // ═══ V2: Family Events (next 7 days) ═══
+  const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const nowISO = now.toISOString();
+  const familyEvents = familyEventsRaw
+    .filter((e) => e.start_time >= nowISO && e.start_time <= weekFromNow)
+    .slice(0, 8)
+    .map((e) => ({
+      member: e.member, summary: e.summary,
+      start: e.start_time, end: e.end_time,
+      conflict: e.conflict_with || undefined,
+    }));
+
+  // ═══ V2: Portfolio Snapshot (latest) ═══
+  const sortedPortfolio = [...portfolioSnaps].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const latestPortfolio = sortedPortfolio[0] || null;
+  const portfolioSnapshot = latestPortfolio
+    ? { equity: latestPortfolio.equity, cash: latestPortfolio.cash, dayPnl: latestPortfolio.day_pnl, positionsCount: latestPortfolio.positions_count }
+    : null;
+
+  // ═══ V2: Vision Board ═══
+  const visionDeclarations = visionItems.slice(0, 5).map((v) => ({
+    declaration: v.declaration, purpose: v.rpm_purpose, category: v.category_name,
+  }));
+
+  // ═══ V2: Staff Summary ═══
+  const activeStaffCount = staffMembers.length;
+  const sortedPay = [...payPeriods].sort((a, b) => (b.period_start || '').localeCompare(a.period_start || ''));
+  const recentPay = sortedPay.slice(0, activeStaffCount);
+  const totalMonthlyCost = recentPay.reduce((sum, p) => sum + (p.total_pay || 0), 0) * 2; // biweekly→monthly
+  const staffSummary = activeStaffCount > 0
+    ? { activeCount: activeStaffCount, totalMonthlyCost }
+    : null;
+
+  // ═══ V2: Financial Summary (latest month) ═══
+  const sortedFinancial = [...monthlySummaries].sort((a, b) => (b.month || '').localeCompare(a.month || ''));
+  const latestFinancial = sortedFinancial[0] || null;
+  const financialSummary = latestFinancial
+    ? { month: latestFinancial.month, totalIncome: latestFinancial.total_income || 0, totalExpenses: latestFinancial.total_expenses || 0, netCashFlow: latestFinancial.net_cash_flow || 0, aiInsights: latestFinancial.ai_insights || '' }
+    : null;
+
+  // ═══ V2: Subscription Burn ═══
+  const totalSubscriptionMonthly = subscriptions.reduce((sum, s) => sum + (s.amount || 0), 0);
+  const flaggedUnused = subscriptions
+    .filter((s) => s.flagged_unused)
+    .slice(0, 5)
+    .map((s) => ({ merchant: s.merchant_name, amount: s.amount }));
+  const subscriptionBurn = { totalMonthly: totalSubscriptionMonthly, flaggedUnused };
+
+  // ═══ V2: Productivity Patterns ═══
+  const sortedPatterns = [...patterns].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  const productivityInsights = sortedPatterns
+    .filter((p) => (p.confidence || 0) >= 0.6)
+    .slice(0, 3)
+    .map((p) => ({ patternType: p.pattern_type, description: p.description, confidence: p.confidence }));
+
+  // ═══ V2: Morning Brief (latest insight) ═══
+  const sortedBriefs = [...morningBriefs].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const latestBriefInsight = sortedBriefs[0]?.ai_insight || null;
+
+  // ═══ V2: Stressor Milestone Progress ═══
+  const stressorMilestoneProgress = stressors.map((s) => {
+    const ms = milestones.filter((m) => m.stressor_id === s.id);
+    return {
+      stressorTitle: s.title,
+      total: ms.length,
+      completed: ms.filter((m) => m.is_completed).length,
+    };
+  }).filter((s) => s.total > 0);
+
   return {
     timestamp: nowPT(),
     todayISO: today,
@@ -239,6 +387,18 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
     level: profile?.level ?? 1,
     xp: profile?.xp ?? 0,
     hasJournaledToday: journals.length > 0,
+    // V2
+    activeSignals,
+    dealsPipeline,
+    familyEvents,
+    portfolioSnapshot,
+    visionDeclarations,
+    staffSummary,
+    financialSummary,
+    subscriptionBurn,
+    productivityInsights,
+    latestBriefInsight,
+    stressorMilestoneProgress,
   };
 }
 
@@ -336,6 +496,87 @@ export function formatContextForPrompt(ctx: JarvisContextSnapshot): string {
   lines.push('');
   lines.push(`GAMIFICATION: Level ${ctx.level}, ${ctx.xp} XP`);
   lines.push(`JOURNAL: ${ctx.hasJournaledToday ? 'Done today' : 'Not yet today'}`);
+
+  // ═══ V2 Sections ═══
+
+  if (ctx.activeSignals.length > 0) {
+    lines.push('');
+    lines.push('SIGNALS:');
+    for (const g of ctx.activeSignals) {
+      lines.push(`  ${g.severity.toUpperCase()}: ${g.count} active — ${g.titles.join(', ')}`);
+    }
+  }
+
+  if (ctx.dealsPipeline.length > 0) {
+    lines.push('');
+    lines.push('REAL ESTATE DEALS:');
+    for (const d of ctx.dealsPipeline) {
+      lines.push(`  ${d.status}: ${d.count} deals${d.totalValue ? ` ($${(d.totalValue / 1000).toFixed(0)}k total)` : ''}`);
+    }
+  }
+
+  if (ctx.familyEvents.length > 0) {
+    lines.push('');
+    lines.push('FAMILY EVENTS (next 7 days):');
+    for (const e of ctx.familyEvents) {
+      lines.push(`  - ${e.member}: "${e.summary}" | ${e.start}${e.conflict ? ' [CONFLICT]' : ''}`);
+    }
+  }
+
+  if (ctx.portfolioSnapshot) {
+    const p = ctx.portfolioSnapshot;
+    lines.push('');
+    lines.push(`PORTFOLIO: $${p.equity.toLocaleString()} equity, $${p.cash.toLocaleString()} cash, ${p.positionsCount} positions, day P&L: ${p.dayPnl >= 0 ? '+' : ''}$${p.dayPnl.toLocaleString()}`);
+  }
+
+  if (ctx.visionDeclarations.length > 0) {
+    lines.push('');
+    lines.push('VISION:');
+    for (const v of ctx.visionDeclarations) {
+      lines.push(`  - "${v.declaration}" (${v.category || 'general'}) — Why: ${v.purpose}`);
+    }
+  }
+
+  if (ctx.staffSummary) {
+    lines.push('');
+    lines.push(`STAFF: ${ctx.staffSummary.activeCount} active, ~$${ctx.staffSummary.totalMonthlyCost.toLocaleString()}/mo total cost`);
+  }
+
+  if (ctx.financialSummary) {
+    const f = ctx.financialSummary;
+    lines.push('');
+    lines.push(`FINANCES (${f.month}): Income $${f.totalIncome.toLocaleString()}, Expenses $${f.totalExpenses.toLocaleString()}, Net ${f.netCashFlow >= 0 ? '+' : ''}$${f.netCashFlow.toLocaleString()}`);
+    if (f.aiInsights) lines.push(`  Insight: ${f.aiInsights}`);
+  }
+
+  if (ctx.subscriptionBurn.totalMonthly > 0) {
+    lines.push('');
+    lines.push(`SUBSCRIPTIONS: $${ctx.subscriptionBurn.totalMonthly.toFixed(0)}/mo total`);
+    if (ctx.subscriptionBurn.flaggedUnused.length > 0) {
+      lines.push('  Flagged unused: ' + ctx.subscriptionBurn.flaggedUnused.map((s) => `${s.merchant} ($${s.amount}/mo)`).join(', '));
+    }
+  }
+
+  if (ctx.productivityInsights.length > 0) {
+    lines.push('');
+    lines.push('PRODUCTIVITY PATTERNS:');
+    for (const p of ctx.productivityInsights) {
+      lines.push(`  - ${p.description} (${(p.confidence * 100).toFixed(0)}% confidence)`);
+    }
+  }
+
+  if (ctx.stressorMilestoneProgress.length > 0) {
+    lines.push('');
+    lines.push('STRESSOR PROGRESS:');
+    for (const s of ctx.stressorMilestoneProgress) {
+      lines.push(`  - "${s.stressorTitle}": ${s.completed}/${s.total} milestones done`);
+    }
+  }
+
+  if (ctx.latestBriefInsight) {
+    lines.push('');
+    lines.push(`MORNING BRIEF INSIGHT: ${ctx.latestBriefInsight}`);
+  }
 
   return lines.join('\n');
 }
