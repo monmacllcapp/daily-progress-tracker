@@ -7,6 +7,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { AgentBoardStatus } from '../types/schema';
 
 let _supabase: SupabaseClient | null = null;
 
@@ -43,6 +44,9 @@ export interface AgentTask {
   agentNotes?: string;
   createdDate: string;
   source: 'user' | 'agent';  // who created it
+  boardStatus: AgentBoardStatus;
+  deliverable?: string;
+  agentQuestion?: string;
 }
 
 export const AGENTS: AgentInfo[] = [
@@ -134,6 +138,9 @@ export async function getAgentTasks(db: any): Promise<Map<string, AgentTask[]>> 
         agentNotes: task.agent_notes,
         createdDate: task.created_date,
         source: task.source === 'manual' ? 'user' : 'agent',
+        boardStatus: task.agent_board_status || 'new',
+        deliverable: task.deliverable,
+        agentQuestion: task.agent_question,
       };
 
       const existing = map.get(task.assigned_agent) || [];

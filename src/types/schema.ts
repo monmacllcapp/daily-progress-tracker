@@ -16,6 +16,7 @@ export interface DailyJournal {
 export type TaskStatus = 'active' | 'completed' | 'dismissed' | 'deferred';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TaskSource = 'morning_flow' | 'brain_dump' | 'rpm_wizard' | 'email' | 'calendar' | 'manual';
+export type AgentBoardStatus = 'new' | 'picked_up' | 'in_progress' | 'blocked' | 'deliverable_ready' | 'done';
 
 export interface Task {
   id: UUID;
@@ -37,6 +38,9 @@ export interface Task {
   assigned_agent?: string;        // OpenClaw agent id (e.g. 'manager', 'sales')
   agent_status?: 'pending' | 'in_progress' | 'completed' | 'failed';
   agent_notes?: string;           // Agent's progress notes / output
+  deliverable?: string;           // Concrete artifact proving task completion
+  agent_question?: string;        // Agent's blocking question for user
+  agent_board_status?: AgentBoardStatus; // Kanban column status
   created_at?: string;
   updated_at?: string;
 }

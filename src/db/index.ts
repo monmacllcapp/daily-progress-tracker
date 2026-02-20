@@ -12,7 +12,7 @@ addRxPlugin(RxDBMigrationSchemaPlugin);
 // -- RxDB Schema Definitions --
 
 const taskSchema = {
-    version: 2,
+    version: 3,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -36,7 +36,10 @@ const taskSchema = {
         updated_at: { type: 'string' },
         assigned_agent: { type: 'string' },
         agent_status: { type: 'string' },  // pending | in_progress | completed | failed
-        agent_notes: { type: 'string' }
+        agent_notes: { type: 'string' },
+        deliverable: { type: 'string' },
+        agent_question: { type: 'string' },
+        agent_board_status: { type: 'string' }  // new | picked_up | in_progress | blocked | deliverable_ready | done
     },
     required: ['id', 'title', 'status', 'source', 'created_date', 'category_id'],
     indexes: ['status', 'created_date', 'category_id']
@@ -823,7 +826,21 @@ async function initDatabase(): Promise<TitanDatabase> {
                 1: function (oldDoc: any) { return oldDoc; },
                 // v1 → v2: add agent assignment fields
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
-                2: function (oldDoc: any) { return oldDoc; }
+                2: function (oldDoc: any) { return oldDoc; },
+                // v2 → v3: add deliverable, agent_question, agent_board_status
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                3: function (oldDoc: any) {
+                    const statusMap: Record<string, string> = {
+                        pending: 'new', in_progress: 'in_progress',
+                        completed: 'done', failed: 'done',
+                    };
+                    oldDoc.agent_board_status = oldDoc.assigned_agent
+                        ? (statusMap[oldDoc.agent_status] || 'new')
+                        : undefined;
+                    oldDoc.deliverable = undefined;
+                    oldDoc.agent_question = undefined;
+                    return oldDoc;
+                }
             }
         },
         projects: {
