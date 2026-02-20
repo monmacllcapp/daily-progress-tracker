@@ -10,8 +10,9 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Mic, MicOff, Volume2, VolumeOff } from 'lucide-react';
 import { useJarvisStore } from '../store/jarvisStore';
-import { getAnalyser as getAnalyserNode } from '../services/voice-mode';
+import { getAnalyser as getAnalyserNode, muteMic, unmuteMic, forceStartListening, needsActivation } from '../services/voice-mode';
 
 const BAR_COUNT = 64;
 const TWO_PI = Math.PI * 2;
@@ -64,7 +65,7 @@ export function MapleOrb() {
   const breathePhase = useRef(0);
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { voiceMode, isOpen, setIsOpen, liveTranscript } = useJarvisStore();
+  const { voiceMode, isOpen, setIsOpen, liveTranscript, micEnabled, toggleMic, voiceEnabled, toggleVoice } = useJarvisStore();
 
   // --- Canvas rendering ---
   const draw = useCallback(() => {
@@ -188,12 +189,18 @@ export function MapleOrb() {
 
   // --- Click handling ---
   const handleClick = useCallback(() => {
+    // If voice needs activation (browser blocked auto-start), single click activates
+    if (needsActivation() || (voiceMode === 'idle' && micEnabled)) {
+      forceStartListening();
+      return;
+    }
+
     // Use timeout to distinguish single vs double click
     if (clickTimer.current) {
       // Double-click: force start listening
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
-      import('../services/voice-mode').then((vm) => vm.forceStartListening());
+      forceStartListening();
     } else {
       clickTimer.current = setTimeout(() => {
         clickTimer.current = null;
@@ -201,7 +208,17 @@ export function MapleOrb() {
         setIsOpen(!isOpen);
       }, 250);
     }
-  }, [isOpen, setIsOpen]);
+  }, [isOpen, setIsOpen, voiceMode, micEnabled]);
+
+  // --- Mic toggle ---
+  const handleMicToggle = useCallback(() => {
+    if (micEnabled) {
+      muteMic();
+    } else {
+      unmuteMic();
+    }
+    toggleMic();
+  }, [micEnabled, toggleMic]);
 
   // Determine outer glow class
   const glowClass =
@@ -243,7 +260,7 @@ export function MapleOrb() {
         style={{ background: 'radial-gradient(circle, rgba(15,23,42,0.9) 0%, rgba(10,14,26,0.95) 100%)' }}
         title={
           voiceMode === 'idle'
-            ? 'Click to chat, double-click for voice'
+            ? (needsActivation() ? 'Tap to activate Maple' : 'Click to chat, double-click for voice')
             : voiceMode === 'listening'
               ? 'Listening...'
               : voiceMode === 'processing'
@@ -274,7 +291,16 @@ export function MapleOrb() {
 
       {/* State label */}
       <AnimatePresence>
-        {voiceMode !== 'idle' && (
+        {voiceMode === 'idle' && needsActivation() ? (
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-xs font-medium tracking-wider uppercase text-cyan-400/70"
+          >
+            Tap to start
+          </motion.span>
+        ) : voiceMode !== 'idle' ? (
           <motion.span
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -283,8 +309,34 @@ export function MapleOrb() {
           >
             {voiceMode === 'listening' ? 'Listening' : voiceMode === 'processing' ? 'Thinking' : 'Speaking'}
           </motion.span>
-        )}
+        ) : null}
       </AnimatePresence>
+
+      {/* Mic & Sound toggles */}
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={handleMicToggle}
+          className={`p-1.5 rounded-full transition-colors ${
+            micEnabled
+              ? 'text-cyan-400 hover:bg-cyan-400/10'
+              : 'text-red-400 hover:bg-red-400/10'
+          }`}
+          title={micEnabled ? 'Mute mic' : 'Unmute mic'}
+        >
+          {micEnabled ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+        </button>
+        <button
+          onClick={toggleVoice}
+          className={`p-1.5 rounded-full transition-colors ${
+            voiceEnabled
+              ? 'text-cyan-400 hover:bg-cyan-400/10'
+              : 'text-slate-500 hover:bg-slate-500/10'
+          }`}
+          title={voiceEnabled ? 'Mute sound' : 'Unmute sound'}
+        >
+          {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeOff className="w-3.5 h-3.5" />}
+        </button>
+      </div>
     </div>
   );
 }

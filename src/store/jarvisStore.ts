@@ -40,6 +40,10 @@ interface JarvisState {
   wakeWordEnabled: boolean;
   toggleWakeWord: () => void;
 
+  // Mic on/off (always-on listening toggle)
+  micEnabled: boolean;
+  toggleMic: () => void;
+
   // Live transcript
   liveTranscript: string;
   setLiveTranscript: (text: string) => void;
@@ -71,6 +75,10 @@ export const useJarvisStore = create<JarvisState>((set, get) => ({
   // Wake word
   wakeWordEnabled: true,
   toggleWakeWord: () => set((s) => ({ wakeWordEnabled: !s.wakeWordEnabled })),
+
+  // Mic on/off
+  micEnabled: true,
+  toggleMic: () => set((s) => ({ micEnabled: !s.micEnabled })),
 
   // Live transcript
   liveTranscript: '',

@@ -28,6 +28,7 @@ const SILENCE_TIMEOUT_MS = 15_000;
 const ECHO_DELAY_MS = 800;
 const RESPONSE_COOLDOWN_MS = 2_000;
 const CONFIDENCE_THRESHOLD = 0.6;
+const BARGEIN_CONFIDENCE = 0.7; // higher threshold during TTS to avoid echo pickup
 
 let recognition: any = null;
 let silenceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -36,6 +37,8 @@ let audioContext: AudioContext | null = null;
 let analyser: AnalyserNode | null = null;
 let micStream: MediaStream | null = null;
 let micSource: MediaStreamAudioSourceNode | null = null;
+let needsUserGesture = false;
+let restartPending = false;
 
 // ─── Store helpers ───────────────────────────────────────────────────────────
 
@@ -59,8 +62,13 @@ function clearSilenceTimer() {
 function startSilenceTimer() {
   clearSilenceTimer();
   silenceTimer = setTimeout(() => {
-    console.log('[VoiceMode] Silence timeout — returning to idle');
-    returnToIdle();
+    // Stay listening — restart recognition instead of going idle
+    console.log('[VoiceMode] Silence timeout — restarting recognition');
+    if (getStore().micEnabled) {
+      startRecognition();
+    } else {
+      returnToIdle();
+    }
   }, SILENCE_TIMEOUT_MS);
 }
 
@@ -105,6 +113,71 @@ function startRecognition(): void {
 
   try {
     recognition = new SpeechRecognitionClass();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript: string = result[0]?.transcript?.trim() ?? '';
+
+        if (result.isFinal) {
+          const confidence: number = result[0]?.confidence ?? 0;
+          getStore().setLiveTranscript('');
+
+          if (!transcript || confidence < CONFIDENCE_THRESHOLD) return;
+
+          const now = Date.now();
+          if (now - lastResponseTime < RESPONSE_COOLDOWN_MS) return;
+
+          clearSilenceTimer();
+          handleUserSpeech(transcript);
+          return;
+        } else {
+          getStore().setLiveTranscript(transcript);
+          startSilenceTimer();
+        }
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.warn('[VoiceMode] Recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        needsUserGesture = true;
+        returnToIdle();
+      }
+      // All other errors: let onend handle restart
+    };
+
+    recognition.onend = () => {
+      // Only restart if still in listening mode, with a guard against rapid loops
+      if (getStore().voiceMode === 'listening' && getStore().micEnabled && !restartPending) {
+        restartPending = true;
+        setTimeout(() => {
+          restartPending = false;
+          if (getStore().voiceMode === 'listening' && getStore().micEnabled) {
+            startRecognition();
+          }
+        }, 2000); // 2 second cooldown before restart
+      }
+    };
+
+    recognition.start();
+    setState('listening');
+    startSilenceTimer();
+  } catch (err) {
+    console.error('[VoiceMode] Failed to start recognition:', err);
+    returnToIdle();
+  }
+}
+
+/** Start recognition in barge-in mode — listens while TTS is playing. */
+function startBargeInRecognition(): void {
+  if (!SpeechRecognitionClass) return;
+
+  try {
+    recognition = new SpeechRecognitionClass();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
@@ -117,55 +190,37 @@ function startRecognition(): void {
         const confidence: number = result[0]?.confidence ?? 0;
         getStore().setLiveTranscript('');
 
-        if (!transcript || confidence < CONFIDENCE_THRESHOLD) {
-          console.log('[VoiceMode] Low confidence, ignoring:', transcript, confidence);
-          startRecognition();
+        if (!transcript || confidence < BARGEIN_CONFIDENCE) {
+          // Low confidence during barge-in — likely echo, ignore
+          try { recognition.start(); } catch { /* ignore */ }
           return;
         }
 
-        const now = Date.now();
-        if (now - lastResponseTime < RESPONSE_COOLDOWN_MS) {
-          console.log('[VoiceMode] Cooldown active, ignoring:', transcript);
-          startRecognition();
-          return;
-        }
-
+        // User interrupted — stop TTS and process new speech
+        console.log('[VoiceMode] Barge-in detected:', transcript);
+        stopSpeaking();
         clearSilenceTimer();
         handleUserSpeech(transcript);
-      } else {
-        // Interim — show live transcript and reset silence timer
+      } else if (transcript.length > 3) {
+        // Show interim transcript — user is clearly speaking
         getStore().setLiveTranscript(transcript);
-        startSilenceTimer();
       }
     };
 
-    recognition.onerror = (event: any) => {
-      console.warn('[VoiceMode] Speech recognition error:', event.error);
-      if (event.error === 'no-speech') {
-        // No speech: stay in listening, silence timer will handle idle transition
-      } else {
-        returnToIdle();
-      }
+    recognition.onerror = () => {
+      // Ignore errors during barge-in — TTS audio can trigger noise errors
     };
 
     recognition.onend = () => {
-      // If still in listening state, restart recognition (browser auto-stopped it)
-      const currentMode = getStore().voiceMode;
-      if (currentMode === 'listening') {
-        try {
-          recognition.start();
-        } catch {
-          // Already started or recognition object was replaced — safe to ignore
-        }
+      // Keep restarting during speaking to stay ready for barge-in
+      if (getStore().voiceMode === 'speaking') {
+        try { recognition.start(); } catch { /* ignore */ }
       }
     };
 
     recognition.start();
-    setState('listening');
-    startSilenceTimer();
-  } catch (err) {
-    console.error('[VoiceMode] Failed to start recognition:', err);
-    returnToIdle();
+  } catch {
+    // Barge-in failed to start — not critical, user can still wait
   }
 }
 
@@ -220,6 +275,8 @@ async function handleUserSpeech(transcript: string): Promise<void> {
 
     // Speak response, then loop back to LISTENING after echo-prevention delay
     setState('speaking');
+    // Start barge-in recognition so user can interrupt
+    startBargeInRecognition();
     speakText(responseText, () => {
       setTimeout(() => {
         if (getStore().voiceMode === 'speaking') {
@@ -232,6 +289,7 @@ async function handleUserSpeech(transcript: string): Promise<void> {
     const errorMsg = 'Something went wrong. Please try again.';
     store.addMessage('jarvis', errorMsg);
     setState('speaking');
+    startBargeInRecognition();
     speakText(errorMsg, () => {
       setTimeout(() => returnToIdle(), ECHO_DELAY_MS);
     });
@@ -284,20 +342,51 @@ export async function initVoiceMode(): Promise<void> {
       await wakeWord.start();
     }
   }
+
+  // Auto-start listening if mic is enabled (always-on mode)
+  if (getStore().micEnabled && getStore().voiceMode === 'idle') {
+    console.log('[VoiceMode] Auto-starting listening (always-on)');
+    try {
+      await enterListening();
+      needsUserGesture = false;
+    } catch {
+      // Browser blocked auto-start — requires user gesture (click)
+      console.warn('[VoiceMode] Auto-start blocked — waiting for user gesture');
+      needsUserGesture = true;
+    }
+  }
 }
 
 /**
  * Force-start listening mode, bypassing the wake word.
- * Used by the MapleOrb double-click handler.
+ * Used by the MapleOrb click handler and as user-gesture activation.
  */
 export async function forceStartListening(): Promise<void> {
   if (getStore().voiceMode !== 'idle') return;
+  needsUserGesture = false;
   await enterListening();
+}
+
+/** Returns true if voice mode needs a user click to activate (browser policy). */
+export function needsActivation(): boolean {
+  return needsUserGesture;
 }
 
 /** Stop the current voice interaction and return to idle. */
 export function stopVoiceMode(): void {
   returnToIdle();
+}
+
+/** Mute mic — stop listening and return to idle. */
+export function muteMic(): void {
+  returnToIdle();
+}
+
+/** Unmute mic — re-enter listening mode. */
+export async function unmuteMic(): Promise<void> {
+  if (getStore().voiceMode === 'idle') {
+    await enterListening();
+  }
 }
 
 /**
