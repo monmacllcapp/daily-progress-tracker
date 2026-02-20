@@ -1,10 +1,12 @@
 import { useEffect, useCallback, useMemo } from 'react';
-import { RefreshCw, GitBranch, AlertTriangle, GitPullRequest, Clock } from 'lucide-react';
+import { RefreshCw, GitBranch, AlertTriangle, GitPullRequest, Clock, Key } from 'lucide-react';
 import { useDevProjectsStore } from '../store/devProjectsStore';
 import { DevProjectCard } from '../components/v2/DevProjectCard';
 import { TRACKED_PROJECTS } from '../services/github-projects';
 import { SignalFeed } from '../components/v2/SignalFeed';
 import { useSignalStore } from '../store/signalStore';
+
+const hasGithubPat = !!import.meta.env.VITE_GITHUB_PAT;
 
 export default function DevProjectsPage() {
   const projects = useDevProjectsStore((s) => s.projects);
@@ -133,6 +135,25 @@ export default function DevProjectsPage() {
           </button>
         </div>
       </div>
+
+      {/* GitHub PAT Config Banner */}
+      {!hasGithubPat && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-start gap-3">
+          <Key className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-semibold text-amber-300">GitHub PAT Required</h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Add <code className="bg-slate-800 px-1.5 py-0.5 rounded text-amber-300">VITE_GITHUB_PAT=ghp_your_token</code> to
+              your <code className="bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">.env</code> file
+              with <code className="bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">repo</code> scope.
+              Without it, GitHub API calls hit rate limits quickly.
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              Get one at github.com/settings/tokens → Generate new token (classic) → check "repo"
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Tech Domain Signals */}
       {techSignals.length > 0 && (

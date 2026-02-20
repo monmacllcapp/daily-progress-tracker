@@ -171,7 +171,7 @@ const stressorMilestoneSchema = {
 };
 
 const calendarEventSchema = {
-    version: 0,
+    version: 1,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -189,8 +189,8 @@ const calendarEventSchema = {
         created_at: { type: 'string' },
         updated_at: { type: 'string' }
     },
-    required: ['id', 'summary', 'start_time', 'end_time', 'source', 'linked_task_id', 'google_event_id'],
-    indexes: ['start_time', 'linked_task_id', 'google_event_id']
+    required: ['id', 'summary', 'start_time', 'end_time', 'source'],
+    indexes: ['start_time']
 };
 
 const emailSchema = {
@@ -895,7 +895,14 @@ async function initDatabase(): Promise<TitanDatabase> {
         },
         stressors: { schema: stressorSchema },
         stressor_milestones: { schema: stressorMilestoneSchema },
-        calendar_events: { schema: calendarEventSchema },
+        calendar_events: {
+            schema: calendarEventSchema,
+            migrationStrategies: {
+                // v0 → v1: relax required — linked_task_id and google_event_id now optional
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                1: function (oldDoc: any) { return oldDoc; }
+            }
+        },
         emails: {
             schema: emailSchema,
             migrationStrategies: {
@@ -976,11 +983,29 @@ async function initDatabase(): Promise<TitanDatabase> {
             addedCount++;
         } catch (colErr) {
             const code = (colErr as { code?: string })?.code;
-            if (code === 'DB6' || code === 'DXE1') {
-                // Schema mismatch — nuke entire DB and restart fresh
-                console.warn(`[DB] Schema conflict on ${name} (${code}), clearing database...`);
-                await db.remove();
+            const msg = String(colErr);
+            if (code === 'DB6' || code === 'DXE1' || msg.includes('DXE1') || msg.includes('schema')) {
+                // Schema mismatch — force-wipe all IndexedDB and hard reload
+                console.warn(`[DB] Schema conflict on ${name} (${code}), wiping IndexedDB...`);
+                try { await db.remove(); } catch { /* ignore */ }
                 dbPromise = null;
+                // Nuke all IndexedDB databases directly
+                if (typeof window !== 'undefined') {
+                    const allDbs = await window.indexedDB.databases();
+                    for (const dbInfo of allDbs) {
+                        if (dbInfo.name) {
+                            await new Promise<void>((resolve) => {
+                                const req = window.indexedDB.deleteDatabase(dbInfo.name!);
+                                req.onsuccess = () => resolve();
+                                req.onerror = () => resolve();
+                                req.onblocked = () => resolve();
+                            });
+                        }
+                    }
+                    console.warn('[DB] IndexedDB wiped, reloading...');
+                    window.location.reload();
+                    return new Promise(() => {}); // never resolves — page reloads
+                }
                 return initDatabase();
             }
             // COL23 (already exists) or other — skip, collection may already be attached
