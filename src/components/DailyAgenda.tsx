@@ -10,129 +10,35 @@ import { detectAllConflicts, getMeetingLoadStats } from '../services/calendar-mo
 import type { EventConflict, MeetingLoadStats } from '../services/calendar-monitor';
 import type { CalendarEvent } from '../types/schema';
 import type { Task } from '../types/schema';
+import {
+    HOURS,
+    HOUR_HEIGHT,
+    formatHour,
+    formatDate,
+    toDateString,
+    parseTimeBlocks,
+    assignColumns,
+    deduplicateEvents,
+} from './calendar/calendar-utils';
+import type { TimeBlock } from './calendar/calendar-utils';
 
-const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6 AM to 10 PM
-const HOUR_HEIGHT = 56; // pixels per hour
-
-function formatHour(hour: number): string {
-    if (hour === 0) return '12 AM';
-    if (hour < 12) return `${hour} AM`;
-    if (hour === 12) return '12 PM';
-    return `${hour - 12} PM`;
+interface DailyAgendaProps {
+    selectedDate?: Date;
+    onDateChange?: (date: Date) => void;
 }
 
-function formatDate(date: Date): string {
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-}
+export function DailyAgenda({ selectedDate: controlledDate, onDateChange }: DailyAgendaProps = {}) {
+    const [internalDate, setInternalDate] = useState(new Date());
 
-function toDateString(date: Date): string {
-    return date.toISOString().split('T')[0];
-}
-
-interface TimeBlock {
-    type: 'event' | 'task';
-    id: string;
-    title: string;
-    startHour: number;
-    startMinute: number;
-    durationMinutes: number;
-    color: string;
-    isFocusBlock?: boolean;
-    linkedTaskId?: string;
-}
-
-type PositionedTimeBlock = TimeBlock & { column: number; totalColumns: number };
-
-function assignColumns(blocks: TimeBlock[]): PositionedTimeBlock[] {
-    if (blocks.length === 0) return [];
-
-    // Sort by start time, then longest duration first
-    const sorted = [...blocks].sort((a, b) => {
-        const aStart = a.startHour * 60 + a.startMinute;
-        const bStart = b.startHour * 60 + b.startMinute;
-        if (aStart !== bStart) return aStart - bStart;
-        return b.durationMinutes - a.durationMinutes;
-    });
-
-    // For each block, find its column by checking which columns are occupied at its start time
-    const result: PositionedTimeBlock[] = [];
-    const columnEnds: number[] = []; // tracks when each column becomes free (in minutes from midnight)
-
-    for (const block of sorted) {
-        const blockStart = block.startHour * 60 + block.startMinute;
-        const blockEnd = blockStart + block.durationMinutes;
-
-        // Find first available column
-        let col = 0;
-        while (col < columnEnds.length && columnEnds[col] > blockStart) {
-            col++;
-        }
-
-        // Assign column
-        if (col >= columnEnds.length) {
-            columnEnds.push(blockEnd);
+    // If a controlled date is provided, use it; otherwise fall back to internal state
+    const selectedDate = controlledDate ?? internalDate;
+    const setSelectedDate = (date: Date) => {
+        if (onDateChange) {
+            onDateChange(date);
         } else {
-            columnEnds[col] = blockEnd;
+            setInternalDate(date);
         }
-
-        result.push({ ...block, column: col, totalColumns: 0 }); // totalColumns set later
-    }
-
-    // Calculate totalColumns for each event based on all events it overlaps with
-    for (let i = 0; i < result.length; i++) {
-        const iStart = result[i].startHour * 60 + result[i].startMinute;
-        const iEnd = iStart + result[i].durationMinutes;
-        let maxCol = result[i].column;
-
-        for (let j = 0; j < result.length; j++) {
-            if (i === j) continue;
-            const jStart = result[j].startHour * 60 + result[j].startMinute;
-            const jEnd = jStart + result[j].durationMinutes;
-
-            // Check overlap
-            if (iStart < jEnd && jStart < iEnd) {
-                maxCol = Math.max(maxCol, result[j].column);
-            }
-        }
-
-        result[i].totalColumns = maxCol + 1;
-    }
-
-    return result;
-}
-
-function parseTimeBlocks(events: CalendarEvent[]): TimeBlock[] {
-    const blocks: TimeBlock[] = [];
-
-    for (const event of events) {
-        if (event.all_day) continue;
-
-        const start = new Date(event.start_time);
-        const end = new Date(event.end_time);
-        const duration = (end.getTime() - start.getTime()) / 60000;
-
-        blocks.push({
-            type: 'event',
-            id: event.id,
-            title: event.summary,
-            startHour: start.getHours(),
-            startMinute: start.getMinutes(),
-            durationMinutes: duration,
-            color: event.source === 'google' ? '#3b82f6' : '#8b5cf6',
-            isFocusBlock: event.is_focus_block,
-            linkedTaskId: event.linked_task_id,
-        });
-    }
-
-    // Tasks with time estimates that aren't already in calendar events
-    // Unscheduled tasks (not linked to calendar events) show in the sidebar,
-    // not positioned on the timeline.
-
-    return blocks;
-}
-
-export function DailyAgenda() {
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    };
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -157,7 +63,7 @@ export function DailyAgenda() {
             }).exec();
 
             if (mounted) {
-                setEvents(eventDocs.map(d => d.toJSON() as CalendarEvent));
+                setEvents(deduplicateEvents(eventDocs.map(d => d.toJSON() as CalendarEvent)));
             }
 
             // Compute conflicts and meeting load
@@ -191,7 +97,7 @@ export function DailyAgenda() {
                         }
                     }).exec();
                     if (mounted) {
-                        setEvents(syncedEventDocs.map(d => d.toJSON() as CalendarEvent));
+                        setEvents(deduplicateEvents(syncedEventDocs.map(d => d.toJSON() as CalendarEvent)));
                     }
                 } catch (err) {
                     console.error('[DailyAgenda] Auto-sync on mount failed:', err);
@@ -255,7 +161,7 @@ export function DailyAgenda() {
                     start_time: { $gte: dayStart.toISOString(), $lte: dayEnd.toISOString() }
                 }
             }).exec();
-            setEvents(eventDocs.map(d => d.toJSON() as CalendarEvent));
+            setEvents(deduplicateEvents(eventDocs.map(d => d.toJSON() as CalendarEvent)));
         } catch (err) {
             console.error('[DailyAgenda] Sync failed:', err);
         } finally {

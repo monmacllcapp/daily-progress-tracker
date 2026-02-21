@@ -166,6 +166,35 @@ export async function fetchGoogleEvents(
 }
 
 /**
+ * Normalize existing RxDB calendar_events that have timezone-offset timestamps
+ * (e.g. "2026-02-21T07:45:00-08:00") to UTC ISO format ("2026-02-21T15:45:00.000Z").
+ * All-day events stored as "YYYY-MM-DD" are left untouched.
+ * Returns the number of events patched.
+ */
+export async function normalizeEventTimes(db: TitanDatabase): Promise<number> {
+    if (!db.calendar_events) return 0;
+    const allEvents = await db.calendar_events.find().exec();
+    let fixed = 0;
+    for (const event of allEvents) {
+        const st = event.start_time;
+        const et = event.end_time;
+        // Check if time has timezone offset (contains + or - after T, doesn't end with Z)
+        const needsFixStart = st && /T.*[+-]\d{2}:\d{2}$/.test(st);
+        const needsFixEnd = et && /T.*[+-]\d{2}:\d{2}$/.test(et);
+        if (needsFixStart || needsFixEnd) {
+            await event.patch({
+                start_time: needsFixStart ? new Date(st).toISOString() : st,
+                end_time: needsFixEnd ? new Date(et).toISOString() : et,
+                updated_at: new Date().toISOString(),
+            });
+            fixed++;
+        }
+    }
+    if (fixed > 0) console.log(`[Calendar] Normalized ${fixed} events to UTC`);
+    return fixed;
+}
+
+/**
  * Sync Google Calendar events into the local RxDB collection.
  * Performs a one-way pull: Google → local.
  * Local-only events (source: 'app') are preserved.
@@ -183,6 +212,8 @@ export async function syncCalendarEvents(
         return 0;
     }
 
+    await normalizeEventTimes(db);
+
     const googleEvents = await fetchGoogleEvents(startDate, endDate);
     let synced = 0;
 
@@ -190,8 +221,10 @@ export async function syncCalendarEvents(
         if (!ge.id) continue;
 
         try {
-            const startTime = ge.start.dateTime || ge.start.date || '';
-            const endTime = ge.end.dateTime || ge.end.date || '';
+            const rawStart = ge.start.dateTime || ge.start.date || '';
+            const startTime = ge.start.dateTime ? new Date(rawStart).toISOString() : rawStart;
+            const rawEnd = ge.end.dateTime || ge.end.date || '';
+            const endTime = ge.end.dateTime ? new Date(rawEnd).toISOString() : rawEnd;
             const allDay = !ge.start.dateTime;
 
             // Check if we already have this event locally

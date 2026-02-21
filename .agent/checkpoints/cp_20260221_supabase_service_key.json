@@ -1,0 +1,26 @@
+{
+  "checkpoint_id": "cp_20260221_supabase_service_key",
+  "timestamp": "2026-02-21T14:00:00Z",
+  "session_goal": "Complete Supabase sync pipeline — add service key and restart OpenClaw",
+  "branch": "sandbox",
+  "changes_summary": "Added SUPABASE_SERVICE_KEY to alpha-ai .env on desktop, restarted OpenClaw container, verified service key works against Supabase API (HTTP 200, returns data). Pipeline fully wired: URL + anon key + service key all configured.",
+  "files_modified": [
+    "~/alpha-ai/.env (desktop, not committed — gitignored)"
+  ],
+  "decisions_made": [
+    "Service key added to alpha-ai .env for Pepper agent access to all Maple Life OS tables",
+    "Confirmed service key works via direct PostgREST query (returns [] not 401)",
+    "Non-blocking replication fix already committed as d6e4979 in prior step"
+  ],
+  "continuation": {
+    "next_immediate_step": "Test end-to-end sync: create data in browser → appears in Supabase → Pepper can query it",
+    "next_three_steps": [
+      "Open Maple Life OS in Chrome on desktop, create a task to trigger RxDB → Supabase sync",
+      "Test Pepper query: openclaw agent --agent ea-user --message 'What are my active tasks?'",
+      "Harden SSH on desktop (Task #10 — requires sudo at desktop)"
+    ],
+    "blockers": [
+      "SSH hardening requires physical access to desktop for sudo"
+    ]
+  }
+}

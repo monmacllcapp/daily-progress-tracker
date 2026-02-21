@@ -1,0 +1,27 @@
+{
+  "checkpoint_id": "cp_20260221_calendar_utils_weekview_complete",
+  "timestamp": "2026-02-21T18:00:00Z",
+  "session_goal": "Fix calendar timezone bug + add weekly/monthly views",
+  "branch": "sandbox",
+  "changes_summary": "Completed Agent 2 work: created shared calendar-utils.ts, WeekView.tsx, and refactored DailyAgenda.tsx. All shared logic (HOURS, HOUR_HEIGHT, formatHour, formatDate, toDateString, parseTimeBlocks, assignColumns, TypeBlock, PositionedTimeBlock) extracted to calendar-utils.ts. New exports: deduplicateEvents, getWeekRange, getMonthRange. DailyAgenda now accepts optional controlled selectedDate/onDateChange props and applies deduplicateEvents on all setEvents calls. WeekView renders 7-column grid with per-day overlap layout, current-time indicator on today, and day-header click-to-navigate. tsc --noEmit passes clean.",
+  "files_modified": [
+    "src/components/calendar/calendar-utils.ts (new)",
+    "src/components/calendar/WeekView.tsx (new)",
+    "src/components/DailyAgenda.tsx (modified)"
+  ],
+  "decisions_made": [
+    "DailyAgenda props are optional - fully backward compatible",
+    "deduplicateEvents applied at all three setEvents call sites",
+    "WeekView week = Sun-to-Sat containing selectedDate",
+    "WeekView click on event or day header calls onDateChange(day)"
+  ],
+  "continuation": {
+    "next_immediate_step": "Create MonthView.tsx + CalendarPage.tsx with tab switcher",
+    "next_three_steps": [
+      "src/components/calendar/MonthView.tsx",
+      "src/pages/CalendarPage.tsx with Day/Week/Month tabs",
+      "tsc --noEmit + browser test"
+    ],
+    "blockers": []
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "checkpoint_id": "cp_20260221_google_auth_debug",
+  "timestamp": "2026-02-21T15:00:00Z",
+  "session_goal": "Debug Google Calendar not displaying events after connecting",
+  "branch": "sandbox",
+  "changes_summary": "Diagnosed Google Calendar sync failure. Auth popup works (user can connect) but events don't display. Root cause: Supabase Edge Functions (google-auth-exchange, google-auth-refresh) are deployed but missing GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets. Google returns 'invalid_client' error on token exchange. No source files modified — this is a configuration issue.",
+  "files_modified": [],
+  "decisions_made": [
+    "Edge Functions are deployed and reachable (not 404)",
+    "Google returns invalid_client — Edge Function missing GOOGLE_CLIENT_SECRET Supabase secret",
+    "User needs to get client secret from Google Cloud Console and set it as Supabase secret",
+    "SUPABASE_SERVICE_KEY was added to alpha-ai .env and OpenClaw container restarted successfully"
+  ],
+  "continuation": {
+    "next_immediate_step": "User provides Google Client Secret from Google Cloud Console, then set Supabase secrets via CLI or Dashboard",
+    "next_three_steps": [
+      "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET as Supabase Edge Function secrets",
+      "Re-test Google Calendar connection — events should sync after token exchange works",
+      "Harden SSH on desktop (Task #10 — requires sudo)"
+    ],
+    "blockers": [
+      "GOOGLE_CLIENT_SECRET needed from Google Cloud Console (user must retrieve)",
+      "SSH hardening requires sudo at desktop"
+    ]
+  }
+}

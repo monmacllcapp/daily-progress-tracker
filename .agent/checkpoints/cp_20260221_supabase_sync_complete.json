@@ -1,0 +1,27 @@
+{
+  "checkpoint_id": "cp_20260221_supabase_sync_complete",
+  "timestamp": "2026-02-21T12:00:00Z",
+  "session_goal": "Complete Supabase sync pipeline for Pepper data access",
+  "branch": "sandbox",
+  "changes_summary": "Verified all 31 Supabase tables live (HTTP 200), all 4 migrations applied, RxDB replication enabled with live polling. Fixed blocking await on startReplication to non-blocking .catch() pattern. Committed and pushed to sandbox.",
+  "files_modified": [
+    "src/db/index.ts"
+  ],
+  "decisions_made": [
+    "Non-blocking replication: startReplication uses .catch() not await so app works offline",
+    "All 31 tables confirmed live via PostgREST API",
+    "Pepper supabase-query skill already configured with all tables and guard rails"
+  ],
+  "continuation": {
+    "next_immediate_step": "User needs to add SUPABASE_SERVICE_KEY to alpha-ai .env from Supabase Dashboard",
+    "next_three_steps": [
+      "Get SUPABASE_SERVICE_KEY from Supabase Dashboard > Settings > API > service_role",
+      "Add to ~/alpha-ai/.env and restart OpenClaw container",
+      "Test round-trip: create data in browser -> appears in Supabase -> Pepper can query it"
+    ],
+    "blockers": [
+      "SUPABASE_SERVICE_KEY needed in alpha-ai .env (requires manual Supabase Dashboard access)",
+      "SSH hardening requires physical access to desktop (sudo)"
+    ]
+  }
+}

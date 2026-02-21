@@ -1,36 +1,36 @@
 {
-  "checkpoint_id": "2026-02-20T004340_autocompact",
-  "timestamp": "2026-02-20T00:43:40Z",
-  "agent": {
-    "model": "auto-hook",
-    "provider": "anthropic",
-    "session_id": "37629067-f94e-4a82-ae87-c2002070fc9c"
-  },
-  "session": {
-    "project": "Daily Progress Tracker",
-    "goal": "Auto-checkpoint before auto compaction",
-    "branch": "sandbox",
-    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
-  },
-  "changes": {
-    "summary": "Skeleton checkpoint — created by pre-compact hook (Claude did not write a rich checkpoint in time)",
-    "files_modified": [],
-    "decisions_made": []
-  },
+  "checkpoint_id": "cp_20260221_calendar_views_complete",
+  "timestamp": "2026-02-21T18:45:00Z",
+  "session_goal": "Fix calendar timezone bug + add weekly/monthly views + investigate Pepper hallucination",
+  "branch": "sandbox",
+  "changes_summary": "All three calendar tasks complete: (1) timezone fix in google-calendar.ts normalizes event times to UTC ISO, (2) shared calendar-utils.ts + WeekView.tsx + DailyAgenda refactor with dedup, (3) MonthView.tsx + CalendarPage.tsx with Day/Week/Month tabs. Also: Google OAuth Edge Function secrets set, Supabase service key added. Pepper hallucination diagnosed — agents still on ollama/llama3.1 not Gemini, no Gemini API key in alpha-ai .env. Added anti-hallucination guardrail to Pepper's SOUL.md.",
+  "files_modified": [
+    "src/services/google-calendar.ts (timezone normalization + normalizeEventTimes function)",
+    "src/components/calendar/calendar-utils.ts (NEW - shared utils, types, dedup)",
+    "src/components/calendar/WeekView.tsx (NEW - 7-column week view)",
+    "src/components/calendar/MonthView.tsx (NEW - calendar grid with event pills)",
+    "src/components/DailyAgenda.tsx (refactored - shared utils, controlled props, dedup)",
+    "src/pages/CalendarPage.tsx (updated - Day/Week/Month tabs)",
+    "~/alpha-ai/agents/ea-user/SOUL.md (remote - anti-hallucination guardrail)"
+  ],
+  "decisions_made": [
+    "Normalize Google Calendar event times to UTC ISO on storage (fixes RxDB string comparison)",
+    "UI-level deduplication by google_event_id — DB keeps all records from multiple calendars",
+    "CalendarPage defaults to week view, clicking date in week/month switches to day view",
+    "Pepper hallucination root cause: ollama/llama3.1 has no tool execution, no Gemini API key in .env",
+    "Added anti-hallucination guard to SOUL.md as interim fix"
+  ],
   "continuation": {
-    "status": "in_progress",
-    "next_immediate_step": {
-      "action": "Review HANDOFF.md and resume",
-      "details": "This was an auto-checkpoint. Review .agent/HANDOFF.md for context."
-    },
-    "next_three_steps": [],
-    "blockers": [],
-    "context_notes": "Auto-generated before auto compaction. May lack detail — check conversation summary."
-  },
-  "metadata": {
-    "schema_version": "1.0.0",
-    "checkpoint_sequence": 0,
-    "parent_checkpoint": null,
-    "tags": ["auto-checkpoint", "auto-compaction"]
+    "next_immediate_step": "Add Gemini API key to alpha-ai .env and update OpenClaw agent model config",
+    "next_three_steps": [
+      "Get Gemini API key from user, add to alpha-ai .env",
+      "Update openclaw.json to use Gemini provider for all agents (needs sudo on desktop)",
+      "Test calendar views in browser, commit and push all changes to sandbox"
+    ],
+    "blockers": [
+      "Gemini API key needed from user",
+      "openclaw.json update needs sudo on desktop",
+      "SSH hardening needs sudo on desktop (Task #10)"
+    ]
   }
 }
