@@ -82,8 +82,8 @@ function getTokenClient(): unknown {
                 expires_at: expiresAt,
             };
 
-            sessionStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(stored));
-            sessionStorage.setItem(TOKEN_EXPIRY_KEY, String(expiresAt));
+            localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(stored));
+            localStorage.setItem(TOKEN_EXPIRY_KEY, String(expiresAt));
 
             resolveTokenPromise?.(String(response.access_token));
             resolveTokenPromise = null;
@@ -105,7 +105,7 @@ export function isGoogleAuthAvailable(): boolean {
  * Check if user is currently authenticated with a valid token
  */
 export function isGoogleConnected(): boolean {
-    const stored = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+    const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
     if (!stored) return false;
 
     try {
@@ -120,7 +120,7 @@ export function isGoogleConnected(): boolean {
  * Get the current access token (or null if expired/unavailable)
  */
 export function getAccessToken(): string | null {
-    const stored = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+    const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
     if (!stored) return null;
 
     try {
@@ -129,8 +129,8 @@ export function getAccessToken(): string | null {
             return token.access_token;
         }
         // Token expired — clear it
-        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-        sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(TOKEN_EXPIRY_KEY);
         return null;
     } catch {
         return null;
@@ -173,8 +173,8 @@ export async function signOutGoogle(): Promise<void> {
         }
     }
 
-    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-    sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_EXPIRY_KEY);
     tokenClient = null;
 }
 
@@ -198,8 +198,8 @@ export async function googleFetch(
 
     if (response.status === 401) {
         // Token expired or revoked — clear and throw
-        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-        sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(TOKEN_EXPIRY_KEY);
         throw new Error('Google authentication expired — please sign in again');
     }
 

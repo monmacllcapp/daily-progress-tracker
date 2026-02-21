@@ -30,7 +30,7 @@ interface AgentsState {
   broadcastHistory: BroadcastEntry[];
   sendBroadcast: (text: string) => void;
 
-  // Activity feed (session-scoped, not persisted)
+  // Activity feed (persisted across sessions)
   activityFeed: ActivityEntry[];
   pushActivity: (entry: Omit<ActivityEntry, 'id' | 'timestamp'>) => void;
   clearFeed: () => void;
@@ -69,7 +69,7 @@ export const useAgentsStore = create<AgentsState>()(
           timestamp: new Date().toISOString(),
         };
         set((s) => ({
-          activityFeed: [entry, ...s.activityFeed].slice(0, 50),
+          activityFeed: [entry, ...s.activityFeed].slice(0, 500),
         }));
       },
       clearFeed: () => set({ activityFeed: [] }),
@@ -80,7 +80,7 @@ export const useAgentsStore = create<AgentsState>()(
         missionBrief: s.missionBrief,
         awayMode: s.awayMode,
         broadcastHistory: s.broadcastHistory,
-        // activityFeed is NOT persisted — session-scoped
+        activityFeed: s.activityFeed,
       }),
     }
   )
