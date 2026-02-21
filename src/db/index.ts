@@ -1048,7 +1048,9 @@ async function initDatabase(): Promise<TitanDatabase> {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     if (supabaseUrl && supabaseKey) {
-        await startReplication(db, supabaseUrl, supabaseKey);
+        startReplication(db, supabaseUrl, supabaseKey).catch((err) => {
+            console.warn("[DB] Replication setup failed (non-blocking):", err);
+        });
     }
 
     return db;
