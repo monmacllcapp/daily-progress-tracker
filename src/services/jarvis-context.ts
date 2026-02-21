@@ -10,6 +10,11 @@ import { createDatabase, type TitanDatabase } from '../db';
 import { isGoogleConnected } from './google-auth';
 import { fetchGoogleEvents } from './google-calendar';
 import { getHabitStreak } from './habit-service';
+import { useApiSpendStore } from '../store/apiSpendStore';
+import { claudeClient } from './ai/claude-client';
+import { kimiClient } from './ai/kimi-client';
+import { deepseekClient } from './ai/deepseek-client';
+import { isOllamaConfigured } from './ollama-client';
 
 // --- Types ---
 
@@ -54,6 +59,14 @@ export interface JarvisContextSnapshot {
   productivityInsights: { patternType: string; description: string; confidence: number }[];
   latestBriefInsight: string | null;
   stressorMilestoneProgress: { stressorTitle: string; total: number; completed: number }[];
+  // V3: Full visibility
+  signalEffectiveness: { signalType: string; actedRate: number; weight: number }[];
+  staffExpenses: { month: string; totalSpend: number; topCategory: string; avgCostPerLead: number | null }[];
+  staffKpis: { month: string; totalBurn: number; totalLeads: number; avgCostPerLead: number } | null;
+  financialAccounts: { institution: string; name: string; type: string; balance: number }[];
+  recentTransactions: { date: string; merchant: string; amount: number; category: string }[];
+  apiSpend: { month: string; totalCost: number; callCount: number; topProvider: string; topProviderCost: number } | null;
+  connectionStatus: { google: boolean; plaid: boolean; claude: boolean; ollama: boolean; kimi: boolean; deepseek: boolean };
 }
 
 // --- Cache ---
@@ -109,6 +122,12 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
     patternsResult,
     morningBriefsResult,
     stressorMilestonesResult,
+    // V3 collections
+    signalWeightsResult,
+    staffExpensesResult,
+    staffKpiResult,
+    financialAccountsResult,
+    financialTransactionsResult,
   ] = await Promise.allSettled([
     // Original collections
     db.tasks.find().exec(),
@@ -139,6 +158,12 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
     db.productivity_patterns.find().exec(),
     db.morning_briefs.find().exec(),
     db.stressor_milestones.find().exec(),
+    // V3 collections
+    db.signal_weights.find().exec(),
+    db.staff_expenses.find().exec(),
+    db.staff_kpi_summaries.find().exec(),
+    db.financial_accounts.find().exec(),
+    db.financial_transactions.find().exec(),
   ]);
 
   // Extract original results
@@ -168,6 +193,13 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
   const patterns = patternsResult.status === 'fulfilled' ? patternsResult.value : [];
   const morningBriefs = morningBriefsResult.status === 'fulfilled' ? morningBriefsResult.value : [];
   const milestones = stressorMilestonesResult.status === 'fulfilled' ? stressorMilestonesResult.value : [];
+
+  // Extract V3 results
+  const signalWeightsRaw = signalWeightsResult.status === 'fulfilled' ? signalWeightsResult.value : [];
+  const staffExpensesRaw = staffExpensesResult.status === 'fulfilled' ? staffExpensesResult.value : [];
+  const staffKpiRaw = staffKpiResult.status === 'fulfilled' ? staffKpiResult.value : [];
+  const financialAccountsRaw = financialAccountsResult.status === 'fulfilled' ? financialAccountsResult.value : [];
+  const financialTransactionsRaw = financialTransactionsResult.status === 'fulfilled' ? financialTransactionsResult.value : [];
 
   // --- Tasks ---
   const activeTasks = tasks.filter((t) => t.status === 'active');
@@ -363,6 +395,93 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
     };
   }).filter((s) => s.total > 0);
 
+  // ═══ V3: Signal Effectiveness ═══
+  const signalEffectiveness = [...signalWeightsRaw]
+    .sort((a, b) => (b.effectiveness_score || 0) - (a.effectiveness_score || 0))
+    .slice(0, 5)
+    .map((w) => ({
+      signalType: w.signal_type,
+      actedRate: w.total_acted_on / Math.max(w.total_generated, 1),
+      weight: w.weight_modifier || 1,
+    }));
+
+  // ═══ V3: Staff Expenses (latest 2 months) ═══
+  const expensesByMonth: Record<string, { total: number; byCat: Record<string, number>; leads: number }> = {};
+  for (const e of staffExpensesRaw) {
+    const m = e.month || 'unknown';
+    if (!expensesByMonth[m]) expensesByMonth[m] = { total: 0, byCat: {}, leads: 0 };
+    expensesByMonth[m].total += e.amount || 0;
+    expensesByMonth[m].byCat[e.category] = (expensesByMonth[m].byCat[e.category] || 0) + (e.amount || 0);
+    expensesByMonth[m].leads += e.leads_generated || 0;
+  }
+  const staffExpenses = Object.entries(expensesByMonth)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 2)
+    .map(([month, data]) => {
+      const topCat = Object.entries(data.byCat).sort((a, b) => b[1] - a[1])[0];
+      return {
+        month,
+        totalSpend: data.total,
+        topCategory: topCat?.[0] || 'none',
+        avgCostPerLead: data.leads > 0 ? data.total / data.leads : null,
+      };
+    });
+
+  // ═══ V3: Staff KPIs (latest month) ═══
+  const sortedKpis = [...staffKpiRaw].sort((a, b) => (b.month || '').localeCompare(a.month || ''));
+  const latestKpi = sortedKpis[0] || null;
+  const staffKpis = latestKpi
+    ? { month: latestKpi.month, totalBurn: latestKpi.total_burn, totalLeads: latestKpi.total_leads, avgCostPerLead: latestKpi.avg_cost_per_lead }
+    : null;
+
+  // ═══ V3: Financial Accounts ═══
+  const financialAccounts = financialAccountsRaw.slice(0, 10).map((a) => ({
+    institution: a.institution_name,
+    name: a.account_name,
+    type: a.type,
+    balance: a.current_balance || 0,
+  }));
+
+  // ═══ V3: Recent Transactions (14 days) ═══
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const recentTransactions = [...financialTransactionsRaw]
+    .filter((t) => t.date >= fourteenDaysAgo)
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .slice(0, 15)
+    .map((t) => ({
+      date: t.date,
+      merchant: t.merchant_name || t.description || 'Unknown',
+      amount: t.amount,
+      category: t.category || 'other',
+    }));
+
+  // ═══ V3: API Spend ═══
+  let apiSpend: JarvisContextSnapshot['apiSpend'] = null;
+  try {
+    const spend = useApiSpendStore.getState().monthlySpend;
+    if (spend.callCount > 0) {
+      const topEntry = Object.entries(spend.byProvider).sort((a, b) => b[1] - a[1])[0];
+      apiSpend = {
+        month: spend.month,
+        totalCost: spend.totalCost,
+        callCount: spend.callCount,
+        topProvider: topEntry?.[0] || 'none',
+        topProviderCost: topEntry?.[1] || 0,
+      };
+    }
+  } catch { /* store not ready */ }
+
+  // ═══ V3: Connection Status ═══
+  const claudeAvailable = await claudeClient.isAvailable().catch(() => false);
+  const connectionStatus = {
+    google: isGoogleConnected(),
+    plaid: financialAccountsRaw.length > 0,
+    claude: claudeAvailable,
+    ollama: isOllamaConfigured(),
+    kimi: kimiClient.isAvailable(),
+    deepseek: deepseekClient.isAvailable(),
+  };
+
   return {
     timestamp: nowPT(),
     todayISO: today,
@@ -399,6 +518,14 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
     productivityInsights,
     latestBriefInsight,
     stressorMilestoneProgress,
+    // V3
+    signalEffectiveness,
+    staffExpenses,
+    staffKpis,
+    financialAccounts,
+    recentTransactions,
+    apiSpend,
+    connectionStatus,
   };
 }
 
@@ -450,18 +577,22 @@ export function formatContextForPrompt(ctx: JarvisContextSnapshot): string {
   }
 
   lines.push('');
-  lines.push(`EMAIL: ${ctx.urgentUnrepliedCount} urgent unreplied, ${ctx.totalUnreadCount} total unread`);
-  if (ctx.urgentEmails.length > 0) {
-    lines.push('  Urgent/needs reply:');
-    for (const e of ctx.urgentEmails) {
-      lines.push(`    - From: ${e.from} | Subject: "${e.subject}" | ${e.snippet}`);
+  if (ctx.urgentEmails.length > 0 || ctx.recentEmails.length > 0) {
+    lines.push(`EMAIL: ${ctx.urgentUnrepliedCount} urgent unreplied, ${ctx.totalUnreadCount} total unread`);
+    if (ctx.urgentEmails.length > 0) {
+      lines.push('  Urgent/needs reply:');
+      for (const e of ctx.urgentEmails) {
+        lines.push(`    - From: ${e.from} | Subject: "${e.subject}" | ${e.snippet}`);
+      }
     }
-  }
-  if (ctx.recentEmails.length > 0) {
-    lines.push('  Recent emails:');
-    for (const e of ctx.recentEmails) {
-      lines.push(`    - From: ${e.from} | "${e.subject}" [${e.tier}/${e.status}]`);
+    if (ctx.recentEmails.length > 0) {
+      lines.push('  Recent emails:');
+      for (const e of ctx.recentEmails) {
+        lines.push(`    - From: ${e.from} | "${e.subject}" [${e.tier}/${e.status}]`);
+      }
     }
+  } else {
+    lines.push('EMAIL: No emails loaded — do not fabricate email data or Slack messages');
   }
 
   lines.push('');
@@ -475,12 +606,14 @@ export function formatContextForPrompt(ctx: JarvisContextSnapshot): string {
     );
   }
 
+  lines.push('');
   if (ctx.activeProjects.length > 0) {
-    lines.push('');
     lines.push('PROJECTS:');
     for (const p of ctx.activeProjects) {
       lines.push(`  - "${p.title}" (${p.subTasksRemaining} subtasks remaining)`);
     }
+  } else {
+    lines.push('PROJECTS: No active projects');
   }
 
   lines.push('');
@@ -488,94 +621,186 @@ export function formatContextForPrompt(ctx: JarvisContextSnapshot): string {
     `FOCUS: ${ctx.pomodorosTodayCount} pomodoros, ${ctx.focusMinutesToday} min today`
   );
 
+  lines.push('');
   if (ctx.todaysStressors.length > 0) {
-    lines.push('');
     lines.push(`STRESSORS: ${ctx.todaysStressors.join(', ')}`);
+  } else {
+    lines.push('STRESSORS: None flagged for today');
   }
 
   lines.push('');
   lines.push(`GAMIFICATION: Level ${ctx.level}, ${ctx.xp} XP`);
   lines.push(`JOURNAL: ${ctx.hasJournaledToday ? 'Done today' : 'Not yet today'}`);
 
-  // ═══ V2 Sections ═══
+  // ═══ V2 Sections (with anti-hallucination guards) ═══
 
+  lines.push('');
   if (ctx.activeSignals.length > 0) {
-    lines.push('');
     lines.push('SIGNALS:');
     for (const g of ctx.activeSignals) {
       lines.push(`  ${g.severity.toUpperCase()}: ${g.count} active — ${g.titles.join(', ')}`);
     }
+  } else {
+    lines.push('SIGNALS: No active signals — do not fabricate alerts');
   }
 
+  lines.push('');
   if (ctx.dealsPipeline.length > 0) {
-    lines.push('');
     lines.push('REAL ESTATE DEALS:');
     for (const d of ctx.dealsPipeline) {
       lines.push(`  ${d.status}: ${d.count} deals${d.totalValue ? ` ($${(d.totalValue / 1000).toFixed(0)}k total)` : ''}`);
     }
+  } else {
+    lines.push('REAL ESTATE DEALS: No deals in pipeline — do not invent deal data');
   }
 
+  lines.push('');
   if (ctx.familyEvents.length > 0) {
-    lines.push('');
     lines.push('FAMILY EVENTS (next 7 days):');
     for (const e of ctx.familyEvents) {
       lines.push(`  - ${e.member}: "${e.summary}" | ${e.start}${e.conflict ? ' [CONFLICT]' : ''}`);
     }
+  } else {
+    lines.push('FAMILY EVENTS: No family events this week — do not fabricate family activities');
   }
 
+  lines.push('');
   if (ctx.portfolioSnapshot) {
     const p = ctx.portfolioSnapshot;
-    lines.push('');
     lines.push(`PORTFOLIO: $${p.equity.toLocaleString()} equity, $${p.cash.toLocaleString()} cash, ${p.positionsCount} positions, day P&L: ${p.dayPnl >= 0 ? '+' : ''}$${p.dayPnl.toLocaleString()}`);
+  } else {
+    lines.push('PORTFOLIO: No portfolio data — do not invent stock positions or P&L');
   }
 
+  lines.push('');
   if (ctx.visionDeclarations.length > 0) {
-    lines.push('');
     lines.push('VISION:');
     for (const v of ctx.visionDeclarations) {
       lines.push(`  - "${v.declaration}" (${v.category || 'general'}) — Why: ${v.purpose}`);
     }
+  } else {
+    lines.push('VISION: No vision declarations set — do not fabricate goals');
   }
 
+  lines.push('');
   if (ctx.staffSummary) {
-    lines.push('');
     lines.push(`STAFF: ${ctx.staffSummary.activeCount} active, ~$${ctx.staffSummary.totalMonthlyCost.toLocaleString()}/mo total cost`);
+  } else {
+    lines.push('STAFF: No staff members — do not invent team data');
   }
 
+  lines.push('');
   if (ctx.financialSummary) {
     const f = ctx.financialSummary;
-    lines.push('');
     lines.push(`FINANCES (${f.month}): Income $${f.totalIncome.toLocaleString()}, Expenses $${f.totalExpenses.toLocaleString()}, Net ${f.netCashFlow >= 0 ? '+' : ''}$${f.netCashFlow.toLocaleString()}`);
     if (f.aiInsights) lines.push(`  Insight: ${f.aiInsights}`);
+  } else {
+    lines.push('FINANCES: No monthly summary data — do not fabricate income or expense figures');
   }
 
+  lines.push('');
   if (ctx.subscriptionBurn.totalMonthly > 0) {
-    lines.push('');
     lines.push(`SUBSCRIPTIONS: $${ctx.subscriptionBurn.totalMonthly.toFixed(0)}/mo total`);
     if (ctx.subscriptionBurn.flaggedUnused.length > 0) {
       lines.push('  Flagged unused: ' + ctx.subscriptionBurn.flaggedUnused.map((s) => `${s.merchant} ($${s.amount}/mo)`).join(', '));
     }
+  } else {
+    lines.push('SUBSCRIPTIONS: No subscription data tracked');
   }
 
+  lines.push('');
   if (ctx.productivityInsights.length > 0) {
-    lines.push('');
     lines.push('PRODUCTIVITY PATTERNS:');
     for (const p of ctx.productivityInsights) {
       lines.push(`  - ${p.description} (${(p.confidence * 100).toFixed(0)}% confidence)`);
     }
+  } else {
+    lines.push('PRODUCTIVITY PATTERNS: No patterns detected yet');
   }
 
+  lines.push('');
   if (ctx.stressorMilestoneProgress.length > 0) {
-    lines.push('');
     lines.push('STRESSOR PROGRESS:');
     for (const s of ctx.stressorMilestoneProgress) {
       lines.push(`  - "${s.stressorTitle}": ${s.completed}/${s.total} milestones done`);
     }
+  } else {
+    lines.push('STRESSOR PROGRESS: No stressor milestones tracked');
   }
 
+  lines.push('');
   if (ctx.latestBriefInsight) {
-    lines.push('');
     lines.push(`MORNING BRIEF INSIGHT: ${ctx.latestBriefInsight}`);
+  } else {
+    lines.push('MORNING BRIEF: No previous briefing insight');
+  }
+
+  // ═══ V3 Sections ═══
+
+  lines.push('');
+  lines.push('--- CONNECTION STATUS ---');
+  const cs = ctx.connectionStatus;
+  lines.push(`  Google Calendar/Email: ${cs.google ? 'CONNECTED' : 'NOT CONNECTED'}`);
+  lines.push(`  Plaid (Banking): ${cs.plaid ? 'CONNECTED' : 'NOT CONNECTED'}`);
+  lines.push(`  Claude AI: ${cs.claude ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
+  lines.push(`  Kimi AI: ${cs.kimi ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
+  lines.push(`  DeepSeek AI: ${cs.deepseek ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
+  lines.push(`  Ollama (Local): ${cs.ollama ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
+
+  lines.push('');
+  if (ctx.signalEffectiveness.length > 0) {
+    lines.push('SIGNAL EFFECTIVENESS (top signals by performance):');
+    for (const s of ctx.signalEffectiveness) {
+      lines.push(`  - ${s.signalType}: ${(s.actedRate * 100).toFixed(0)}% acted-on rate, weight: ${s.weight.toFixed(2)}`);
+    }
+  } else {
+    lines.push('SIGNAL EFFECTIVENESS: No signal weight data yet');
+  }
+
+  lines.push('');
+  if (ctx.staffExpenses.length > 0) {
+    lines.push('STAFF EXPENSES:');
+    for (const e of ctx.staffExpenses) {
+      lines.push(`  - ${e.month}: $${e.totalSpend.toLocaleString()} total, top category: ${e.topCategory}${e.avgCostPerLead !== null ? `, avg CPL: $${e.avgCostPerLead.toFixed(0)}` : ''}`);
+    }
+  } else {
+    lines.push('STAFF EXPENSES: No expense data — do not fabricate marketing spend');
+  }
+
+  lines.push('');
+  if (ctx.staffKpis) {
+    const k = ctx.staffKpis;
+    lines.push(`STAFF KPIs (${k.month}): Total burn $${k.totalBurn.toLocaleString()}, ${k.totalLeads} leads, avg CPL $${k.avgCostPerLead.toFixed(0)}`);
+  } else {
+    lines.push('STAFF KPIs: No KPI summary data');
+  }
+
+  lines.push('');
+  if (ctx.financialAccounts.length > 0) {
+    lines.push('FINANCIAL ACCOUNTS:');
+    for (const a of ctx.financialAccounts) {
+      lines.push(`  - ${a.institution} — ${a.name} (${a.type}): $${a.balance.toLocaleString()}`);
+    }
+  } else {
+    lines.push('FINANCIAL ACCOUNTS: NOT CONNECTED — Plaid not linked. Do not fabricate bank balances.');
+  }
+
+  lines.push('');
+  if (ctx.recentTransactions.length > 0) {
+    lines.push('RECENT TRANSACTIONS (14 days):');
+    for (const t of ctx.recentTransactions) {
+      lines.push(`  - ${t.date}: ${t.merchant} — $${t.amount.toFixed(2)} [${t.category}]`);
+    }
+  } else {
+    lines.push('RECENT TRANSACTIONS: No transaction data — do not invent spending activity');
+  }
+
+  lines.push('');
+  if (ctx.apiSpend) {
+    const a = ctx.apiSpend;
+    lines.push(`API SPEND (${a.month}): $${a.totalCost.toFixed(4)} total, ${a.callCount} calls, top provider: ${a.topProvider} ($${a.topProviderCost.toFixed(4)})`);
+  } else {
+    lines.push('API SPEND: No AI API calls logged this month');
   }
 
   return lines.join('\n');

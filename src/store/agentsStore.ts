@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 export interface ActivityEntry {
   id: string;
-  type: 'task_created' | 'status_changed' | 'question_asked' | 'deliverable_ready' | 'broadcast_sent' | 'user_reply';
+  type: 'task_created' | 'status_changed' | 'question_asked' | 'deliverable_ready' | 'broadcast_sent' | 'user_reply' | 'ai_call' | 'calendar_action' | 'briefing_generated' | 'error';
   agentId?: string;
   agentEmoji?: string;
   taskId?: string;

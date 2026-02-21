@@ -57,8 +57,9 @@ export const AGENTS: AgentInfo[] = [
   { id: 'finance',   name: 'Finance',        emoji: '📊', status: 'offline', model: 'kimi-k2.5' },
   { id: 'support',   name: 'Support',        emoji: '🛟', status: 'offline', model: 'kimi-k2.5' },
   { id: 'ea-user',   name: 'EA (Quan)',      emoji: '🧑‍💼', status: 'offline', model: 'kimi-k2.5' },
-  { id: 'ea-wife',   name: 'EA (Wife)',      emoji: '👩‍💼', status: 'offline', model: 'kimi-k2.5' },
+  { id: 'ea-wife',   name: 'EA (Wife)',      emoji: '🏠', status: 'offline', model: 'kimi-k2.5' },
   { id: 'reasoner',  name: 'Reasoner',       emoji: '🧠', status: 'offline', model: 'deepseek-chat' },
+  { id: 'sentry',    name: 'Sentry',         emoji: '🐾', status: 'offline', model: 'deepseek-chat' },
 ];
 
 /** Fetch live agent status from Supabase `agent_status` table */

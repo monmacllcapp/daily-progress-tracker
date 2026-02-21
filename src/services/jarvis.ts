@@ -17,6 +17,7 @@ import {
 } from './google-calendar';
 import { gatherJarvisContext, formatContextForPrompt } from './jarvis-context';
 import { sanitizeForPrompt } from '../utils/sanitize-prompt';
+import { logAgentActivity } from './agent-logger';
 
 // --- Types ---
 
@@ -205,6 +206,7 @@ export async function executeCalendarAction(intent: CalendarIntent): Promise<str
                 };
 
                 const eventId = await createGoogleEvent(event);
+                logAgentActivity('ea-user', 'calendar_action', `Created: "${intent.eventTitle}"`);
                 return `Done! "${intent.eventTitle}" has been added to your calendar. (ID: ${eventId})`;
             }
 
@@ -226,6 +228,7 @@ export async function executeCalendarAction(intent: CalendarIntent): Promise<str
                 };
 
                 await updateGoogleEvent(intent.originalEventId, event);
+                logAgentActivity('ea-user', 'calendar_action', `Moved: "${intent.eventTitle}"`);
                 return `Done! "${intent.eventTitle}" has been moved to the new time.`;
             }
 
@@ -235,6 +238,7 @@ export async function executeCalendarAction(intent: CalendarIntent): Promise<str
                 }
 
                 await deleteGoogleEvent(intent.originalEventId);
+                logAgentActivity('ea-user', 'calendar_action', `Deleted: "${intent.eventTitle}"`);
                 return `Done! "${intent.eventTitle}" has been removed from your calendar.`;
             }
 
@@ -340,9 +344,11 @@ Rules:
         if (!parsed.response) parsed.response = "I'm not sure what you'd like me to do.";
         if (!parsed.suggestions) parsed.suggestions = [];
 
+        logAgentActivity('ea-user', 'ai_call', `Processed: "${userMessage.slice(0, 60)}" → ${parsed.action}`);
         return parsed;
     } catch (err) {
         console.error('[Maple] Message processing failed:', err);
+        logAgentActivity('ea-user', 'error', `Processing failed: ${err instanceof Error ? err.message : 'unknown'}`);
         // Fallback: try a simpler non-JSON approach
         try {
             const fallbackPrompt = `You are Pepper, Quan's executive assistant. The user said: "${sanitizeForPrompt(userMessage, 500)}". Reply conversationally in 1-3 sentences.`;
@@ -380,9 +386,11 @@ Current time: ${nowPT()}
 Respond with plain text only (no JSON, no markdown).`;
 
         const text = await askAI(prompt, undefined, { role: 'ea', agentId: 'ea-user' });
+        logAgentActivity('ea-user', 'briefing_generated', 'Morning briefing generated');
         return text || "Hey Quan! It's Pepper. I couldn't generate a briefing right now, but I'm here to help.";
     } catch (err) {
         console.error('[Maple] Briefing generation failed:', err);
+        logAgentActivity('ea-user', 'error', `Briefing failed: ${err instanceof Error ? err.message : 'unknown'}`);
         return "Hey Quan! It's Pepper. I can help with tasks, calendar, habits, and more. What's on your mind?";
     }
 }

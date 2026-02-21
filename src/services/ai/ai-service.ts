@@ -20,6 +20,7 @@ import {
   type ModelSpec,
 } from '../../config/modelTiers';
 import { useApiSpendStore } from '../../store/apiSpendStore';
+import { logAgentActivity } from '../agent-logger';
 
 export type AIProvider = AIProviderType | 'rules';
 

@@ -5,7 +5,7 @@
  * Each role has a specific model strategy optimized for its workload.
  */
 
-export type AgentRole = 'ceo' | 'ea' | 'coding' | 'workers' | 'reasoner' | 'default';
+export type AgentRole = 'ceo' | 'ea' | 'coding' | 'workers' | 'reasoner' | 'sentry' | 'default';
 
 export type AIProviderType = 'claude' | 'gemini' | 'kimi' | 'deepseek' | 'ollama';
 
@@ -66,6 +66,13 @@ export const MODEL_TIERS: Record<AgentRole, ModelTier> = {
       { provider: 'ollama', model: 'llama3.3', label: 'Llama (local)' },
     ],
   },
+  sentry: {
+    primary: { provider: 'deepseek', model: 'deepseek-chat', label: 'DeepSeek V3.2' },
+    fallbacks: [
+      { provider: 'kimi', model: 'kimi-k2.5', label: 'Kimi K2.5' },
+      { provider: 'ollama', model: 'llama3.3', label: 'Llama (local)' },
+    ],
+  },
   default: {
     primary: { provider: 'claude', model: 'claude-sonnet-4-5-20250929', label: 'Sonnet' },
     fallbacks: [
@@ -86,6 +93,7 @@ export const AGENT_ROLE_MAP: Record<string, AgentRole> = {
   finance: 'workers',
   support: 'workers',
   reasoner: 'reasoner',
+  sentry: 'sentry',
   main: 'default',
 };
 
