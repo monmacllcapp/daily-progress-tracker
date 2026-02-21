@@ -19,7 +19,8 @@ export type SignalType =
   | 'document_action'
   | 'follow_up_due'
   | 'context_switch_prep'
-  | 'learned_suggestion';
+  | 'learned_suggestion'
+  | 'api_spend_alert';
 
 // Life domains the system tracks
 export type LifeDomain =

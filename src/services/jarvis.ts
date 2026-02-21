@@ -166,7 +166,7 @@ Rules:
 - If the request is ambiguous, set action="unclear" and ask for clarification in "response"`;
 
     try {
-        const rawText = await askAI(prompt);
+        const rawText = await askAI(prompt, undefined, { role: 'ea', agentId: 'ea-user' });
         if (!rawText) throw new Error('No response from AI');
 
         // Strip markdown code fences if present
@@ -319,7 +319,7 @@ Rules:
 - All calendar times: ISO 8601 with Pacific timezone offset
 - CRITICAL: NEVER fabricate or invent data. ONLY reference data from the context above.`;
 
-        const text = await askAI(prompt);
+        const text = await askAI(prompt, undefined, { role: 'ea', agentId: 'ea-user' });
         if (!text) throw new Error('No response from AI');
 
         // Try to extract JSON from the response (handle markdown fences, extra text)
@@ -344,7 +344,7 @@ Rules:
         // Fallback: try a simpler non-JSON approach
         try {
             const fallbackPrompt = `You are Pepper, Quan's executive assistant. The user said: "${sanitizeForPrompt(userMessage, 500)}". Reply conversationally in 1-3 sentences.`;
-            const fallbackText = await askAI(fallbackPrompt);
+            const fallbackText = await askAI(fallbackPrompt, undefined, { role: 'ea', agentId: 'ea-user' });
             return {
                 action: 'advice',
                 response: fallbackText || "I'm having trouble connecting to AI right now. Please try again.",
@@ -377,7 +377,7 @@ Current time: ${nowPT()}
 
 Respond with plain text only (no JSON, no markdown).`;
 
-        const text = await askAI(prompt);
+        const text = await askAI(prompt, undefined, { role: 'ea', agentId: 'ea-user' });
         return text || "Hey Quan! It's Pepper. I couldn't generate a briefing right now, but I'm here to help.";
     } catch (err) {
         console.error('[Maple] Briefing generation failed:', err);

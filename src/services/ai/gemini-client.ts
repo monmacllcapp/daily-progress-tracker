@@ -17,19 +17,32 @@ function getGenAI(): GoogleGenAI | null {
   return genAI;
 }
 
-const MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
+
+export interface GeminiUsage {
+  promptTokenCount?: number;
+  candidatesTokenCount?: number;
+  totalTokenCount?: number;
+}
+
+export interface GeminiResponse {
+  text: string;
+  usage: GeminiUsage;
+  model: string;
+}
 
 class GeminiClient {
   isAvailable(): boolean {
     return !!import.meta.env.VITE_GEMINI_API_KEY;
   }
 
-  async ask(prompt: string, systemPrompt?: string): Promise<string> {
+  async ask(prompt: string, systemPrompt?: string, model?: string): Promise<GeminiResponse> {
     const ai = getGenAI();
     if (!ai) throw new Error('Gemini API key not configured');
 
+    const modelId = model || DEFAULT_MODEL;
     const response = await ai.models.generateContent({
-      model: MODEL,
+      model: modelId,
       contents: prompt,
       config: {
         systemInstruction: systemPrompt || undefined,
@@ -39,14 +52,23 @@ class GeminiClient {
 
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error('No text in Gemini response');
-    return text.trim();
+
+    const usage: GeminiUsage = response.usageMetadata || {};
+
+    return { text: text.trim(), usage, model: modelId };
   }
 
-  async askJSON<T>(prompt: string, systemPrompt?: string): Promise<T | null> {
-    try {
-      const text = await this.ask(prompt, systemPrompt);
+  /** Simple text-only ask (backward compat) */
+  async askText(prompt: string, systemPrompt?: string, model?: string): Promise<string> {
+    const response = await this.ask(prompt, systemPrompt, model);
+    return response.text;
+  }
 
-      let jsonText = text.trim();
+  async askJSON<T>(prompt: string, systemPrompt?: string, model?: string): Promise<T | null> {
+    try {
+      const response = await this.ask(prompt, systemPrompt, model);
+
+      let jsonText = response.text.trim();
 
       // Remove markdown code blocks if present
       const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);

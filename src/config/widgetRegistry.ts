@@ -52,6 +52,9 @@ const ProjectStageWidget = lazy(() =>
 const AgentStatus = lazy(() =>
     import('../components/AgentStatus').then((m) => ({ default: m.AgentStatus }))
 );
+const ApiSpendWidget = lazy(() =>
+    import('../components/ApiSpendWidget').then((m) => ({ default: m.ApiSpendWidget }))
+);
 
 export interface WidgetConfig {
     id: string;
@@ -180,5 +183,12 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
         title: 'Agent Status',
         type: 'interactive',
         defaultLayout: { x: 9, y: 0, w: 3, h: 4, minW: 2, minH: 3 }
+    },
+    {
+        id: 'api-spend',
+        component: ApiSpendWidget,
+        title: 'API Spend',
+        type: 'metric',
+        defaultLayout: { x: 3, y: 12, w: 3, h: 4, minW: 2, minH: 3 }
     }
 ];

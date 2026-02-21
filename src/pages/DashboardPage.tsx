@@ -24,7 +24,7 @@ const TAB_WIDGET_MAP: Record<string, string[]> = {
   overview: ['morning-brief', 'daily-agenda', 'signal-feed', 'pomodoro', 'one-percent-tracker'],
   business: ['task-dashboard', 'projects-list', 'project-stages', 'staffing-kpi', 'agent-status'],
   life: ['habit-tracker', 'journal-history', 'wheel-of-life', 'vision-board', 'category-manager'],
-  finances: ['financial-dashboard', 'email-dashboard'],
+  finances: ['financial-dashboard', 'email-dashboard', 'api-spend'],
 };
 
 export default function DashboardPage() {

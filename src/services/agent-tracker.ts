@@ -50,15 +50,15 @@ export interface AgentTask {
 }
 
 export const AGENTS: AgentInfo[] = [
-  { id: 'main',      name: 'Main (Default)', emoji: '🦞', status: 'offline', model: 'llama3.3' },
-  { id: 'manager',   name: 'Manager',        emoji: '🎯', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'sales',     name: 'Sales',          emoji: '💰', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'marketing', name: 'Marketing',      emoji: '📣', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'finance',   name: 'Finance',        emoji: '📊', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'support',   name: 'Support',        emoji: '🛟', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'ea-user',   name: 'EA (Quan)',      emoji: '🧑‍💼', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'ea-wife',   name: 'EA (Wife)',      emoji: '👩‍💼', status: 'offline', model: 'llama3.1:latest' },
-  { id: 'reasoner',  name: 'Reasoner',       emoji: '🧠', status: 'offline', model: 'deepseek-r1:8b' },
+  { id: 'main',      name: 'Main (Default)', emoji: '🦞', status: 'offline', model: 'claude-sonnet-4-5-20250929' },
+  { id: 'manager',   name: 'Manager',        emoji: '🎯', status: 'offline', model: 'claude-opus-4-2025-04-16' },
+  { id: 'sales',     name: 'Sales',          emoji: '💰', status: 'offline', model: 'kimi-k2.5' },
+  { id: 'marketing', name: 'Marketing',      emoji: '📣', status: 'offline', model: 'kimi-k2.5' },
+  { id: 'finance',   name: 'Finance',        emoji: '📊', status: 'offline', model: 'kimi-k2.5' },
+  { id: 'support',   name: 'Support',        emoji: '🛟', status: 'offline', model: 'kimi-k2.5' },
+  { id: 'ea-user',   name: 'EA (Quan)',      emoji: '🧑‍💼', status: 'offline', model: 'kimi-k2.5' },
+  { id: 'ea-wife',   name: 'EA (Wife)',      emoji: '👩‍💼', status: 'offline', model: 'kimi-k2.5' },
+  { id: 'reasoner',  name: 'Reasoner',       emoji: '🧠', status: 'offline', model: 'deepseek-chat' },
 ];
 
 /** Fetch live agent status from Supabase `agent_status` table */
