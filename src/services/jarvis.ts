@@ -293,7 +293,7 @@ export async function processJarvisMessage(
 
 Current date/time (Pacific): ${nowPT()}
 Today: ${todayISO()} | Timezone: ${TIMEZONE}
-${eventsContext ? `\nCALENDAR EVENTS (for scheduling actions):\n${eventsContext}` : ''}`);
+${eventsContext ? `\nCALENDAR EVENTS (for scheduling actions):\n${eventsContext}` : '\nCALENDAR: NOT CONNECTED. Do NOT mention any calendar events, meetings, or schedule items. If the user asks about their calendar, tell them to connect Google Calendar first.'}`);
 
         const prompt = `${eliteIdentity}
 
@@ -317,7 +317,9 @@ Rules:
 - action="create"/"move"/"delete" ONLY for calendar operations
 - Always include 1-3 actionable suggestions in "suggestions" array
 - All calendar times: ISO 8601 with Pacific timezone offset
-- CRITICAL: NEVER fabricate or invent data. ONLY reference data from the context above.`;
+- CRITICAL: NEVER fabricate or invent data. ONLY reference data from the context above.
+- If a data source is marked NOT CONNECTED, do NOT make up data for it. Say it's not connected and suggest the user connect it.
+- NEVER invent meetings, emails, Slack messages, or any events that are not in the provided context.`;
 
         const text = await askAI(prompt, undefined, { role: 'ea', agentId: 'ea-user' });
         if (!text) throw new Error('No response from AI');
