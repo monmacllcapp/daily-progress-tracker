@@ -12,7 +12,7 @@ addRxPlugin(RxDBMigrationSchemaPlugin);
 // -- RxDB Schema Definitions --
 
 const taskSchema = {
-    version: 3,
+    version: 4,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -39,7 +39,15 @@ const taskSchema = {
         agent_notes: { type: 'string' },
         deliverable: { type: 'string' },
         agent_question: { type: 'string' },
-        agent_board_status: { type: 'string' }  // new | picked_up | in_progress | blocked | deliverable_ready | done
+        agent_board_status: { type: 'string' },  // new | picked_up | in_progress | blocked | deliverable_ready | done
+        // Sub-agent tracking (v4)
+        is_sub_agent_task: { type: 'boolean' },
+        parent_agent: { type: 'string' },
+        sub_agent_name: { type: 'string' },
+        sub_agent_reason: { type: 'string' },
+        sub_agent_result: { type: 'string' },
+        sub_agent_spawned_at: { type: 'string' },
+        sub_agent_completed_at: { type: 'string' },
     },
     required: ['id', 'title', 'status', 'source', 'created_date', 'category_id'],
     indexes: ['status', 'created_date', 'category_id']
@@ -839,6 +847,12 @@ async function initDatabase(): Promise<TitanDatabase> {
                         : undefined;
                     oldDoc.deliverable = undefined;
                     oldDoc.agent_question = undefined;
+                    return oldDoc;
+                },
+                // v3 → v4: add sub-agent tracking fields
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                4: function (oldDoc: any) {
+                    oldDoc.is_sub_agent_task = false;
                     return oldDoc;
                 }
             }

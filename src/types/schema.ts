@@ -41,6 +41,14 @@ export interface Task {
   deliverable?: string;           // Concrete artifact proving task completion
   agent_question?: string;        // Agent's blocking question for user
   agent_board_status?: AgentBoardStatus; // Kanban column status
+  // Sub-agent tracking
+  is_sub_agent_task?: boolean;
+  parent_agent?: string;
+  sub_agent_name?: string;
+  sub_agent_reason?: string;
+  sub_agent_result?: string;
+  sub_agent_spawned_at?: string;
+  sub_agent_completed_at?: string;
   created_at?: string;
   updated_at?: string;
 }

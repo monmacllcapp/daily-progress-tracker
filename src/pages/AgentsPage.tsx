@@ -505,6 +505,60 @@ function MiniBar({ value, max, color }: { value: number; max: number; color: str
   );
 }
 
+function SubAgentSection({ tasks }: { tasks: Task[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const activeCount = tasks.filter((t) => t.agent_board_status !== 'done').length;
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-400 hover:text-purple-300 transition-colors mb-3"
+      >
+        {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        Sub-Agents ({activeCount} active, {tasks.length} total)
+      </button>
+      {expanded && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+          {tasks.map((task) => (
+            <div key={task.id} className="bg-slate-900/50 border border-purple-500/20 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">sub-agent</span>
+                <span className="text-xs text-slate-500">
+                  spawned by {agentEmoji(task.parent_agent)} {agentName(task.parent_agent)}
+                </span>
+              </div>
+              <p className="text-sm text-white font-medium truncate">{task.title}</p>
+              {task.sub_agent_reason && (
+                <p className="text-xs text-slate-400 mt-1 line-clamp-2">Why: {task.sub_agent_reason}</p>
+              )}
+              <div className="flex items-center gap-2 mt-2">
+                <span className={`text-xs px-1.5 py-0.5 rounded ${
+                  task.agent_board_status === 'done' || task.agent_board_status === 'deliverable_ready'
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : task.agent_board_status === 'blocked' || task.agent_status === 'failed'
+                    ? 'bg-red-500/20 text-red-300'
+                    : 'bg-blue-500/20 text-blue-300'
+                }`}>
+                  {task.agent_status === 'failed' ? 'failed' : task.agent_board_status || 'new'}
+                </span>
+                {task.sub_agent_name && (
+                  <span className="text-xs text-slate-600 font-mono truncate max-w-[120px]">{task.sub_agent_name}</span>
+                )}
+              </div>
+              {task.deliverable && (
+                <div className="mt-2 text-xs text-cyan-300 bg-cyan-500/10 rounded p-2 max-h-20 overflow-y-auto">
+                  {task.deliverable.slice(0, 300)}{task.deliverable.length > 300 ? '...' : ''}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AgentFleetCard({ agent, stats }: { agent: AgentInfo; stats: AgentStats }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -710,7 +764,7 @@ export default function AgentsPage() {
   const [loading, setLoading] = useState(true);
   const [showAssignForm, setShowAssignForm] = useState(false);
 
-  const { awayMode, toggleAwayMode } = useAgentsStore();
+  const { awayMode, toggleAwayMode, activityFeed } = useAgentsStore();
 
   // Reactive query for all agent-assigned tasks
   const [allAgentTasks] = useRxQuery<Task>(db?.tasks, {
@@ -725,6 +779,14 @@ export default function AgentsPage() {
   );
   const readyCount = useMemo(
     () => allAgentTasks.filter((t) => t.agent_board_status === 'deliverable_ready').length,
+    [allAgentTasks]
+  );
+  const coreTasks = useMemo(
+    () => allAgentTasks.filter((t) => !t.is_sub_agent_task),
+    [allAgentTasks]
+  );
+  const subAgentTasks = useMemo(
+    () => allAgentTasks.filter((t) => t.is_sub_agent_task),
     [allAgentTasks]
   );
 
@@ -854,11 +916,34 @@ export default function AgentsPage() {
         />
       </div>
 
+      {/* ── Untracked Work Warning ── */}
+      {(() => {
+        const agentsWithActivity = new Set(activityFeed.filter(a => a.agentId).map(a => a.agentId!));
+        const agentsWithActiveTasks = new Set(
+          allAgentTasks.filter(t => t.agent_board_status !== 'done').map(t => t.assigned_agent)
+        );
+        const untracked = [...agentsWithActivity].filter(id => !agentsWithActiveTasks.has(id));
+        if (untracked.length === 0) return null;
+        return (
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-center gap-3">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <p className="text-xs text-amber-300">
+              <span className="font-semibold">Untracked work detected:</span>{' '}
+              {untracked.map(id => `${agentEmoji(id)} ${agentName(id)}`).join(', ')}{' '}
+              — activity logged without a Kanban task.
+            </p>
+          </div>
+        );
+      })()}
+
       {/* ── Questions Queue ── */}
       {db && <QuestionsQueue tasks={allAgentTasks} db={db} />}
 
-      {/* ── Kanban Board ── */}
-      {db && <KanbanBoard tasks={allAgentTasks} db={db} />}
+      {/* ── Kanban Board (core agent tasks only) ── */}
+      {db && <KanbanBoard tasks={coreTasks} db={db} />}
+
+      {/* ── Sub-Agent Ops ── */}
+      {subAgentTasks.length > 0 && <SubAgentSection tasks={subAgentTasks} />}
 
       {/* ── Agent Fleet Grid ── */}
       <div>

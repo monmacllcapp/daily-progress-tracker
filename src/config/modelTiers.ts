@@ -5,7 +5,7 @@
  * Each role has a specific model strategy optimized for its workload.
  */
 
-export type AgentRole = 'ceo' | 'ea' | 'coding' | 'workers' | 'reasoner' | 'sentry' | 'default';
+export type AgentRole = 'ceo' | 'ea' | 'fast' | 'coding' | 'workers' | 'reasoner' | 'sentry' | 'default';
 
 export type AIProviderType = 'claude' | 'gemini' | 'kimi' | 'deepseek' | 'ollama';
 
@@ -24,6 +24,7 @@ export interface ModelTier {
  * Model tiers per role — iterate primary then fallbacks in order.
  *
  * CEO:      Opus → Gemini 3.1 Pro → DeepSeek V3.2
+ * Fast:     Gemini Flash → Kimi K2.5 → DeepSeek V3.2
  * EA:       Kimi K2.5 → Gemini 3.1 Pro → DeepSeek V3.2
  * Coding:   Sonnet → Gemini 3.1 Pro → DeepSeek V3.2
  * Workers:  Kimi K2.5 → DeepSeek V3.2 → Llama (local)
@@ -35,6 +36,13 @@ export const MODEL_TIERS: Record<AgentRole, ModelTier> = {
     primary: { provider: 'claude', model: 'claude-opus-4-2025-04-16', label: 'Opus' },
     fallbacks: [
       { provider: 'gemini', model: 'gemini-2.5-pro', label: 'Gemini 3.1 Pro' },
+      { provider: 'deepseek', model: 'deepseek-chat', label: 'DeepSeek V3.2' },
+    ],
+  },
+  fast: {
+    primary: { provider: 'gemini', model: 'gemini-2.5-flash', label: 'Gemini Flash' },
+    fallbacks: [
+      { provider: 'kimi', model: 'kimi-k2.5', label: 'Kimi K2.5' },
       { provider: 'deepseek', model: 'deepseek-chat', label: 'DeepSeek V3.2' },
     ],
   },

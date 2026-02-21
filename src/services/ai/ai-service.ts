@@ -260,10 +260,28 @@ export async function getActiveProvider(role: AgentRole = 'default'): Promise<AI
   return 'rules';
 }
 
+/**
+ * Smart-routed askAI — classifies complexity, picks the right model tier.
+ * Use for user-facing messages where speed vs depth matters.
+ */
+export async function askAISmartRouted(
+  prompt: string,
+  userMessage: string,
+  systemPrompt?: string,
+  options?: Omit<AICallOptions, 'role'>
+): Promise<string | null> {
+  const { classifyComplexity, complexityToRole } = await import('./complexity-classifier');
+  const complexity = classifyComplexity(userMessage);
+  const role = complexityToRole(complexity);
+  console.info(`[AI Service] Smart route: "${userMessage.slice(0, 40)}..." → ${complexity} → ${role}`);
+  return askAI(prompt, systemPrompt, { ...options, role });
+}
+
 // Export unified service interface
 export const aiService = {
   askAI,
   askAIJSON,
+  askAISmartRouted,
   getActiveProvider,
   detectProvider,
 };

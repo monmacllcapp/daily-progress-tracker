@@ -137,6 +137,30 @@ export function useAppLifecycle() {
     syncCalendar(); // Initial sync on app load
     const calendarInterval = setInterval(syncCalendar, 900_000); // 15 min
 
+    // Auto-sync Gmail inbox on app load + every 15 minutes (matches calendar)
+    const syncEmail = async () => {
+      try {
+        const { isGoogleConnected } = await import('../services/google-auth');
+        if (!isGoogleConnected()) return;
+        const { syncGmailInbox } = await import('../services/gmail');
+        const { classifyEmail } = await import('../services/email-classifier');
+        const db = await createDatabase();
+        const { newCount } = await syncGmailInbox(db, classifyEmail, 50);
+        if (newCount > 0) {
+          console.log(`[Lifecycle] Auto-synced ${newCount} new emails`);
+          const { scoreAllEmails } = await import('../services/email-scorer');
+          const { detectNewsletters } = await import('../services/newsletter-detector');
+          await scoreAllEmails(db);
+          await detectNewsletters(db);
+        }
+      } catch (err) {
+        console.error('[Lifecycle] Email sync failed:', err);
+      }
+    };
+
+    syncEmail(); // Initial sync on app load
+    const emailInterval = setInterval(syncEmail, 900_000); // 15 min
+
     // Jarvis proactive nudge engine
     let stopJarvis: (() => void) | undefined;
     Promise.all([
@@ -156,6 +180,7 @@ export function useAppLifecycle() {
       clearInterval(snoozeInterval);
       clearInterval(unrepliedInterval);
       clearInterval(calendarInterval);
+      clearInterval(emailInterval);
       stopJarvis?.();
     };
   }, [handleTaskRollover, clearTodaysStressors]);

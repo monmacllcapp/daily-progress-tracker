@@ -6,6 +6,7 @@
  */
 
 import { askAI, detectProvider } from './ai/ai-service';
+import { classifyComplexity, complexityToRole } from './ai/complexity-classifier';
 import { buildSystemPrompt, BRIEFING_TEMPLATE } from './agent-prompts';
 import { isGoogleConnected } from './google-auth';
 import {
@@ -18,6 +19,7 @@ import {
 import { gatherJarvisContext, formatContextForPrompt } from './jarvis-context';
 import { sanitizeForPrompt } from '../utils/sanitize-prompt';
 import { logAgentActivity } from './agent-logger';
+import { ensureAgentTask, completeAgentTask } from './agent-task-enforcer';
 
 // --- Types ---
 
@@ -325,7 +327,12 @@ Rules:
 - If a data source is marked NOT CONNECTED, do NOT make up data for it. Say it's not connected and suggest the user connect it.
 - NEVER invent meetings, emails, Slack messages, or any events that are not in the provided context.`;
 
-        const text = await askAI(prompt, undefined, { role: 'ea', agentId: 'ea-user' });
+        // Smart route: classify complexity → pick the right model tier
+        const complexity = classifyComplexity(userMessage);
+        const routedRole = complexityToRole(complexity);
+        console.info(`[Maple] Smart route: "${userMessage.slice(0, 40)}..." → ${complexity} → ${routedRole}`);
+
+        const text = await askAI(prompt, undefined, { role: routedRole, agentId: 'ea-user' });
         if (!text) throw new Error('No response from AI');
 
         // Try to extract JSON from the response (handle markdown fences, extra text)
@@ -345,6 +352,24 @@ Rules:
         if (!parsed.suggestions) parsed.suggestions = [];
 
         logAgentActivity('ea-user', 'ai_call', `Processed: "${userMessage.slice(0, 60)}" → ${parsed.action}`);
+
+        // Track substantive work on the Kanban board (skip simple greetings/advice)
+        const isSubstantive = parsed.action !== 'advice' || userMessage.length > 60;
+        if (isSubstantive) {
+          try {
+            const taskTitle = `Pepper: ${parsed.action} — "${userMessage.slice(0, 50)}"`;
+            const taskId = await ensureAgentTask(undefined, {
+              agentId: 'ea-user',
+              title: taskTitle,
+              description: `User asked: "${userMessage}"\nAction: ${parsed.action}`,
+              priority: ['create', 'move', 'delete'].includes(parsed.action) ? 'high' : 'low',
+            });
+            await completeAgentTask(taskId, 'ea-user', parsed.response?.slice(0, 500) || 'Completed');
+          } catch (trackErr) {
+            console.warn('[Maple] Task tracking failed (non-blocking):', trackErr);
+          }
+        }
+
         return parsed;
     } catch (err) {
         console.error('[Maple] Message processing failed:', err);
