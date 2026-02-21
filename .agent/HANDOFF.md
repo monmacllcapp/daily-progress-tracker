@@ -1,43 +1,63 @@
-# Handoff — Calendar Views Complete + Pepper Hallucination
+# Agent Handoff (Auto-Generated)
+**Last Updated:** 2026-02-21T23:15:00Z
+**Trigger:** Missions system complete (all 4 phases)
+**Branch:** sandbox
 
-## What Was Done (This Session)
-- **Timezone fix**: Normalized Google Calendar event times to UTC ISO in `google-calendar.ts`
-- **Calendar utils**: Created shared `calendar-utils.ts` (formatHour, assignColumns, deduplicateEvents, etc.)
-- **WeekView**: New 7-column Sun-Sat timeline component
-- **MonthView**: New calendar grid with event pills and "+N more" overflow
-- **CalendarPage**: Updated with Day/Week/Month tabs (defaults to week)
-- **DailyAgenda**: Refactored to use shared utils, accepts controlled props, applies dedup
-- **Google OAuth**: Set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET as Supabase Edge Function secrets
-- **Supabase**: Service key added to alpha-ai .env, OpenClaw restarted
-- **Pepper**: Added anti-hallucination guardrail to SOUL.md
-- **Build**: `tsc --noEmit` passes clean
+## What Was Done
 
-## Pepper Hallucination Root Cause
-- All agents still on `ollama/llama3.1:latest` (IDENTITY.md files never updated to Gemini)
-- No Gemini API key in `~/alpha-ai/.env` — only Ollama config exists
-- Ollama/Llama can't execute tools — just generates text, makes up data
-- Interim fix: anti-hallucination guard added to SOUL.md
-- Real fix: add Gemini API key + update OpenClaw config
+### Session Summary
+This session covered two major feature sets:
 
-## Files Changed
-| File | Action |
-|------|--------|
-| `src/services/google-calendar.ts` | EDIT (timezone normalization) |
-| `src/components/calendar/calendar-utils.ts` | NEW |
-| `src/components/calendar/WeekView.tsx` | NEW |
-| `src/components/calendar/MonthView.tsx` | NEW |
-| `src/components/DailyAgenda.tsx` | EDIT (shared utils + dedup) |
-| `src/pages/CalendarPage.tsx` | EDIT (Day/Week/Month tabs) |
-| `~/alpha-ai/agents/ea-user/SOUL.md` | EDIT (anti-hallucination guard) |
+**A. Kanban + Voice + Diagnostics (earlier)**
+1. Fixed Kanban board — removed auto-task-creation from jarvis.ts
+2. Fixed voice mode — mic defaults off, click toggle, mute persistence
+3. Added Diagnostics page — 10 health checks at /diagnostics
+
+**B. Missions System + New Agents (current)**
+1. **Schema foundation** — New RxDB collections (missions, mission_attachments), task schema v5 with mission_id, Supabase migration 006
+2. **Agent roster expanded** — Added Onboarding (🤝) + Fulfillment (📦) agents → 12 total. Added to AGENT_ROLE_MAP as 'workers' tier.
+3. **Mission UI components** — 5 new components in src/components/missions/:
+   - MissionCard (status badge, progress bar, file count, agent emojis)
+   - MissionCreateForm (title, description, color picker, agent multi-select)
+   - MissionDetail (inline edit, status actions, file attachments, linked tasks)
+   - FileAttachmentZone (drag-drop + picker, base64 storage, thumbnails, download)
+   - MissionList (filter tabs, create button)
+4. **AgentsPage integration** — Replaced MissionBanner with MissionsSection, mission-filtered Kanban, AssignTaskForm with mission dropdown, KanbanCard mission dots, sub-agent promotion suggestions
+5. **Governance hub** — Created OPENCLAW_ROSTER.md (12-agent roster) and OPENCLAW_PIPELINES.md (4 pipelines) in ~/governance-ref/
+
+## Files Modified/Created
+- src/types/schema.ts (Mission, MissionAttachment types, Task.mission_id)
+- src/db/index.ts (new collections, task v5 migration)
+- src/services/agent-tracker.ts (12 agents, detectSubAgentPatterns)
+- src/store/agentsStore.ts (removed missionBrief, added selectedMissionId)
+- src/config/modelTiers.ts (onboarding + fulfillment in AGENT_ROLE_MAP)
+- supabase/migrations/006_missions_and_agents.sql (NEW)
+- src/components/missions/MissionCard.tsx (NEW)
+- src/components/missions/MissionCreateForm.tsx (NEW)
+- src/components/missions/MissionDetail.tsx (NEW)
+- src/components/missions/FileAttachmentZone.tsx (NEW)
+- src/components/missions/MissionList.tsx (NEW)
+- src/pages/AgentsPage.tsx (major refactor)
+- ~/governance-ref/agents/OPENCLAW_ROSTER.md (NEW)
+- ~/governance-ref/workflows/OPENCLAW_PIPELINES.md (NEW)
+
+## Current State
+- TypeScript: PASSES (npx tsc --noEmit clean)
+- Tests: 735 pass, 19 fail (all pre-existing)
+- No new failures introduced
 
 ## Next Steps
-1. User provides Gemini API key → add to `~/alpha-ai/.env`
-2. Update `openclaw.json` to use Gemini provider (needs sudo on desktop)
-3. Update all agent IDENTITY.md files to reflect Gemini model
-4. Test calendar views in browser
-5. Commit all changes and push to sandbox
-6. SSH hardening on desktop (Task #10)
+- Commit all changes to sandbox branch
+- Push Supabase migration 006
+- Test in browser: create missions, attach files, filter Kanban, verify 12 agents in fleet
+- Consider: commit governance hub changes separately
 
 ## Blockers
-- Gemini API key needed from user
-- openclaw.json update needs sudo on desktop
+None.
+
+## Decisions Made
+- Missions stored in RxDB (IndexedDB), replicated to Supabase (but NOT mission_attachments — local-only)
+- File attachments stored as base64 in IndexedDB with 5MB per-file warning
+- Onboarding + Fulfillment both use 'workers' model tier (Kimi → DeepSeek → Llama)
+- Sub-agent patterns surfaced at 3+ occurrences threshold
+- Customer lifecycle: Marketing → Sales → Onboarding → Fulfillment → Support

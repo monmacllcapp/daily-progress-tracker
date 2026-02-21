@@ -1,0 +1,36 @@
+{
+  "checkpoint_id": "2026-02-20T041249_autocompact",
+  "timestamp": "2026-02-20T04:12:49Z",
+  "agent": {
+    "model": "auto-hook",
+    "provider": "anthropic",
+    "session_id": "37629067-f94e-4a82-ae87-c2002070fc9c"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "Auto-checkpoint before auto compaction",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Skeleton checkpoint — created by pre-compact hook (Claude did not write a rich checkpoint in time)",
+    "files_modified": [],
+    "decisions_made": []
+  },
+  "continuation": {
+    "status": "in_progress",
+    "next_immediate_step": {
+      "action": "Review HANDOFF.md and resume",
+      "details": "This was an auto-checkpoint. Review .agent/HANDOFF.md for context."
+    },
+    "next_three_steps": [],
+    "blockers": [],
+    "context_notes": "Auto-generated before auto compaction. May lack detail — check conversation summary."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 0,
+    "parent_checkpoint": null,
+    "tags": ["auto-checkpoint", "auto-compaction"]
+  }
+}

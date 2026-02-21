@@ -1,0 +1,65 @@
+{
+  "checkpoint_id": "cp_20260221_gemini_switch_calendar_views",
+  "timestamp": "2026-02-21T23:59:00Z",
+  "session_goal": "Calendar views complete + Gemini switch for OpenClaw agents (fix Pepper hallucination)",
+  "branch": "sandbox",
+  "changes_summary": "Two major deliverables completed: (1) Calendar Week/Month views fully built and pushed to sandbox (commit a187def) — timezone normalization, shared calendar-utils.ts, WeekView.tsx, MonthView.tsx, DailyAgenda refactor, CalendarPage with Day/Week/Month tabs. (2) OpenClaw agent fleet switched from Ollama/Llama to Gemini (commit 794ea82 on desktop) — added Gemini API key to alpha-ai .env, rewrote openclaw.json with Gemini provider (2.5 Flash + 2.5 Pro), updated all 10 agent IDENTITY.md files (CEO/Reasoner/Sentry → Pro, all others → Flash). This resolves the Pepper hallucination root cause: Gemini can execute tools, Ollama/Llama could not.",
+  "files_modified": [
+    "src/services/google-calendar.ts (timezone normalization + normalizeEventTimes backfill function)",
+    "src/components/calendar/calendar-utils.ts (NEW - formatHour, assignColumns, deduplicateEvents, shared types)",
+    "src/components/calendar/WeekView.tsx (NEW - 7-column Sun-Sat timeline with overlap handling)",
+    "src/components/calendar/MonthView.tsx (NEW - calendar grid with event pills + '+N more' overflow)",
+    "src/components/DailyAgenda.tsx (refactored - shared utils, controlled props, UI-level dedup)",
+    "src/pages/CalendarPage.tsx (updated - Day/Week/Month tab switching, defaults to week)",
+    "~/alpha-ai/config/openclaw.json (Gemini provider added, model assignments for all agents)",
+    "~/alpha-ai/agents/ceo/IDENTITY.md (gemini/gemini-2.5-pro)",
+    "~/alpha-ai/agents/manager/IDENTITY.md (gemini/gemini-2.5-flash)",
+    "~/alpha-ai/agents/sales/IDENTITY.md (gemini/gemini-2.5-flash)",
+    "~/alpha-ai/agents/marketing/IDENTITY.md (gemini/gemini-2.5-flash)",
+    "~/alpha-ai/agents/finance/IDENTITY.md (gemini/gemini-2.5-flash)",
+    "~/alpha-ai/agents/support/IDENTITY.md (gemini/gemini-2.5-flash)",
+    "~/alpha-ai/agents/ea-user/IDENTITY.md (gemini/gemini-2.5-flash)",
+    "~/alpha-ai/agents/ea-wife/IDENTITY.md (gemini/gemini-2.5-flash)",
+    "~/alpha-ai/agents/reasoner/IDENTITY.md (gemini/gemini-2.5-pro)",
+    "~/alpha-ai/agents/sentry/IDENTITY.md (gemini/gemini-2.5-pro)",
+    "~/alpha-ai/.env (GEMINI_API_KEY added)"
+  ],
+  "decisions_made": [
+    "Calendar: all dateTime values stored as UTC ISO, all-day events stay as YYYY-MM-DD strings",
+    "Calendar: UI-level dedup by google_event_id — DB keeps all records from multiple calendars",
+    "Calendar: CalendarPage defaults to week view; clicking a date in Week/Month switches to Day view",
+    "OpenClaw: CEO, Reasoner, Sentry → gemini-2.5-pro (strategic/deep analysis); all others → gemini-2.5-flash (fast + tool-calling)",
+    "OpenClaw: Ollama provider retained in openclaw.json as named fallback, not removed",
+    "OpenClaw: Used same Gemini API key already in Daily Tracker .env (VITE_GEMINI_API_KEY)",
+    "Pepper hallucination root cause confirmed and fixed: Ollama/Llama3.1 cannot execute tools — Gemini can"
+  ],
+  "git_state": {
+    "daily_tracker": {
+      "branch": "sandbox",
+      "last_commit": "a187def",
+      "commit_message": "Calendar views complete (Day/Week/Month) + timezone normalization",
+      "pushed": true,
+      "remote": "origin/sandbox"
+    },
+    "alpha_ai": {
+      "branch": "sandbox",
+      "last_commit": "794ea82",
+      "commit_message": "feat: switch OpenClaw agents from Ollama to Gemini (fix Pepper hallucination)",
+      "pushed": true,
+      "remote": "origin/sandbox"
+    }
+  },
+  "continuation": {
+    "next_immediate_step": "Restart OpenClaw container on desktop: `cd ~/alpha-ai && sudo docker compose restart openclaw`, then test Pepper on Discord",
+    "next_three_steps": [
+      "Restart OpenClaw container (sudo docker compose restart openclaw) and test Pepper on Discord — verify no hallucination, tool calls work",
+      "Test calendar Week/Month views in browser — verify events render correctly, timezone display is correct, date-click navigation works",
+      "Provision Kimi and DeepSeek API keys for full fallback chain in modelTiers.ts"
+    ],
+    "blockers": [
+      "Container restart needs sudo on desktop: cd ~/alpha-ai && sudo docker compose restart openclaw",
+      "No Kimi or DeepSeek API keys available yet — modelTiers.ts defines them but keys not provisioned",
+      "SSH hardening on desktop still pending (Task #10)"
+    ]
+  }
+}

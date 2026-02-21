@@ -1,0 +1,41 @@
+{
+  "checkpoint_id": "cp_20260221_llm_hierarchy_correct",
+  "timestamp": "2026-02-21T19:30:00Z",
+  "session_goal": "Fix calendar views + configure correct LLM hierarchy for all OpenClaw agents",
+  "branch": "sandbox",
+  "changes_summary": "Calendar views (Week/Month) committed and pushed (a187def). OpenClaw LLM hierarchy updated to match modelTiers.ts exactly: 5 providers (Anthropic, Gemini, Kimi, DeepSeek, Ollama), 3-tier fallback chains per agent role. All Gemini model IDs corrected to 3.1 (not 2.5). Desktop commit 35e8118.",
+  "files_modified": [
+    "src/services/google-calendar.ts (timezone normalization)",
+    "src/components/calendar/calendar-utils.ts (NEW - shared utils)",
+    "src/components/calendar/WeekView.tsx (NEW - 7-column week view)",
+    "src/components/calendar/MonthView.tsx (NEW - calendar grid)",
+    "src/components/DailyAgenda.tsx (refactored to shared utils)",
+    "src/pages/CalendarPage.tsx (Day/Week/Month tabs)",
+    "src/config/modelTiers.ts (gemini-2.5 → gemini-3.1)",
+    "src/services/ai/gemini-client.ts (default model → gemini-3.1-flash)",
+    "~/alpha-ai/config/openclaw.json (5 providers, correct primaries per agent)",
+    "~/alpha-ai/agents/*/IDENTITY.md (all 10 updated with 3-tier fallback chains)",
+    "~/alpha-ai/.env (GEMINI_API_KEY + KIMI_API_KEY + DEEPSEEK_API_KEY placeholders)"
+  ],
+  "decisions_made": [
+    "LLM hierarchy matches modelTiers.ts: CEO=Opus→Gemini Pro→DeepSeek, EA=Kimi→Gemini Pro→DeepSeek, Workers=Kimi→DeepSeek→Llama, Reasoner/Sentry=DeepSeek→Kimi→Llama",
+    "All Gemini model IDs are 3.1 (gemini-3.1-pro, gemini-3.1-flash) not 2.5",
+    "Anthropic provider uses setup-token from data/openclaw/credentials/anthropic.json",
+    "Kimi and DeepSeek providers configured but keys not yet provisioned",
+    "UI-level dedup by google_event_id, timezone normalization to UTC ISO on storage"
+  ],
+  "continuation": {
+    "next_immediate_step": "Restart OpenClaw container: sudo docker compose restart openclaw",
+    "next_three_steps": [
+      "Restart OpenClaw container on desktop (needs sudo)",
+      "Provision Kimi API key (moonshot.cn) and DeepSeek API key (deepseek.com)",
+      "Test Pepper on Discord — verify no hallucination with Gemini fallback"
+    ],
+    "blockers": [
+      "Container restart needs sudo on desktop",
+      "Kimi API key not provisioned (Pepper primary)",
+      "DeepSeek API key not provisioned (Reasoner primary)",
+      "SSH hardening still pending (Task #10)"
+    ]
+  }
+}

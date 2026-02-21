@@ -1,0 +1,38 @@
+{
+  "checkpoint_id": "cp_20260219_pepper_memory_rename",
+  "timestamp": "2026-02-19T18:00:00-08:00",
+  "session_goal": "Agent persona names, vector memory system, Pepper elevation, Maple Life OS rename",
+  "branch": "sandbox",
+  "changes_summary": "Added human names to all 9 agents, configured hybrid vector+BM25 memory search with session recording, elevated Pepper to primary daily contact with morning flow protocol, renamed project to Maple Life OS",
+  "files_modified": [
+    "agents/*/IDENTITY.md (9 files)",
+    "agents/*/SOUL.md (9 files)",
+    "agents/ea-user/AGENTS.md",
+    "agents/ea-user/HEARTBEAT.md",
+    "package.json",
+    "index.html",
+    "CONTRIBUTING.md",
+    "REPO_CONTRACT.md",
+    ".github/CODEOWNERS",
+    ".skills.yml",
+    "src/services/github-projects.ts"
+  ],
+  "decisions_made": [
+    "Local embedding provider for zero-cost vector search",
+    "Pepper as primary contact with 3 daily touchpoints",
+    "Repo renamed to maple-life-os",
+    "Removed invalid OpenClaw config keys that failed validation"
+  ],
+  "continuation": {
+    "next_immediate_step": "Test Pepper morning flow via Discord at 8 AM PT",
+    "next_three_steps": [
+      "Complete Antigravity OAuth interactive login on desktop",
+      "Install Tailscale VPN for remote desktop access",
+      "Set up external integrations (VAPI, GHL, Chatwoot)"
+    ],
+    "blockers": [
+      "Antigravity OAuth requires interactive TTY on desktop",
+      "Tailscale needs sudo access on desktop"
+    ]
+  }
+}

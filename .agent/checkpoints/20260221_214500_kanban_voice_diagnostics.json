@@ -1,0 +1,56 @@
+{
+  "checkpoint_id": "20260221_214500_kanban_voice_diagnostics",
+  "timestamp": "2026-02-21T21:45:00Z",
+  "agent": {
+    "model": "claude-opus-4-6",
+    "provider": "anthropic",
+    "session_id": "continued"
+  },
+  "session": {
+    "project": "Daily Progress Tracker",
+    "goal": "Fix Kanban board, voice mode, add diagnostics page, clean up Pepper tasks",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Four fixes: removed auto-task-creation from Kanban, added cleanup for existing Pepper tasks, fixed voice mode toggle/mute/persistence, created diagnostics health check page",
+    "files_modified": [
+      "src/services/jarvis.ts",
+      "src/store/jarvisStore.ts",
+      "src/services/voice-mode.ts",
+      "src/components/MapleOrb.tsx",
+      "src/pages/AgentsPage.tsx",
+      "src/services/diagnostics.ts",
+      "src/pages/DiagnosticsPage.tsx",
+      "src/App.tsx",
+      "src/types/sidebar.ts"
+    ],
+    "decisions_made": [
+      "Voice mode defaults to off (opt-in) with localStorage persistence",
+      "Single click on MapleOrb toggles voice (removed double-click pattern)",
+      "Diagnostics page runs 10 health checks covering DB, AI, integrations, browser",
+      "Sidebar config version bumped to 7 for auto-migration",
+      "One-time cleanup effect removes existing Pepper: tasks from RxDB on AgentsPage mount"
+    ]
+  },
+  "continuation": {
+    "status": "complete",
+    "next_immediate_step": {
+      "action": "Commit changes",
+      "details": "git add and commit all modified/new files to sandbox branch"
+    },
+    "next_three_steps": [
+      "Test in browser (Kanban clean, voice toggle, diagnostics page)",
+      "Fix pre-existing test failures (google-auth, google-calendar)",
+      "Create PR from sandbox to main"
+    ],
+    "blockers": [],
+    "context_notes": "19 pre-existing test failures unrelated to this work. Pepper task cleanup runs once on mount."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 2,
+    "parent_checkpoint": "20260221_201500_kanban_voice_diagnostics",
+    "tags": ["kanban-fix", "voice-mode", "diagnostics-page", "pepper-cleanup"]
+  }
+}

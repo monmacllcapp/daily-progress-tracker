@@ -1,0 +1,64 @@
+{
+  "checkpoint_id": "20260220_pepper_voice_discord_agents",
+  "timestamp": "2026-02-20T18:30:00Z",
+  "agent": {
+    "model": "claude-opus-4-6",
+    "provider": "anthropic",
+    "session_id": "manual-checkpoint"
+  },
+  "session": {
+    "project": "Daily Progress Tracker (Maple Life OS)",
+    "goal": "Wire Pepper voice experience into Maple Life OS + reconnect Discord agents",
+    "branch": "sandbox",
+    "working_directory": "/Users/mac/Documents/claude-sandbox/Daily Progress Tracker"
+  },
+  "changes": {
+    "summary": "Renamed 8 Discord channels to include agent human names, bound all 9 agents to Discord channels via routing config, set up SSH from laptop to desktop, replaced Picovoice Porcupine wake word with Web Speech API 'Hey Maple' detection (no API key needed), rebranded AI identity from generic 'Maple' to 'Pepper' (Quan's executive assistant), updated all UI labels in chat/icon/orb components.",
+    "files_modified": [
+      "src/services/wake-word.ts (full rewrite — Web Speech API replaces Picovoice)",
+      "src/services/agent-prompts.ts (identity update to Pepper)",
+      "src/services/jarvis.ts (prompt + label changes for Pepper)",
+      "src/components/JarvisChat.tsx (UI label changes for Pepper)",
+      "src/components/JarvisIcon.tsx (UI label change for Pepper)",
+      "src/components/MapleOrb.tsx (UI label change for Pepper)"
+    ],
+    "commits": [
+      "83d3d3d feat(voice): replace Picovoice with Web Speech API wake word + rebrand to Pepper (desktop, pushed to origin/sandbox)"
+    ],
+    "infrastructure_changes": [
+      "Discord channels renamed: tony-ceo, david-ops-manager, grant-sales, sara-marketing, warren-finance, maya-support, pepper-ea, ada-reasoner",
+      "Discord bot token set in alpha-ai .env and OpenClaw container",
+      "All 9 agents bound to Discord channels via routing config (bound by channel ID, not name)",
+      "SSH config created at ~/.ssh/config with mac-desktop host entry (user: quan-zou, host: mac-desktop / 10.0.0.204)"
+    ],
+    "decisions_made": [
+      "Replaced Picovoice with Web Speech API for wake word — eliminates API key dependency, detects 'Hey Maple' via transcript matching",
+      "Kept Ollama as AI backend for now (Pepper personality via system prompts) — OpenClaw WebSocket integration deferred",
+      "Discord channels bound by ID (not name), so renames don't break routing",
+      "SSH config created at ~/.ssh/config with mac-desktop host entry for cross-machine dev"
+    ]
+  },
+  "continuation": {
+    "status": "in_progress",
+    "next_immediate_step": {
+      "action": "Test the voice experience in browser on desktop",
+      "details": "Run npm run dev on desktop, open Chrome, say 'Hey Maple' to test wake word detection via Web Speech API"
+    },
+    "next_three_steps": [
+      "Test voice flow end-to-end in browser (wake word -> STT -> AI response -> TTS -> barge-in)",
+      "Wire Pepper to OpenClaw WebSocket API (ACP protocol) so the real agent handles queries",
+      "Execute the Supabase sync plan (Phase 1-3) so Pepper has access to all app data"
+    ],
+    "blockers": [
+      "OpenClaw uses WebSocket ACP protocol, not REST — need to implement browser ACP client for full Pepper integration",
+      "Supabase tables not yet created (15 missing, 7 need migration)"
+    ],
+    "context_notes": "Work was done on desktop (/home/quan-zou/maple-life-os/) and pushed to origin/sandbox. Laptop repo may need git pull. Discord infra changes were made in alpha-ai server config, not in this repo."
+  },
+  "metadata": {
+    "schema_version": "1.0.0",
+    "checkpoint_sequence": 1,
+    "parent_checkpoint": "2026-02-20T114054_autocompact",
+    "tags": ["pepper-voice", "discord-agents", "web-speech-api", "infrastructure"]
+  }
+}

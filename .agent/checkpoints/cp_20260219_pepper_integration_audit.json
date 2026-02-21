@@ -1,0 +1,28 @@
+{
+  "checkpoint_id": "cp_20260219_pepper_integration_audit",
+  "timestamp": "2026-02-19T19:30:00-08:00",
+  "session_goal": "Pepper integration audit — map all data sources across Maple Life OS, OB Cold Call Agent, and Maple 360",
+  "branch": "sandbox",
+  "changes_summary": "Research-only checkpoint. Completed cross-project audit of all available integrations for wiring Pepper as the central hub. No source files modified this turn. Previous turns committed: agent names (e5e1a22), memory system, Pepper elevation (151f742), rename (c9c08fc).",
+  "files_modified": [],
+  "decisions_made": [
+    "Pepper will be wired DIRECTLY to Maple Life OS — not through third-party middleware",
+    "Architecture: Maple Life OS (data) + OB Cold Call (voice/SMS) + Maple 360 (automation) all feed into Pepper",
+    "Need lightweight API endpoint in Maple Life OS for Pepper to web_fetch context",
+    "VAPI + Twilio credentials from OB project will be reused for Pepper voice/SMS",
+    "n8n webhooks from Maple 360 will be callable by Pepper for content/distribution automation"
+  ],
+  "continuation": {
+    "next_immediate_step": "Build Maple Life OS API endpoint that Pepper can web_fetch for daily context (morning flow, calendar, email, tasks, signals)",
+    "next_three_steps": [
+      "Wire VAPI/Twilio credentials to Pepper's TOOLS.md for voice calls and SMS",
+      "Wire n8n webhook URLs to Pepper for automation triggers",
+      "Test end-to-end morning flow: Pepper fetches context → briefs Quan → takes action"
+    ],
+    "blockers": [
+      "Maple Life OS runs client-side only (RxDB/IndexedDB) — need to decide: SSR API, Supabase sync, or local script bridge",
+      "VAPI/Twilio creds need to be securely passed to Pepper's exec environment",
+      "n8n Docker container needs to be running on desktop for webhook access"
+    ]
+  }
+}
