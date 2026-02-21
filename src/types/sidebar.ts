@@ -19,7 +19,7 @@ export interface SidebarConfig {
 }
 
 export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
-  version: 6,
+  version: 7,
   sections: [
     {
       id: 'section-flow',
@@ -35,7 +35,7 @@ export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
         'nav-dashboard', 'nav-tasks', 'nav-journal', 'nav-projects',
         'nav-vision', 'nav-categories', 'nav-deals', 'nav-trading',
         'nav-family', 'nav-finance', 'nav-dev-projects', 'nav-agents',
-        'nav-staffing', 'nav-finances', 'nav-settings',
+        'nav-staffing', 'nav-finances', 'nav-diagnostics', 'nav-settings',
       ],
     },
   ],
@@ -58,6 +58,7 @@ export const DEFAULT_SIDEBAR_CONFIG: SidebarConfig = {
     { id: 'nav-agents', label: 'Agents', iconName: 'Bot', path: '/agents' },
     { id: 'nav-staffing', label: 'Staffing KPIs', iconName: 'Users', path: '/staffing' },
     { id: 'nav-finances', label: 'Finances', iconName: 'Wallet', path: '/finances' },
+    { id: 'nav-diagnostics', label: 'Diagnostics', iconName: 'Activity', path: '/diagnostics' },
     { id: 'nav-settings', label: 'Settings', iconName: 'Settings', path: '/settings' },
   ],
 };
