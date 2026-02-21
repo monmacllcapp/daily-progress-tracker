@@ -44,6 +44,9 @@ export function useAppLifecycle() {
     localStorage.removeItem('titan_glass_layout_v3');
     localStorage.removeItem('dashboard_panels');
 
+    // Initialize Google auth auto-refresh (proactive token renewal)
+    import('../services/google-auth').then(({ initAutoRefresh }) => initAutoRefresh());
+
     // Health worker
     const healthWorker = new Worker(
       new URL('../workers/health-worker.ts', import.meta.url),
