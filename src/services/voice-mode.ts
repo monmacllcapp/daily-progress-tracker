@@ -335,7 +335,7 @@ async function enterListening(): Promise<void> {
   startRecognition();
 }
 
-function returnToIdle(): void {
+export function returnToIdle(): void {
   stopRecognition();
   stopSpeaking();
   teardownAudioAnalyser();
@@ -370,19 +370,6 @@ export async function initVoiceMode(): Promise<void> {
       await wakeWord.start();
     }
   }
-
-  // Auto-start listening if mic is enabled (always-on mode)
-  if (getStore().micEnabled && getStore().voiceMode === 'idle') {
-    console.log('[VoiceMode] Auto-starting listening (always-on)');
-    try {
-      await enterListening();
-      needsUserGesture = false;
-    } catch {
-      // Browser blocked auto-start — requires user gesture (click)
-      console.warn('[VoiceMode] Auto-start blocked — waiting for user gesture');
-      needsUserGesture = true;
-    }
-  }
 }
 
 /**
@@ -394,6 +381,19 @@ export async function forceStartListening(): Promise<void> {
   needsUserGesture = false;
   getStore().setVoiceError(null);
   await enterListening();
+}
+
+/**
+ * Toggle voice mode: start listening if idle, return to idle if active.
+ * Used by MapleOrb click handler for clean on/off toggle.
+ */
+export async function toggleVoiceMode(): Promise<void> {
+  const { voiceMode } = getStore();
+  if (voiceMode === 'idle') {
+    await forceStartListening();
+  } else {
+    returnToIdle();
+  }
 }
 
 /** Returns true if voice mode needs a user click to activate (browser policy). */

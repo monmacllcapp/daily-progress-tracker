@@ -12,7 +12,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Mic, MicOff, Volume2, VolumeOff } from 'lucide-react';
 import { useJarvisStore } from '../store/jarvisStore';
-import { getAnalyser as getAnalyserNode, muteMic, unmuteMic, forceStartListening, needsActivation } from '../services/voice-mode';
+import { getAnalyser as getAnalyserNode, muteMic, unmuteMic, toggleVoiceMode, returnToIdle, needsActivation } from '../services/voice-mode';
 
 const BAR_COUNT = 64;
 const TWO_PI = Math.PI * 2;
@@ -63,9 +63,8 @@ export function MapleOrb() {
   const smoothedBars = useRef<Float32Array>(new Float32Array(BAR_COUNT));
   const sweepAngle = useRef(0);
   const breathePhase = useRef(0);
-  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { voiceMode, isOpen, setIsOpen, liveTranscript, micEnabled, toggleMic, voiceEnabled, toggleVoice, voiceError } = useJarvisStore();
+  const { voiceMode, liveTranscript, micEnabled, toggleMic, voiceEnabled, toggleVoice, voiceError } = useJarvisStore();
 
   // --- Canvas rendering ---
   const draw = useCallback(() => {
@@ -189,36 +188,20 @@ export function MapleOrb() {
 
   // --- Click handling ---
   const handleClick = useCallback(() => {
-    // If voice needs activation (browser blocked auto-start), single click activates
-    if (needsActivation() || (voiceMode === 'idle' && micEnabled)) {
-      forceStartListening();
-      return;
-    }
-
-    // Use timeout to distinguish single vs double click
-    if (clickTimer.current) {
-      // Double-click: force start listening
-      clearTimeout(clickTimer.current);
-      clickTimer.current = null;
-      forceStartListening();
-    } else {
-      clickTimer.current = setTimeout(() => {
-        clickTimer.current = null;
-        // Single click: toggle panel
-        setIsOpen(!isOpen);
-      }, 250);
-    }
-  }, [isOpen, setIsOpen, voiceMode, micEnabled]);
+    toggleVoiceMode();
+  }, []);
 
   // --- Mic toggle ---
-  const handleMicToggle = useCallback(() => {
+  const handleMicToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     if (micEnabled) {
       muteMic();
+      if (voiceMode !== 'idle') returnToIdle();
     } else {
       unmuteMic();
     }
     toggleMic();
-  }, [micEnabled, toggleMic]);
+  }, [micEnabled, toggleMic, voiceMode]);
 
   // Determine outer glow class
   const glowClass =
@@ -260,9 +243,9 @@ export function MapleOrb() {
         style={{ background: 'radial-gradient(circle, rgba(15,23,42,0.9) 0%, rgba(10,14,26,0.95) 100%)' }}
         title={
           voiceMode === 'idle'
-            ? (needsActivation() ? 'Tap to activate Pepper' : 'Click to chat, double-click for voice')
+            ? 'Click to activate Pepper'
             : voiceMode === 'listening'
-              ? 'Listening...'
+              ? 'Listening... (click to stop)'
               : voiceMode === 'processing'
                 ? 'Thinking...'
                 : 'Speaking...'

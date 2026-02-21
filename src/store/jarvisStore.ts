@@ -77,12 +77,20 @@ export const useJarvisStore = create<JarvisState>((set, get) => ({
   setVoiceMode: (mode) => set({ voiceMode: mode }),
 
   // Wake word
-  wakeWordEnabled: true,
-  toggleWakeWord: () => set((s) => ({ wakeWordEnabled: !s.wakeWordEnabled })),
+  wakeWordEnabled: JSON.parse(localStorage.getItem('maple-wake-word') || 'false'),
+  toggleWakeWord: () => set((s) => {
+    const next = !s.wakeWordEnabled;
+    localStorage.setItem('maple-wake-word', JSON.stringify(next));
+    return { wakeWordEnabled: next };
+  }),
 
   // Mic on/off
-  micEnabled: true,
-  toggleMic: () => set((s) => ({ micEnabled: !s.micEnabled })),
+  micEnabled: JSON.parse(localStorage.getItem('maple-mic-enabled') || 'false'),
+  toggleMic: () => set((s) => {
+    const next = !s.micEnabled;
+    localStorage.setItem('maple-mic-enabled', JSON.stringify(next));
+    return { micEnabled: next };
+  }),
 
   // Live transcript
   liveTranscript: '',

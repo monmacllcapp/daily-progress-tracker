@@ -19,7 +19,6 @@ import {
 import { gatherJarvisContext, formatContextForPrompt } from './jarvis-context';
 import { sanitizeForPrompt } from '../utils/sanitize-prompt';
 import { logAgentActivity } from './agent-logger';
-import { ensureAgentTask, completeAgentTask } from './agent-task-enforcer';
 
 // --- Types ---
 
@@ -352,23 +351,6 @@ Rules:
         if (!parsed.suggestions) parsed.suggestions = [];
 
         logAgentActivity('ea-user', 'ai_call', `Processed: "${userMessage.slice(0, 60)}" → ${parsed.action}`);
-
-        // Track substantive work on the Kanban board (skip simple greetings/advice)
-        const isSubstantive = parsed.action !== 'advice' || userMessage.length > 60;
-        if (isSubstantive) {
-          try {
-            const taskTitle = `Pepper: ${parsed.action} — "${userMessage.slice(0, 50)}"`;
-            const taskId = await ensureAgentTask(undefined, {
-              agentId: 'ea-user',
-              title: taskTitle,
-              description: `User asked: "${userMessage}"\nAction: ${parsed.action}`,
-              priority: ['create', 'move', 'delete'].includes(parsed.action) ? 'high' : 'low',
-            });
-            await completeAgentTask(taskId, 'ea-user', parsed.response?.slice(0, 500) || 'Completed');
-          } catch (trackErr) {
-            console.warn('[Maple] Task tracking failed (non-blocking):', trackErr);
-          }
-        }
 
         return parsed;
     } catch (err) {

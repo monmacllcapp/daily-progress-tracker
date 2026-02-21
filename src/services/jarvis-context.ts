@@ -145,25 +145,25 @@ async function buildSnapshot(db: TitanDatabase): Promise<JarvisContextSnapshot> 
     isGoogleConnected()
       ? fetchGoogleEvents(now, new Date(now.getTime() + 30 * 60 * 60 * 1000)).catch(() => [])
       : Promise.resolve([]),
-    // V2 collections
-    db.signals.find({ selector: { is_dismissed: false } }).exec(),
-    db.deals.find().exec(),
-    db.family_events.find().exec(),
-    db.portfolio_snapshots.find().exec(),
-    db.vision_board.find().exec(),
-    db.staff_members.find({ selector: { is_active: true } }).exec(),
-    db.staff_pay_periods.find().exec(),
-    db.financial_monthly_summaries.find().exec(),
-    db.financial_subscriptions.find({ selector: { is_active: true } }).exec(),
-    db.productivity_patterns.find().exec(),
-    db.morning_briefs.find().exec(),
-    db.stressor_milestones.find().exec(),
+    // V2 collections (optional chaining — collections may not exist yet)
+    db.signals?.find({ selector: { is_dismissed: false } }).exec() ?? Promise.resolve([]),
+    db.deals?.find().exec() ?? Promise.resolve([]),
+    db.family_events?.find().exec() ?? Promise.resolve([]),
+    db.portfolio_snapshots?.find().exec() ?? Promise.resolve([]),
+    db.vision_board?.find().exec() ?? Promise.resolve([]),
+    db.staff_members?.find({ selector: { is_active: true } }).exec() ?? Promise.resolve([]),
+    db.staff_pay_periods?.find().exec() ?? Promise.resolve([]),
+    db.financial_monthly_summaries?.find().exec() ?? Promise.resolve([]),
+    db.financial_subscriptions?.find({ selector: { is_active: true } }).exec() ?? Promise.resolve([]),
+    db.productivity_patterns?.find().exec() ?? Promise.resolve([]),
+    db.morning_briefs?.find().exec() ?? Promise.resolve([]),
+    db.stressor_milestones?.find().exec() ?? Promise.resolve([]),
     // V3 collections
-    db.signal_weights.find().exec(),
-    db.staff_expenses.find().exec(),
-    db.staff_kpi_summaries.find().exec(),
-    db.financial_accounts.find().exec(),
-    db.financial_transactions.find().exec(),
+    db.signal_weights?.find().exec() ?? Promise.resolve([]),
+    db.staff_expenses?.find().exec() ?? Promise.resolve([]),
+    db.staff_kpi_summaries?.find().exec() ?? Promise.resolve([]),
+    db.financial_accounts?.find().exec() ?? Promise.resolve([]),
+    db.financial_transactions?.find().exec() ?? Promise.resolve([]),
   ]);
 
   // Extract original results
