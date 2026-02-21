@@ -2,16 +2,19 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Bot, RefreshCw, Wifi, WifiOff, Moon, Sun, Plus, Send,
   MessageSquare, ChevronDown, ChevronUp, Zap, AlertTriangle,
-  Clock, CheckCircle2, Pencil, X, Trash2, Eye,
+  Clock, CheckCircle2, X, Trash2, Eye,
 } from 'lucide-react';
 import {
-  fetchAgentStatus, formatRelativeTime, AGENTS,
+  fetchAgentStatus, formatRelativeTime, AGENTS, detectSubAgentPatterns,
   type AgentInfo, type AgentTask,
 } from '../services/agent-tracker';
-import type { AgentBoardStatus, Task } from '../types/schema';
+import type { AgentBoardStatus, Task, Mission } from '../types/schema';
 import { useDatabase } from '../hooks/useDatabase';
 import { useRxQuery } from '../hooks/useRxQuery';
 import { useAgentsStore, type ActivityEntry } from '../store/agentsStore';
+import { MissionList } from '../components/missions/MissionList';
+import { MissionCreateForm } from '../components/missions/MissionCreateForm';
+import { MissionDetail } from '../components/missions/MissionDetail';
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -76,44 +79,39 @@ function StatCard({
   );
 }
 
-// ── Mission Control Banner ───────────────────────────────────────────
+// ── Missions Section ─────────────────────────────────────────────────
 
-function MissionBanner() {
-  const { missionBrief, setMissionBrief } = useAgentsStore();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(missionBrief);
+function MissionsSection({ db }: { db: any }) {
+  const { selectedMissionId, setSelectedMissionId } = useAgentsStore();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [missions] = useRxQuery<Mission>(db?.missions, {
+    selector: {},
+    sort: [{ created_at: 'desc' }],
+  });
 
-  const save = () => {
-    setMissionBrief(draft.trim());
-    setEditing(false);
-  };
+  const selectedMission = missions.find((m) => m.id === selectedMissionId) || null;
 
   return (
-    <div className="bg-slate-900/50 border border-white/10 rounded-xl p-4 border-l-4 border-l-cyan-500">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-cyan-400">Mission Brief</h3>
-        <button
-          onClick={() => { if (editing) save(); else { setDraft(missionBrief); setEditing(true); } }}
-          className="text-slate-500 hover:text-white transition-colors"
-        >
-          {editing ? <CheckCircle2 className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
-        </button>
-      </div>
-      {editing ? (
-        <textarea
-          autoFocus
-          rows={2}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={save}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); } }}
-          placeholder="What is the squad working toward?"
-          className="w-full bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 resize-none focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+    <div className="space-y-4">
+      {showCreateForm ? (
+        <MissionCreateForm
+          onCreated={() => setShowCreateForm(false)}
+          onCancel={() => setShowCreateForm(false)}
         />
       ) : (
-        <p className="text-sm text-slate-300 leading-relaxed">
-          {missionBrief || <span className="italic text-slate-600">No mission brief set — click the pencil to add one.</span>}
-        </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-1">
+            <MissionList
+              missions={missions}
+              onCreateClick={() => setShowCreateForm(true)}
+            />
+          </div>
+          {selectedMission && (
+            <div className="lg:col-span-2">
+              <MissionDetail mission={selectedMission} />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -215,7 +213,12 @@ function KanbanCard({
         isSelected ? 'border-cyan-500/50 ring-1 ring-cyan-500/30' : 'border-transparent'
       }`}
     >
-      <p className="text-sm text-slate-200 leading-snug line-clamp-2">{task.title}</p>
+      <p className="text-sm text-slate-200 leading-snug line-clamp-2">
+        {task.mission_id && (
+          <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 mr-1.5 align-middle flex-shrink-0" />
+        )}
+        {task.title}
+      </p>
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs">{agentEmoji(task.assigned_agent)}</span>
         {priorityBadge(task.priority)}
@@ -374,12 +377,18 @@ function KanbanBoard({ tasks, db }: { tasks: Task[]; db: any }) {
 
 // ── Assign Task Form ─────────────────────────────────────────────────
 
-function AssignTaskForm({ db, onDone }: { db: any; onDone: () => void }) {
+function AssignTaskForm({ db, onDone, missions, defaultMissionId }: {
+  db: any;
+  onDone: () => void;
+  missions: Mission[];
+  defaultMissionId: string | null;
+}) {
   const pushActivity = useAgentsStore((s) => s.pushActivity);
   const [title, setTitle] = useState('');
   const [agentId, setAgentId] = useState(AGENTS[0].id);
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [description, setDescription] = useState('');
+  const [missionId, setMissionId] = useState<string>(defaultMissionId ?? '');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -399,6 +408,7 @@ function AssignTaskForm({ db, onDone }: { db: any; onDone: () => void }) {
         assigned_agent: agentId,
         agent_status: 'pending',
         agent_board_status: 'new',
+        mission_id: missionId || '',
       });
       pushActivity({
         type: 'task_created',
@@ -457,6 +467,18 @@ function AssignTaskForm({ db, onDone }: { db: any; onDone: () => void }) {
             <option value="high">High Priority</option>
             <option value="urgent">Urgent</option>
           </select>
+          <select
+            value={missionId}
+            onChange={(e) => setMissionId(e.target.value)}
+            className="w-full bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+          >
+            <option value="">No Mission</option>
+            {missions
+              .filter((m) => m.status === 'active' || m.status === 'paused')
+              .map((m) => (
+                <option key={m.id} value={m.id}>{m.title}</option>
+              ))}
+          </select>
           <button
             onClick={handleSubmit}
             disabled={!title.trim() || submitting}
@@ -508,6 +530,7 @@ function MiniBar({ value, max, color }: { value: number; max: number; color: str
 function SubAgentSection({ tasks }: { tasks: Task[] }) {
   const [expanded, setExpanded] = useState(false);
   const activeCount = tasks.filter((t) => t.agent_board_status !== 'done').length;
+  const patterns = useMemo(() => detectSubAgentPatterns(tasks), [tasks]);
 
   return (
     <div>
@@ -519,41 +542,58 @@ function SubAgentSection({ tasks }: { tasks: Task[] }) {
         Sub-Agents ({activeCount} active, {tasks.length} total)
       </button>
       {expanded && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-          {tasks.map((task) => (
-            <div key={task.id} className="bg-slate-900/50 border border-purple-500/20 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">sub-agent</span>
-                <span className="text-xs text-slate-500">
-                  spawned by {agentEmoji(task.parent_agent)} {agentName(task.parent_agent)}
-                </span>
-              </div>
-              <p className="text-sm text-white font-medium truncate">{task.title}</p>
-              {task.sub_agent_reason && (
-                <p className="text-xs text-slate-400 mt-1 line-clamp-2">Why: {task.sub_agent_reason}</p>
-              )}
-              <div className="flex items-center gap-2 mt-2">
-                <span className={`text-xs px-1.5 py-0.5 rounded ${
-                  task.agent_board_status === 'done' || task.agent_board_status === 'deliverable_ready'
-                    ? 'bg-emerald-500/20 text-emerald-300'
-                    : task.agent_board_status === 'blocked' || task.agent_status === 'failed'
-                    ? 'bg-red-500/20 text-red-300'
-                    : 'bg-blue-500/20 text-blue-300'
-                }`}>
-                  {task.agent_status === 'failed' ? 'failed' : task.agent_board_status || 'new'}
-                </span>
-                {task.sub_agent_name && (
-                  <span className="text-xs text-slate-600 font-mono truncate max-w-[120px]">{task.sub_agent_name}</span>
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+            {tasks.map((task) => (
+              <div key={task.id} className="bg-slate-900/50 border border-purple-500/20 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">sub-agent</span>
+                  <span className="text-xs text-slate-500">
+                    spawned by {agentEmoji(task.parent_agent)} {agentName(task.parent_agent)}
+                  </span>
+                </div>
+                <p className="text-sm text-white font-medium truncate">{task.title}</p>
+                {task.sub_agent_reason && (
+                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">Why: {task.sub_agent_reason}</p>
+                )}
+                <div className="flex items-center gap-2 mt-2">
+                  <span className={`text-xs px-1.5 py-0.5 rounded ${
+                    task.agent_board_status === 'done' || task.agent_board_status === 'deliverable_ready'
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : task.agent_board_status === 'blocked' || task.agent_status === 'failed'
+                      ? 'bg-red-500/20 text-red-300'
+                      : 'bg-blue-500/20 text-blue-300'
+                  }`}>
+                    {task.agent_status === 'failed' ? 'failed' : task.agent_board_status || 'new'}
+                  </span>
+                  {task.sub_agent_name && (
+                    <span className="text-xs text-slate-600 font-mono truncate max-w-[120px]">{task.sub_agent_name}</span>
+                  )}
+                </div>
+                {task.deliverable && (
+                  <div className="mt-2 text-xs text-cyan-300 bg-cyan-500/10 rounded p-2 max-h-20 overflow-y-auto">
+                    {task.deliverable.slice(0, 300)}{task.deliverable.length > 300 ? '...' : ''}
+                  </div>
                 )}
               </div>
-              {task.deliverable && (
-                <div className="mt-2 text-xs text-cyan-300 bg-cyan-500/10 rounded p-2 max-h-20 overflow-y-auto">
-                  {task.deliverable.slice(0, 300)}{task.deliverable.length > 300 ? '...' : ''}
+            ))}
+          </div>
+
+          {patterns.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-purple-400">Recurring Patterns</h4>
+              {patterns.map((p) => (
+                <div key={p.name} className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                  <span className="text-sm">🔄</span>
+                  <span className="text-sm text-slate-300">
+                    <strong className="text-purple-300">{p.name}</strong> — {p.taskCount} tasks, {p.successRate}% success
+                  </span>
+                  <span className="text-xs text-slate-500 ml-auto">Consider permanent role</span>
                 </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -764,12 +804,18 @@ export default function AgentsPage() {
   const [loading, setLoading] = useState(true);
   const [showAssignForm, setShowAssignForm] = useState(false);
 
-  const { awayMode, toggleAwayMode, activityFeed } = useAgentsStore();
+  const { awayMode, toggleAwayMode, activityFeed, selectedMissionId, setSelectedMissionId } = useAgentsStore();
 
   // Reactive query for all agent-assigned tasks
   const [allAgentTasks] = useRxQuery<Task>(db?.tasks, {
     selector: { assigned_agent: { $exists: true } },
     sort: [{ created_date: 'desc' }],
+  });
+
+  // Reactive query for missions (needed for AssignTaskForm)
+  const [allMissions] = useRxQuery<Mission>(db?.missions, {
+    selector: {},
+    sort: [{ created_at: 'desc' }],
   });
 
   // Derive board columns
@@ -789,6 +835,12 @@ export default function AgentsPage() {
     () => allAgentTasks.filter((t) => t.is_sub_agent_task),
     [allAgentTasks]
   );
+
+  // Mission-filtered tasks for Kanban
+  const filteredCoreTasks = useMemo(() => {
+    if (!selectedMissionId) return coreTasks;
+    return coreTasks.filter((t) => t.mission_id === selectedMissionId);
+  }, [coreTasks, selectedMissionId]);
 
   // Per-agent performance stats for fleet grid
   const agentStatsMap = useMemo(() => {
@@ -826,6 +878,11 @@ export default function AgentsPage() {
 
   const onlineCount = agents.filter((a) => a.status !== 'offline').length;
   const activeCount = agents.filter((a) => a.status === 'working').length;
+
+  // Resolve selected mission title for filter chip
+  const selectedMissionTitle = selectedMissionId
+    ? allMissions.find((m) => m.id === selectedMissionId)?.title
+    : null;
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -879,12 +936,17 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      {/* ── Mission Control Banner ── */}
-      <MissionBanner />
+      {/* ── Missions System ── */}
+      {db && <MissionsSection db={db} />}
 
       {/* ── Assign Task Form (collapsible) ── */}
       {showAssignForm && db && (
-        <AssignTaskForm db={db} onDone={() => setShowAssignForm(false)} />
+        <AssignTaskForm
+          db={db}
+          onDone={() => setShowAssignForm(false)}
+          missions={allMissions}
+          defaultMissionId={selectedMissionId}
+        />
       )}
 
       {/* ── Stats Bar ── */}
@@ -939,8 +1001,25 @@ export default function AgentsPage() {
       {/* ── Questions Queue ── */}
       {db && <QuestionsQueue tasks={allAgentTasks} db={db} />}
 
-      {/* ── Kanban Board (core agent tasks only) ── */}
-      {db && <KanbanBoard tasks={coreTasks} db={db} />}
+      {/* ── Mission Filter Chip + Kanban Board ── */}
+      <div className="space-y-3">
+        {selectedMissionTitle && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400">Showing:</span>
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-medium">
+              {selectedMissionTitle}
+              <button
+                onClick={() => setSelectedMissionId(null)}
+                className="ml-1 text-cyan-400 hover:text-white transition-colors"
+                title="Clear mission filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          </div>
+        )}
+        {db && <KanbanBoard tasks={filteredCoreTasks} db={db} />}
+      </div>
 
       {/* ── Sub-Agent Ops ── */}
       {subAgentTasks.length > 0 && <SubAgentSection tasks={subAgentTasks} />}

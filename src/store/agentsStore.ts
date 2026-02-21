@@ -18,9 +18,11 @@ interface BroadcastEntry {
 }
 
 interface AgentsState {
-  // Mission control
-  missionBrief: string;
-  setMissionBrief: (text: string) => void;
+  // Mission selection (session-only, not persisted)
+  selectedMissionId: string | null;
+  setSelectedMissionId: (id: string | null) => void;
+  missionPanelOpen: boolean;
+  toggleMissionPanel: () => void;
 
   // Away mode
   awayMode: boolean;
@@ -39,9 +41,11 @@ interface AgentsState {
 export const useAgentsStore = create<AgentsState>()(
   persist(
     (set, get) => ({
-      // Mission control
-      missionBrief: '',
-      setMissionBrief: (text) => set({ missionBrief: text }),
+      // Mission selection
+      selectedMissionId: null,
+      setSelectedMissionId: (id) => set({ selectedMissionId: id }),
+      missionPanelOpen: false,
+      toggleMissionPanel: () => set((s) => ({ missionPanelOpen: !s.missionPanelOpen })),
 
       // Away mode
       awayMode: false,
@@ -77,7 +81,6 @@ export const useAgentsStore = create<AgentsState>()(
     {
       name: 'maple-agents-store',
       partialize: (s) => ({
-        missionBrief: s.missionBrief,
         awayMode: s.awayMode,
         broadcastHistory: s.broadcastHistory,
         activityFeed: s.activityFeed,

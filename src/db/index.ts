@@ -3,7 +3,7 @@ import type { RxDatabase, RxCollection } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { createClient } from '@supabase/supabase-js';
-import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile, AnalyticsEvent, StaffMember, StaffPayPeriod, StaffExpense, StaffKpiSummary, FinancialAccount, FinancialTransaction, FinancialSubscription, FinancialMonthlySummary } from '../types/schema';
+import type { DailyJournal, Task, Project, SubTask, VisionBoard, Category, Stressor, StressorMilestone, CalendarEvent, Email, PomodoroSession, Habit, HabitCompletion, UserProfile, AnalyticsEvent, StaffMember, StaffPayPeriod, StaffExpense, StaffKpiSummary, FinancialAccount, FinancialTransaction, FinancialSubscription, FinancialMonthlySummary, Mission, MissionAttachment } from '../types/schema';
 import type { Signal, Deal, PortfolioSnapshot, FamilyEvent, MorningBrief, ProductivityPattern, SignalWeight } from '../types/signals';
 
 // Add migration plugin
@@ -12,7 +12,7 @@ addRxPlugin(RxDBMigrationSchemaPlugin);
 // -- RxDB Schema Definitions --
 
 const taskSchema = {
-    version: 4,
+    version: 5,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -48,9 +48,48 @@ const taskSchema = {
         sub_agent_result: { type: 'string' },
         sub_agent_spawned_at: { type: 'string' },
         sub_agent_completed_at: { type: 'string' },
+        // Mission tracking (v5)
+        mission_id: { type: 'string' },
     },
     required: ['id', 'title', 'status', 'source', 'created_date', 'category_id'],
     indexes: ['status', 'created_date', 'category_id']
+};
+
+const missionSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        title: { type: 'string', maxLength: 300 },
+        description: { type: 'string', maxLength: 5000 },
+        status: { type: 'string', enum: ['active', 'paused', 'completed', 'archived'] },
+        color: { type: 'string' },
+        assigned_agents: { type: 'array', items: { type: 'string' } },
+        created_at: { type: 'string' },
+        updated_at: { type: 'string' },
+        completed_at: { type: 'string' },
+    },
+    required: ['id', 'title', 'status'],
+    indexes: ['status', 'created_at']
+};
+
+const missionAttachmentSchema = {
+    version: 0,
+    primaryKey: 'id',
+    type: 'object',
+    properties: {
+        id: { type: 'string', maxLength: 100 },
+        mission_id: { type: 'string' },
+        file_name: { type: 'string', maxLength: 500 },
+        file_type: { type: 'string', maxLength: 100 },
+        file_size: { type: 'integer' },
+        data_base64: { type: 'string' },
+        thumbnail_base64: { type: 'string' },
+        created_at: { type: 'string' },
+    },
+    required: ['id', 'mission_id', 'file_name', 'file_type', 'file_size', 'data_base64'],
+    indexes: ['mission_id']
 };
 
 const projectSchema = {
@@ -719,6 +758,9 @@ export type TitanDatabaseCollections = {
     financial_transactions: RxCollection<FinancialTransaction>;
     financial_subscriptions: RxCollection<FinancialSubscription>;
     financial_monthly_summaries: RxCollection<FinancialMonthlySummary>;
+    // Mission Collections
+    missions: RxCollection<Mission>;
+    mission_attachments: RxCollection<MissionAttachment>;
 };
 
 export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
@@ -727,7 +769,7 @@ export type TitanDatabase = RxDatabase<TitanDatabaseCollections>;
 
 async function startReplication(db: TitanDatabase, url: string, key: string) {
     const supabase = createClient(url, key);
-    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'analytics_events', 'signals', 'deals', 'portfolio_snapshots', 'family_events', 'morning_briefs', 'productivity_patterns', 'signal_weights', 'staff_members', 'staff_pay_periods', 'staff_expenses', 'staff_kpi_summaries', 'financial_accounts', 'financial_transactions', 'financial_subscriptions', 'financial_monthly_summaries'];
+    const tables = ['tasks', 'projects', 'sub_tasks', 'daily_journal', 'vision_board', 'categories', 'stressors', 'stressor_milestones', 'calendar_events', 'emails', 'pomodoro_sessions', 'habits', 'habit_completions', 'user_profile', 'analytics_events', 'signals', 'deals', 'portfolio_snapshots', 'family_events', 'morning_briefs', 'productivity_patterns', 'signal_weights', 'staff_members', 'staff_pay_periods', 'staff_expenses', 'staff_kpi_summaries', 'financial_accounts', 'financial_transactions', 'financial_subscriptions', 'financial_monthly_summaries', 'missions'];
 
     for (const table of tables) {
         // @ts-expect-error - dynamic access
@@ -853,6 +895,12 @@ async function initDatabase(): Promise<TitanDatabase> {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
                 4: function (oldDoc: any) {
                     oldDoc.is_sub_agent_task = false;
+                    return oldDoc;
+                },
+                // v4 → v5: add mission_id
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RxDB migration doc
+                5: function (oldDoc: any) {
+                    oldDoc.mission_id = '';
                     return oldDoc;
                 }
             }
@@ -1001,6 +1049,9 @@ async function initDatabase(): Promise<TitanDatabase> {
         financial_transactions: { schema: financialTransactionSchema },
         financial_subscriptions: { schema: financialSubscriptionSchema },
         financial_monthly_summaries: { schema: financialMonthlySummarySchema },
+        // Mission Collections
+        missions: { schema: missionSchema },
+        mission_attachments: { schema: missionAttachmentSchema },
     };
 
     // Add collections one-by-one so HMR/duplicate errors don't block other collections

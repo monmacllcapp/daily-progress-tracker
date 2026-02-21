@@ -97,6 +97,8 @@ export const AGENT_ROLE_MAP: Record<string, AgentRole> = {
   'ea-user': 'ea',
   'ea-wife': 'ea',
   sales: 'workers',
+  onboarding: 'workers',
+  fulfillment: 'workers',
   marketing: 'workers',
   finance: 'workers',
   support: 'workers',

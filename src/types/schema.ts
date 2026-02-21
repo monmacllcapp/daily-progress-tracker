@@ -49,6 +49,7 @@ export interface Task {
   sub_agent_result?: string;
   sub_agent_spawned_at?: string;
   sub_agent_completed_at?: string;
+  mission_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -458,4 +459,30 @@ export interface FinancialMonthlySummary {
   ai_insights: string;
   created_at?: string;
   updated_at?: string;
+}
+
+// -- 16. Missions --
+export type MissionStatus = 'active' | 'paused' | 'completed' | 'archived';
+
+export interface Mission {
+  id: string;
+  title: string;
+  description?: string;
+  status: MissionStatus;
+  color?: string;
+  assigned_agents: string[];
+  created_at?: string;
+  updated_at?: string;
+  completed_at?: string;
+}
+
+export interface MissionAttachment {
+  id: string;
+  mission_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  data_base64: string;
+  thumbnail_base64?: string;
+  created_at?: string;
 }

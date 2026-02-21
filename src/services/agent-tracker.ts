@@ -52,7 +52,9 @@ export interface AgentTask {
 export const AGENTS: AgentInfo[] = [
   { id: 'main',      name: 'Main (Default)', emoji: '🦞', status: 'offline', model: 'claude-sonnet-4-5-20250929' },
   { id: 'manager',   name: 'Manager',        emoji: '🎯', status: 'offline', model: 'claude-opus-4-2025-04-16' },
-  { id: 'sales',     name: 'Sales',          emoji: '💰', status: 'offline', model: 'kimi-k2.5' },
+  { id: 'sales',       name: 'Sales',          emoji: '💰', status: 'offline', model: 'kimi-k2.5' },
+  { id: 'onboarding',  name: 'Onboarding',     emoji: '🤝', status: 'offline', model: 'kimi-k2.5' },
+  { id: 'fulfillment', name: 'Fulfillment',    emoji: '📦', status: 'offline', model: 'kimi-k2.5' },
   { id: 'marketing', name: 'Marketing',      emoji: '📣', status: 'offline', model: 'kimi-k2.5' },
   { id: 'finance',   name: 'Finance',        emoji: '📊', status: 'offline', model: 'kimi-k2.5' },
   { id: 'support',   name: 'Support',        emoji: '🛟', status: 'offline', model: 'kimi-k2.5' },
@@ -191,4 +193,38 @@ export function formatRelativeTime(iso?: string): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
+}
+
+export interface SubAgentPattern {
+  name: string;
+  parentAgent: string;
+  taskCount: number;
+  successRate: number;
+  commonReasons: string[];
+}
+
+export function detectSubAgentPatterns(tasks: { is_sub_agent_task?: boolean; sub_agent_name?: string; parent_agent?: string; agent_board_status?: string; sub_agent_reason?: string }[]): SubAgentPattern[] {
+  const subTasks = tasks.filter(t => t.is_sub_agent_task && t.sub_agent_name);
+  const grouped = new Map<string, typeof subTasks>();
+
+  for (const t of subTasks) {
+    const key = t.sub_agent_name!;
+    const arr = grouped.get(key) || [];
+    arr.push(t);
+    grouped.set(key, arr);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([name, group]) => {
+      const done = group.filter(t => t.agent_board_status === 'done').length;
+      return {
+        name,
+        parentAgent: group[0].parent_agent || 'unknown',
+        taskCount: group.length,
+        successRate: group.length > 0 ? Math.round((done / group.length) * 100) : 0,
+        commonReasons: [...new Set(group.map(t => t.sub_agent_reason).filter(Boolean) as string[])].slice(0, 3),
+      };
+    })
+    .filter(p => p.taskCount >= 3)
+    .sort((a, b) => b.taskCount - a.taskCount);
 }
